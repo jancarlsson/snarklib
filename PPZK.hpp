@@ -81,7 +81,7 @@ public:
                 std::vector<Fr>(coeffs.begin() + 1, coeffs.end()))}
     {}
 
-    PPZK_IC_Query accumulate(const std::vector<Fr>& witness) const
+    PPZK_IC_Query accumulate(const R1Witness<Fr>& witness) const
     {
         G1 base = m_base;
         std::vector<G1> encoded_terms;
@@ -94,20 +94,19 @@ public:
             base = base + multiExp(
                 std::vector<G1>(m_encoded_terms.begin(),
                                 m_encoded_terms.begin() + wsize),
-                witness);
+                *witness);
 
             encoded_terms
                 = std::vector<G1>(m_encoded_terms.begin() + wsize,
                                   m_encoded_terms.end());
 
         } else if (wsize > tsize) {
-            base = base + multiExp(
-                m_encoded_terms,
-                std::vector<Fr>(witness.begin(),
-                                witness.begin() + tsize));
+            base = base + multiExp(m_encoded_terms,
+                                   *witness.truncate(tsize));
 
         } else {
-            base = base + multiExp(m_encoded_terms, witness);
+            base = base + multiExp(m_encoded_terms,
+                                   *witness);
         }
 
         return PPZK_IC_Query(base, encoded_terms);
@@ -330,7 +329,7 @@ public:
     PPZK_Proof(const R1System<Fr>& constraintSystem,
                const std::size_t numCircuitInputs,
                const PPZK_ProvingKey<PAIRING>& pk,
-               const std::vector<Fr>& witness)
+               const R1Witness<Fr>& witness)
     {
         const auto
             d1 = Fr::random(),
@@ -348,15 +347,15 @@ public:
 
         m_A = (d1 * A_query.getElementForIndex(0))
             + A_query.getElementForIndex(3)
-            + multiExp01(A_query, witness, 4, 4 + qap.numVariables());
+            + multiExp01(A_query, *witness, 4, 4 + qap.numVariables());
 
         m_B = (d2 * B_query.getElementForIndex(1))
             + B_query.getElementForIndex(3)
-            + multiExp01(B_query, witness, 4, 4 + qap.numVariables());
+            + multiExp01(B_query, *witness, 4, 4 + qap.numVariables());
 
         m_C = (d3 * C_query.getElementForIndex(2))
             + C_query.getElementForIndex(3)
-            + multiExp01(C_query, witness, 4, 4 + qap.numVariables());
+            + multiExp01(C_query, *witness, 4, 4 + qap.numVariables());
 
         m_H = multiExp(H_query, qap.H());
 
@@ -364,7 +363,7 @@ public:
             + K_query[3]
             + multiExp01(
                 std::vector<G1>(K_query.begin() + 4, K_query.end()),
-                witness);
+                *witness);
     }
 
     const Pairing<G1, G1>& A() const { return m_A; }
@@ -396,7 +395,7 @@ private:
 
 template <typename PAIRING>
 bool weakVerify(const PPZK_PrecompVerificationKey<PAIRING>& pvk,
-                const std::vector<typename PAIRING::Fr>& input,
+                const R1Witness<typename PAIRING::Fr>& input,
                 const PPZK_Proof<PAIRING>& proof)
 {
     typedef typename PAIRING::GT GT;
@@ -467,7 +466,7 @@ bool weakVerify(const PPZK_PrecompVerificationKey<PAIRING>& pvk,
 
 template <typename PAIRING>
 bool weakVerify(const PPZK_VerificationKey<PAIRING>& vk,
-                const std::vector<typename PAIRING::Fr>& input,
+                const R1Witness<typename PAIRING::Fr>& input,
                 const PPZK_Proof<PAIRING>& proof)
 {
     return weakVerify(PPZK_PrecompVerificationKey<PAIRING>(vk),
@@ -477,7 +476,7 @@ bool weakVerify(const PPZK_VerificationKey<PAIRING>& vk,
 
 template <typename PAIRING>
 bool strongVerify(const PPZK_PrecompVerificationKey<PAIRING>& pvk,
-                  const std::vector<typename PAIRING::Fr>& input,
+                  const R1Witness<typename PAIRING::Fr>& input,
                   const PPZK_Proof<PAIRING>& proof)
 {
     return (pvk.encoded_IC_query().input_size() == input.size())
@@ -487,7 +486,7 @@ bool strongVerify(const PPZK_PrecompVerificationKey<PAIRING>& pvk,
 
 template <typename PAIRING>
 bool strongVerify(const PPZK_VerificationKey<PAIRING>& vk,
-                  const std::vector<typename PAIRING::Fr>& input,
+                  const R1Witness<typename PAIRING::Fr>& input,
                   const PPZK_Proof<PAIRING>& proof)
 {
     return strongVerify(PPZK_PrecompVerificationKey<PAIRING>(vk),
