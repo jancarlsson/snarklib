@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
 #include <cstdlib>
 #include <gmp.h>
