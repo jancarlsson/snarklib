@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cassert>
+#include <climits>
 #include <cstdint>
 #include <cctype>
 #include <gmp.h>
@@ -38,7 +39,7 @@ public:
     explicit BigInt(const unsigned long a)
         : BigInt{}
     {
-        assert(8 * sizeof(a) <= GMP_NUMB_BITS);
+        assert(CHAR_BIT * sizeof(a) <= GMP_NUMB_BITS);
         m_data[0] = a;
     }
 
@@ -186,7 +187,7 @@ public:
         return true;
     }
 
-    constexpr std::size_t maxBits() const {
+    static constexpr std::size_t maxBits() {
         return N * GMP_NUMB_BITS;
     }
 
@@ -234,7 +235,7 @@ public:
     }
 
     BigInt<N>& randomize() {
-        assert(GMP_NUMB_BITS == sizeof(mp_limb_t) * 8);
+        assert(GMP_NUMB_BITS == sizeof(mp_limb_t) * CHAR_BIT);
 
         std::random_device rd; // uses /dev/urandom
         const std::size_t n = sizeof(mp_limb_t) / sizeof(unsigned int);
