@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <gmp.h>
+#include <vector>
 #include "AuxSTL.hpp"
 #include "BigInt.hpp"
 #include "Group.hpp"
