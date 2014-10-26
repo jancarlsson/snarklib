@@ -2,7 +2,6 @@
 #define _SNARKLIB_AUTOTEST_QAP_HPP_
 
 #include <cstdint>
-#include <vector>
 #include "AutoTest.hpp"
 #include "AutoTest_R1CS.hpp"
 #include "QAP.hpp"
