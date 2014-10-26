@@ -5,7 +5,6 @@
 #include <ostream>
 #include <sstream>
 #include <string>
-#include <vector>
 #include "Rank1DSL.hpp"
 #include "r1cs/r1cs.hpp"
 
@@ -41,11 +40,11 @@ public:
         return m_csB;
     }
 
-    const std::vector<T>& witnessB() const {
+    const R1Witness<T>& witnessB() const {
         return m_witnessB;
     }
 
-    const std::vector<T>& inputB() const {
+    const R1Witness<T>& inputB() const {
         return m_inputB;
     }
 
@@ -61,7 +60,7 @@ protected:
     libsnark::r1cs_constraint_system<U> m_csA;
     libsnark::r1cs_variable_assignment<U> m_witnessA, m_inputA;
     R1System<T> m_csB;
-    std::vector<T> m_witnessB, m_inputB;
+    R1Witness<T> m_witnessB, m_inputB;
 
 private:
     const std::size_t m_numberInputs;
@@ -112,12 +111,12 @@ private:
 
         this->m_csB.addConstraint(x * y == z);
 
-        this->m_witnessB.push_back(T::one()); // x
-        this->m_witnessB.push_back(T::one()); // y
-        this->m_witnessB.push_back(T::one()); // z
+        this->m_witnessB.assignVar(x, T::one());
+        this->m_witnessB.assignVar(y, T::one());
+        this->m_witnessB.assignVar(z, T::one());
 
-        this->m_inputB.push_back(T::one()); // x
-        this->m_inputB.push_back(T::one()); // y
+        this->m_inputB.assignVar(x, T::one());
+        this->m_inputB.assignVar(y, T::one());
     }
 };
 
@@ -163,12 +162,12 @@ private:
 
         this->m_csB.addConstraint(x + y - z == x * y);
 
-        this->m_witnessB.push_back(T::one()); // x
-        this->m_witnessB.push_back(T::one()); // y
-        this->m_witnessB.push_back(T::one()); // z
+        this->m_witnessB.assignVar(x, T::one());
+        this->m_witnessB.assignVar(y, T::one());
+        this->m_witnessB.assignVar(z, T::one());
 
-        this->m_inputB.push_back(T::one()); // x
-        this->m_inputB.push_back(T::one()); // y
+        this->m_inputB.assignVar(x, T::one());
+        this->m_inputB.assignVar(y, T::one());
     }
 };
 
@@ -215,12 +214,12 @@ private:
         const auto TWO = T::one() + T::one();
         this->m_csB.addConstraint(x + y - z == (TWO * x) * y);
 
-        this->m_witnessB.push_back(T::one()); // x
-        this->m_witnessB.push_back(T::one()); // y
-        this->m_witnessB.push_back(T::zero()); // z
+        this->m_witnessB.assignVar(x, T::one());
+        this->m_witnessB.assignVar(y, T::one());
+        this->m_witnessB.assignVar(z, T::zero());
 
-        this->m_inputB.push_back(T::one()); // x
-        this->m_inputB.push_back(T::one()); // y
+        this->m_inputB.assignVar(x, T::one());
+        this->m_inputB.assignVar(y, T::one());
     }
 };
 
