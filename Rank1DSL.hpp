@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <iostream>
 #include <ostream>
+#include <set>
 #include <vector>
 
 namespace snarklib {
@@ -57,6 +58,74 @@ std::ostream& operator<< (std::ostream& out, const R1Variable<T>& a) {
         return out << "x_" << a.index();
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Rank 1 Witness Variable Assignment
+//
+// Note indexing is offset by one so 0th element corresponds to x_1,
+// 1st element corresponds to x_2, etc. This matches the offset dot
+// product in R1Combination<>.
+//
+
+template <typename T>
+class R1Witness
+{
+public:
+    R1Witness() = default;
+
+    void assignVar(const R1Variable<T>& x, const T& value) {
+        // subtract one to make absolute index
+        const std::size_t idx = x.index() - 1;
+
+        for (std::size_t i = m_va.size(); i <= idx; ++i) {
+            m_va.emplace_back(T());
+            m_unsetIdx.insert(i);
+        }
+
+        m_va[idx] = value;
+        m_unsetIdx.erase(idx);
+    }
+
+    R1Witness truncate(const std::size_t leadingSize) const {
+        std::set<std::size_t> unsetIdx;
+        for (std::size_t i = 0; i < leadingSize; ++i) {
+            if (m_unsetIdx.count(i))
+                unsetIdx.insert(i);
+        }
+
+        return R1Witness<T>(
+            std::vector<T>(m_va.begin(),
+                           m_va.begin() + leadingSize),
+            unsetIdx);
+    }
+
+    const T& operator[] (const std::size_t index) const {
+        return m_va[index];
+    }
+
+    std::size_t size() const {
+        return m_va.size();
+    }
+
+    // returns true if all variables are assigned
+    bool assignOk() const {
+        return m_unsetIdx.empty();
+    }
+
+    const std::vector<T>& operator* () const {
+        return m_va;
+    }
+
+private:
+    R1Witness(const std::vector<T>& va,
+              const std::set<std::size_t>& unsetIdx)
+        : m_va(va),
+          m_unsetIdx(unsetIdx)
+    {}
+
+    std::vector<T> m_va; // variable assignment
+    std::set<std::size_t> m_unsetIdx;
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 // Rank 1 Linear Term
@@ -174,13 +243,13 @@ public:
     }
 
     // offset dot product is evaluation of linear combination
-    T operator* (const std::vector<T>& witness) const {
+    T operator* (const R1Witness<T>& witness) const {
         T accum = T::zero();
 
         for (const auto& r : terms()) {
             accum += r.coeff() * (0 == r.index()
                                   ? T::one()
-                                  : witness[r.index() - 1]);
+                                  : (*witness)[r.index() - 1]);
         }
 
         return accum;
@@ -432,7 +501,7 @@ public:
     R1Constraint(const LC& c, const std::array<LC, 2>& ab) : R1Constraint{ab, c} {}
 
     // check if constraint equation is satisfied under variable assignment
-    bool isSatisfied(const std::vector<T>& witness) const {
+    bool isSatisfied(const R1Witness<T>& witness) const {
         return (m_a * witness) * (m_b * witness) == (m_c * witness);
     }
 
@@ -644,10 +713,16 @@ public:
         : m_minIndex(-1), m_maxIndex(0)
     {}
 
+    void clear() {
+        m_constraints.clear();
+        m_minIndex = -1;
+        m_maxIndex = 0;
+    }
+
     // check if all constraints satisfied under variable assignment
-    bool isSatisfied(const std::vector<T>& w) const {
+    bool isSatisfied(const R1Witness<T>& witness) const {
         for (const auto& r : m_constraints) {
-            if (! r.isSatisfied(w))
+            if (! r.isSatisfied(witness))
                 return false;
         }
 
@@ -681,7 +756,7 @@ public:
 
     bool swap_AB_if_beneficial()
     {
-        std::vector<bool>
+        std::vector<int>
             touched_by_A(maxIndex() + 1, false),
             touched_by_B(maxIndex() + 1, false);
 
