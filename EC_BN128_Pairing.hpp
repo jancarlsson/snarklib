@@ -1,6 +1,7 @@
 #ifndef _SNARKLIB_EC_BN128_PAIRING_HPP_
 #define _SNARKLIB_EC_BN128_PAIRING_HPP_
 
+#include <cassert>
 #include <vector>
 #include "EC.hpp"
 #include "EC_BN128_GroupCurve.hpp"
