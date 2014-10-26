@@ -196,7 +196,7 @@ public:
 
     QAP_Witness(const R1System<T>& constraintSystem,
                 const std::size_t numInputs,
-                const std::vector<T>& witness,
+                const R1Witness<T>& witness,
                 const T& d1,
                 const T& d2,
                 const T& d3)
