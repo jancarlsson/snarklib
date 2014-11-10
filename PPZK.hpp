@@ -241,7 +241,7 @@ class PPZK_Keypair
     typedef typename PAIRING::G2 G2;
 
 public:
-    PPZK_Keypair(const R1System<typename PAIRING::Fr>& constraintSystem,
+    PPZK_Keypair(const R1System<Fr>& constraintSystem,
                  const std::size_t numCircuitInputs)
     {
         const auto
@@ -256,10 +256,7 @@ public:
 
         const auto rC = rA * rB;
 
-        auto copyCS = constraintSystem;
-        copyCS.swap_AB_if_beneficial();
-
-        QAP_ABCH<Fr> abch(copyCS,
+        QAP_ABCH<Fr> abch(constraintSystem,
                           numCircuitInputs,
                           point);
 
