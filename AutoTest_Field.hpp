@@ -221,7 +221,7 @@ public:
     }
 
     AutoTest_FieldExp()
-        : AutoTest_FieldExp{T::random(), BigInt<N>().randomize()}
+        : AutoTest_FieldExp{T::random(), BigInt<N>::random()}
     {}
 
     void runTest() {
@@ -384,7 +384,7 @@ public:
     }
 
     AutoTest_FieldCyclotomicExp()
-        : AutoTest_FieldCyclotomicExp{T::random(), BigInt<N>().randomize()}
+        : AutoTest_FieldCyclotomicExp{T::random(), BigInt<N>::random()}
     {}
 
     void runTest() {
