@@ -33,6 +33,10 @@ public:
         return m_G == other.m_G && m_H == other.m_H;
     }
 
+    bool operator!= (const Pairing& other) const {
+        return ! (*this == other);
+    }
+
     static Pairing zero() {
         return Pairing<GA, GB>(GA::zero(), GB::zero());
     }
