@@ -59,9 +59,6 @@ endif
 # CURVE_EDWARDS
 #
 
-LIBSNARK_PREFIX_CURVE_EDWARDS = \
-	/home/jcarlsson/home/development/install.CURVE_EDWARDS
-
 ifeq ($(LIBSNARK_PREFIX),)
 autotest_edwards :
 	$(error Please provide LIBSNARK_PREFIX, e.g. make autotest_edwards LIBSNARK_PREFIX=/usr/local)
