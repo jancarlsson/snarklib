@@ -41,18 +41,38 @@ public:
                                m_constraintSystem.numberInputs(),
                                m_B);
 
-        checkPass(sameData(qapA.At, qapB.A_query()));
-        checkPass(sameData(qapA.Bt, qapB.B_query()));
-        checkPass(sameData(qapA.Ct, qapB.C_query()));
-        checkPass(sameData(qapA.Ht, qapB.H_query()));
+        if (resultsMatch(qapA, qapB)) {
+            checkPass(true);
 
-        checkPass(qapA.non_zero_At == qapB.nonzeroAt());
-        checkPass(qapA.non_zero_Bt == qapB.nonzeroBt());
-        checkPass(qapA.non_zero_Ct == qapB.nonzeroCt());
-        checkPass(qapA.non_zero_Ht == qapB.nonzeroHt());
+        } else {
+            // try again with A and B swapped
+            // libsnark swaps A and B during key generation
+            // snarklib swaps A and B before key generation
+            auto copyCS = m_constraintSystem.systemB();
+            copyCS.swap_AB();
+
+            const QAP_ABCH<T> qapB(copyCS,
+                                   m_constraintSystem.numberInputs(),
+                                   m_B);
+
+            checkPass(resultsMatch(qapA, qapB));
+        }
     }
 
 private:
+    template <typename A>
+    bool resultsMatch(const A& qapA, const QAP_ABCH<T>& qapB) {
+        return
+            sameData(qapA.At, qapB.A_query()) &&
+            sameData(qapA.Bt, qapB.B_query()) &&
+            sameData(qapA.Ct, qapB.C_query()) &&
+            sameData(qapA.Ht, qapB.H_query()) &&
+            (qapA.non_zero_At == qapB.nonzeroAt()) &&
+            (qapA.non_zero_Bt == qapB.nonzeroBt()) &&
+            (qapA.non_zero_Ct == qapB.nonzeroCt()) &&
+            (qapA.non_zero_Ht == qapB.nonzeroHt());
+    }
+
     const AutoTestR1CS<T, U> m_constraintSystem;
     U m_A;
     const T m_B;
@@ -102,7 +122,27 @@ public:
 
         const auto& HB = qapB.H();
 
-        checkPass(sameData(HA, HB));
+        if (sameData(HA, HB)) {
+            checkPass(true);
+
+        } else {
+            // try again with A and B swapped
+            // libsnark swaps A and B during key generation
+            // snarklib swaps A and B before key generation
+            auto copyCS = m_constraintSystem.systemB();
+            copyCS.swap_AB();
+
+            const QAP_Witness<T> qapB(copyCS,
+                                      m_constraintSystem.numberInputs(),
+                                      m_constraintSystem.witnessB(),
+                                      m_d1B,
+                                      m_d2B,
+                                      m_d3B);
+
+            const auto& HB = qapB.H();
+
+            checkPass(sameData(HA, HB));
+        }
     }
 
 private:
