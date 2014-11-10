@@ -57,6 +57,19 @@ protected:
         : m_numberInputs(numberInputs)
     {}
 
+    void addBooleanity_A(const std::size_t varIndex) {
+        libsnark::linear_combination<U> A, B, C;
+        A.add_term(varIndex, 1);
+        B.add_term(0, 1);
+        B.add_term(varIndex, -1);
+        C.add_term(0, 0);
+        m_csA.add_constraint(libsnark::r1cs_constraint<U>(A, B, C));
+    }
+
+    void addBooleanity_B(const R1Variable<T>& x) {
+        m_csB.addConstraint(x * (T::one() - x) == T::zero());
+    }
+
     libsnark::r1cs_constraint_system<U> m_csA;
     libsnark::r1cs_variable_assignment<U> m_witnessA, m_inputA;
     R1System<T> m_csB;
@@ -72,15 +85,17 @@ std::ostream& operator<< (std::ostream& out, const AutoTestR1CS<T, U>& a) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// single AND gate without input consistency
+// single AND gate
 //
 
 template <typename T, typename U>
 class AutoTestR1CS_AND : public AutoTestR1CS<T, U>
 {
 public:
-    AutoTestR1CS_AND()
-        : AutoTestR1CS<T, U>(2)
+    AutoTestR1CS_AND(const bool x_IC, const bool y_IC)
+        : AutoTestR1CS<T, U>(2),
+          m_booleanityX(x_IC),
+          m_booleanityY(y_IC)
     {
         initA();
         initB();
@@ -98,6 +113,9 @@ private:
 
         this->m_csA.add_constraint(libsnark::r1cs_constraint<U>(A, B, C));
 
+        if (m_booleanityX) this->addBooleanity_A(1);
+        if (m_booleanityY) this->addBooleanity_A(2);
+
         this->m_witnessA.push_back(U::one()); // 1
         this->m_witnessA.push_back(U::one()); // 2
         this->m_witnessA.push_back(U::one()); // 3
@@ -111,6 +129,11 @@ private:
 
         this->m_csB.addConstraint(x * y == z);
 
+        if (m_booleanityX) this->addBooleanity_B(x);
+        if (m_booleanityY) this->addBooleanity_B(y);
+
+        this->m_csB.swap_AB_if_beneficial();
+
         this->m_witnessB.assignVar(x, T::one());
         this->m_witnessB.assignVar(y, T::one());
         this->m_witnessB.assignVar(z, T::one());
@@ -118,18 +141,23 @@ private:
         this->m_inputB.assignVar(x, T::one());
         this->m_inputB.assignVar(y, T::one());
     }
+
+    const bool m_booleanityX;
+    const bool m_booleanityY;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-// single OR gate without input consistency
+// single OR gate
 //
 
 template <typename T, typename U>
 class AutoTestR1CS_OR : public AutoTestR1CS<T, U>
 {
 public:
-    AutoTestR1CS_OR()
-        : AutoTestR1CS<T, U>(2)
+    AutoTestR1CS_OR(const bool x_IC, const bool y_IC)
+        : AutoTestR1CS<T, U>(2),
+          m_booleanityX(x_IC),
+          m_booleanityY(y_IC)
     {
         initA();
         initB();
@@ -149,6 +177,9 @@ private:
 
         this->m_csA.add_constraint(libsnark::r1cs_constraint<U>(A, B, C));
 
+        if (m_booleanityX) this->addBooleanity_A(1);
+        if (m_booleanityY) this->addBooleanity_A(2);
+
         this->m_witnessA.push_back(U::one()); // 1
         this->m_witnessA.push_back(U::one()); // 2
         this->m_witnessA.push_back(U::one()); // 3
@@ -162,6 +193,11 @@ private:
 
         this->m_csB.addConstraint(x + y - z == x * y);
 
+        if (m_booleanityX) this->addBooleanity_B(x);
+        if (m_booleanityY) this->addBooleanity_B(y);
+
+        this->m_csB.swap_AB_if_beneficial();
+
         this->m_witnessB.assignVar(x, T::one());
         this->m_witnessB.assignVar(y, T::one());
         this->m_witnessB.assignVar(z, T::one());
@@ -169,18 +205,23 @@ private:
         this->m_inputB.assignVar(x, T::one());
         this->m_inputB.assignVar(y, T::one());
     }
+
+    const bool m_booleanityX;
+    const bool m_booleanityY;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-// single XOR gate without input consistency
+// single XOR gate
 //
 
 template <typename T, typename U>
 class AutoTestR1CS_XOR : public AutoTestR1CS<T, U>
 {
 public:
-    AutoTestR1CS_XOR()
-        : AutoTestR1CS<T, U>(2)
+    AutoTestR1CS_XOR(const bool x_IC, const bool y_IC)
+        : AutoTestR1CS<T, U>(2),
+          m_booleanityX(x_IC),
+          m_booleanityY(y_IC)
     {
         initA();
         initB();
@@ -200,6 +241,9 @@ private:
 
         this->m_csA.add_constraint(libsnark::r1cs_constraint<U>(A, B, C));
 
+        if (m_booleanityX) this->addBooleanity_A(1);
+        if (m_booleanityY) this->addBooleanity_A(2);
+
         this->m_witnessA.push_back(U::one()); // 1
         this->m_witnessA.push_back(U::one()); // 2
         this->m_witnessA.push_back(U::zero()); // 3
@@ -214,6 +258,11 @@ private:
         const auto TWO = T::one() + T::one();
         this->m_csB.addConstraint(x + y - z == (TWO * x) * y);
 
+        if (m_booleanityX) this->addBooleanity_B(x);
+        if (m_booleanityY) this->addBooleanity_B(y);
+
+        this->m_csB.swap_AB_if_beneficial();
+
         this->m_witnessB.assignVar(x, T::one());
         this->m_witnessB.assignVar(y, T::one());
         this->m_witnessB.assignVar(z, T::zero());
@@ -221,6 +270,64 @@ private:
         this->m_inputB.assignVar(x, T::one());
         this->m_inputB.assignVar(y, T::one());
     }
+
+    const bool m_booleanityX;
+    const bool m_booleanityY;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// single CMPLMNT gate
+//
+
+template <typename T, typename U>
+class AutoTestR1CS_CMPLMNT : public AutoTestR1CS<T, U>
+{
+public:
+    AutoTestR1CS_CMPLMNT(const bool x_IC)
+        : AutoTestR1CS<T, U>(1),
+          m_booleanityX(x_IC)
+    {
+        initA();
+        initB();
+    }
+
+private:
+    void initA() {
+        this->m_csA.num_inputs = this->numberInputs();
+        this->m_csA.num_vars = 2;
+
+        libsnark::linear_combination<U> A, B, C;
+        A.add_term(1, 1);
+        A.add_term(2, 1);
+        B.add_term(0, 1);
+        C.add_term(0, 1);
+
+        this->m_csA.add_constraint(libsnark::r1cs_constraint<U>(A, B, C));
+
+        if (m_booleanityX) this->addBooleanity_A(1);
+
+        this->m_witnessA.push_back(U::zero()); // 1
+        this->m_witnessA.push_back(U::one()); // 2
+
+        this->m_inputA.push_back(U::zero()); // 1
+    }
+
+    void initB() {
+        R1Variable<T> x(1), y(2);
+
+        this->m_csB.addConstraint(x + y == T::one());
+
+        if (m_booleanityX) this->addBooleanity_B(x);
+
+        this->m_csB.swap_AB_if_beneficial();
+
+        this->m_witnessB.assignVar(x, T::zero());
+        this->m_witnessB.assignVar(y, T::one());
+
+        this->m_inputB.assignVar(x, T::zero());
+    }
+
+    const bool m_booleanityX;
 };
 
 } // namespace snarklib
