@@ -7,6 +7,7 @@
 #include <random>
 #include <sstream>
 #include <string>
+#include <unistd.h>
 #include "AutoTest.hpp"
 #include "AutoTest_BigInt.hpp"
 #include "AutoTest_EC_Pairing.hpp"
@@ -260,42 +261,80 @@ void add_Pairing(AutoTestBattery& ATB)
 template <typename T, typename U>
 void add_QAP(AutoTestBattery& ATB)
 {
-    AutoTestR1CS_AND<T, U> AND;
-    AutoTestR1CS_OR<T, U> OR;
-    AutoTestR1CS_XOR<T, U> XOR;
+    for (const auto x_IC : { false, true }) {
+        for (const auto y_IC : { false, true}) {
+            const std::vector<AutoTestR1CS<T, U>> csvec = {
+                AutoTestR1CS_AND<T, U>(x_IC, y_IC),
+                AutoTestR1CS_OR<T, U>(x_IC, y_IC),
+                AutoTestR1CS_XOR<T, U>(x_IC, y_IC),
+                AutoTestR1CS_CMPLMNT<T, U>(x_IC)
+            };
 
-    for (size_t i = 0; i < 2; ++i) {
-        ATB.addTest(new AutoTest_QAP_ABCH_instance_map<T, U>(AND));
-        ATB.addTest(new AutoTest_QAP_ABCH_instance_map<T, U>(OR));
-        ATB.addTest(new AutoTest_QAP_ABCH_instance_map<T, U>(XOR));
-
-        ATB.addTest(new AutoTest_QAP_Witness_map<T, U>(AND));
-        ATB.addTest(new AutoTest_QAP_Witness_map<T, U>(OR));
-        ATB.addTest(new AutoTest_QAP_Witness_map<T, U>(XOR));
+            for (size_t i = 0; i < 2; ++i) {
+                for (const auto& cs : csvec) {
+                    ATB.addTest(new AutoTest_QAP_ABCH_instance_map<T, U>(cs));
+                    ATB.addTest(new AutoTest_QAP_Witness_map<T, U>(cs));
+                }
+            }
+        }
     }
 }
 
 template <typename PAIRING, typename T, typename U>
 void add_PPZK(AutoTestBattery& ATB)
 {
-    const std::vector<AutoTestR1CS<T, U>> csvec = {
-        AutoTestR1CS_AND<T, U>(),
-        AutoTestR1CS_OR<T, U>(),
-        AutoTestR1CS_XOR<T, U>() 
-    };
+    for (const auto x_IC : { false, true }) {
+        for (const auto y_IC : { false, true}) {
+            const std::vector<AutoTestR1CS<T, U>> csvec = {
+                AutoTestR1CS_AND<T, U>(x_IC, y_IC),
+                AutoTestR1CS_OR<T, U>(x_IC, y_IC),
+                AutoTestR1CS_XOR<T, U>(x_IC, y_IC),
+                AutoTestR1CS_CMPLMNT<T, U>(x_IC)
+            };
 
-    for (size_t i = 0; i < 5; ++i) {
-        for (const auto& cs : csvec) {
-            ATB.addTest(new AutoTest_PPZK_libsnark_only<T, U>(cs));
-            ATB.addTest(new AutoTest_PPZK_strongVerify<PAIRING, U>(cs));
-            ATB.addTest(new AutoTest_PPZK_Proof<PAIRING, U>(cs));
-            ATB.addTest(new AutoTest_PPZK_full_redesign<PAIRING, U>(cs));
+            for (size_t i = 0; i < 2; ++i) {
+                for (const auto& cs : csvec) {
+                    ATB.addTest(new AutoTest_PPZK_libsnark_only<T, U>(cs));
+                    ATB.addTest(new AutoTest_PPZK_strongVerify<PAIRING, U>(cs));
+                    ATB.addTest(new AutoTest_PPZK_ProofCompare<PAIRING, U>(cs));
+                    ATB.addTest(new AutoTest_PPZK_Proof<PAIRING, U>(cs));
+                    ATB.addTest(new AutoTest_PPZK_full_redesign<PAIRING, U>(cs));
+                }
+            }
         }
     }
 }
 
+void printUsage(const char* exeName) {
+    cout << "run all tests:  " << exeName << " -a" << endl
+         << "specified test: " << exeName << " -i testnumber" << endl;
+
+    exit(EXIT_FAILURE);
+}
+
 int main(int argc, char *argv[])
 {
+    // command line switches
+    bool ok = false;
+    size_t testNumber = -1;
+    int opt;
+    while (-1 != (opt = getopt(argc, argv, "ai:"))) {
+        switch (opt) {
+        case ('a') :
+            ok = true;
+            break;
+        case ('i') :
+            {
+                stringstream ss(optarg);
+                ss >> testNumber;
+                ok = !!ss;
+            }
+            break;
+        }
+    }
+
+    if (!ok) printUsage(argv[0]);
+
     // initialize snarklib and libsnark
     initEC();
 
@@ -361,13 +400,17 @@ int main(int argc, char *argv[])
     // pre-processed zero knowledge proof
     add_PPZK<PAIRING, Fr, libsnark_Fr>(ATB);
 
-    const bool allTestsPass = ATB.runTest();
-
-    if (allTestsPass) {
-        cout << ATB.testCount() << " tests passed" << endl;
+    if (-1 == testNumber) {
+        // run all tests
+        if (ATB.runTest())
+            cout << ATB.testCount() << " tests passed" << endl;
+        else
+            ATB.testLog(cout);
 
     } else {
-        ATB.testLog(cout);
+        // run specified test only
+        ATB.runTest(testNumber);
+        ATB.testLog(cout, testNumber);
     }
 
     exit(EXIT_SUCCESS);
