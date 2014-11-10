@@ -148,6 +148,112 @@ private:
 };
 
 ////////////////////////////////////////////////////////////////////////////////
+// compare original and redesigned proof output
+//
+
+template <typename PAIRING, typename U>
+class AutoTest_PPZK_ProofCompare : public AutoTest
+{
+    typedef typename PAIRING::Fr Fr;
+    typedef typename PAIRING::G1 G1;
+    typedef typename PAIRING::G2 G2;
+
+    typedef typename libsnark::default_pp PPT;
+
+public:
+    AutoTest_PPZK_ProofCompare(const AutoTestR1CS<Fr, U>& cs)
+        : AutoTest(cs),
+          m_constraintSystem(cs)
+    {}
+
+    void runTest() {
+        const auto keypair
+            = libsnark::r1cs_ppzksnark_generator<PPT>(
+                m_constraintSystem.systemA());
+
+        const auto proof
+            = libsnark::r1cs_ppzksnark_prover<PPT>(
+                keypair.pk,
+                m_constraintSystem.witnessA());
+
+        // proof from original code
+        G1 AG, AH, BH, CG, CH, H, K;
+        G2 BG;
+        copyData(proof.g_A.g, AG);
+        copyData(proof.g_A.h, AH);
+        copyData(proof.g_B.g, BG);
+        copyData(proof.g_B.h, BH);
+        copyData(proof.g_C.g, CG);
+        copyData(proof.g_C.h, CH);
+        copyData(proof.g_H, H);
+        copyData(proof.g_K, K);
+        const PPZK_Proof<PAIRING> proofFromOriginal(
+            Pairing<G1, G1>(AG, AH),
+            Pairing<G2, G1>(BG, BH),
+            Pairing<G1, G1>(CG, CH),
+            H,
+            K);
+
+        // proving key
+        SparseVector<Pairing<G1, G1>> A_query, C_query;
+        SparseVector<Pairing<G2, G1>> B_query;
+        std::vector<G1> H_query, K_query;
+        copyData(keypair.pk.A_query, A_query);
+        copyData(keypair.pk.B_query, B_query);
+        copyData(keypair.pk.C_query, C_query);
+        copyData(keypair.pk.H_query, H_query);
+        copyData(keypair.pk.K_query, K_query);
+        const PPZK_ProvingKey<PAIRING> pkB(A_query,
+                                           B_query,
+                                           C_query,
+                                           H_query,
+                                           K_query);
+
+        // proof from redesigned code
+        const PPZK_Proof<PAIRING> proofFromRedesign(
+            m_constraintSystem.systemB(),
+            m_constraintSystem.numberInputs(),
+            pkB,
+            m_constraintSystem.witnessB());
+
+        // compare proofs (expect different results because of random numbers)
+        if (! checkPass(proofFromOriginal.A() != proofFromRedesign.A())) {
+            std::cout << "original A.G " << proofFromOriginal.A().G() << std::endl
+                      << "redesign A.G " << proofFromRedesign.A().G() << std::endl
+                      << "original A.H " << proofFromOriginal.A().H() << std::endl
+                      << "redesign A.H " << proofFromRedesign.A().H() << std::endl;
+        }
+
+        if (! checkPass(proofFromOriginal.B() != proofFromRedesign.B())) {
+            std::cout << "original B.G " << proofFromOriginal.B().G() << std::endl
+                      << "redesign B.G " << proofFromRedesign.B().G() << std::endl
+                      << "original B.H " << proofFromOriginal.B().H() << std::endl
+                      << "redesign B.H " << proofFromRedesign.B().H() << std::endl;
+        }
+
+        if (! checkPass(proofFromOriginal.C() != proofFromRedesign.C())) {
+            std::cout << "original C.G " << proofFromOriginal.C().G() << std::endl
+                      << "redesign C.G " << proofFromRedesign.C().G() << std::endl
+                      << "original C.H " << proofFromOriginal.C().H() << std::endl
+                      << "redesign C.H " << proofFromRedesign.C().H() << std::endl;
+        }
+
+        if (! checkPass(proofFromOriginal.H() != proofFromRedesign.H())) {
+            std::cout << "original H " << proofFromOriginal.H() << std::endl
+                      << "redesign H " << proofFromRedesign.H() << std::endl;
+        }
+
+        if (! checkPass(proofFromOriginal.K() != proofFromRedesign.K())) {
+            std::cout << "original K " << proofFromOriginal.K() << std::endl
+                      << "redesign K " << proofFromRedesign.K() << std::endl;
+        }
+    }
+
+private:
+    const AutoTestR1CS<Fr, U> m_constraintSystem;
+};
+
+////////////////////////////////////////////////////////////////////////////////
 // verification and proof use redesigned code
 //
 
