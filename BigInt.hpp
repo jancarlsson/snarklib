@@ -187,6 +187,10 @@ public:
         return true;
     }
 
+    explicit operator bool() const {
+        return ! isZero();
+    }
+
     static constexpr std::size_t maxBits() {
         return N * GMP_NUMB_BITS;
     }
@@ -248,6 +252,19 @@ public:
         }
 
         return *this;
+    }
+
+    static BigInt<N> zero() {
+        return BigInt<N>(0ul);
+    }
+    
+    static BigInt<N> one() {
+        return BigInt<N>(1ul);
+    }
+
+    static BigInt<N> random() {
+        BigInt<N> a;
+        return a.randomize();
     }
 
     mp_limb_t* data() {
