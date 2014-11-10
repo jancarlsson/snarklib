@@ -76,25 +76,58 @@ To build and run the autotests for CURVE_ALT_BN128:
 (libsnark is built with CURVE=ALT_BN128 and installed with PREFIX=/usr/local)
 
     $ make autotest_bn128 LIBSNARK_PREFIX=/usr/local
-    $ ./autotest_bn128
+    $ ./autotest_bn128 -a
     ...lots of output from libsnark...
-    1414 tests passed
+    1566 tests passed
     $
 
 To build and run the autotests for CURVE_EDWARDS:
 (libsnark is built with CURVE=EDWARDS and installed with PREFIX=/usr/local)
 
     $ make autotest_edwards LIBSNARK_PREFIX=/usr/local
-    $ ./autotest_edwards
+    $ ./autotest_edwards -a
     ...lots of output from libsnark...
-    1404 tests passed
+    1556 tests passed
     $
+
+(note: some libsnark standard output messages can not be suppressed)
 
 All tests should pass. The autotest program should never crash and exit with a
 segmentation fault or abort. If any test fails, a manifest of every unit test
-with its PASS/FAIL status is printed to standard output.
+with its PASS/FAIL status is printed to standard output. Each unit test case
+has a number in this output. For example:
 
-Note: It is impossible to suppress all standard output messages from libsnark.
+    ...tests before...
+    1456    PASS    N8snarklib26AutoTest_PPZK_strongVerify...
+    1457    FAIL    N8snarklib26AutoTest_PPZK_ProofCompare...
+    1458    FAIL    N8snarklib19AutoTest_PPZK_Proof...
+    1459    PASS    N8snarklib27AutoTest_PPZK_full_redesign...
+    1460    PASS    N8snarklib27AutoTest_PPZK_libsnark_only...
+    ...tests after...
+
+(note: the bugs for these past test failures have been fixed)
+
+To run only the test numbered 1457, do the following for CURVE_ALT_BN128:
+
+    $ ./autotest_bn128 -i 1457
+
+Of course, this works the same way for CURVE_EDWARDS:
+
+    $ ./autotest_edwards -i 1457
+
+To summarize the autotest modes:
+
+    -a               means run all tests
+    -i testNumber    means run the specified unit test case only
+
+The autotests have proven indispensable for development of snarklib. They are
+not necessary to use zero knowledge technology which builds on snarklib. Most
+users will not build and run the autotests.
+
+However, as with any mathematically oriented software library, a lot can go
+wrong. Silent failure is the worst situation, bad numbers indistinguishable
+from correct results. It is not a bad idea to run an automated test suite to
+validate a build and install as functioning correctly.
 
 --------------------------------------------------------------------------------
 References
@@ -216,6 +249,6 @@ File: algebra/curves/edwards/edwards_G2.cpp
     }
 
 The neutral element (i.e. zero) is (0, 1, 0) so the check should be that X
-and Z are zero. However, the Edwards curve uses affine coordinate represenation
+and Z are zero. However, the Edwards curve uses affine coordinate representation
 which interchanges X and Y. That makes the neutral element (1, 0, 0). So the
 libsnark code is correct.
