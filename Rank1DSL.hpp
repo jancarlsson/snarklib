@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cstdint>
 #include <iostream>
 #include <ostream>
@@ -41,6 +42,10 @@ public:
         return m_index;
     }
 
+    bool zeroIndex() const {
+        return 0 == m_index;
+    }
+
     bool operator< (const R1Variable& other) const {
         return m_index < other.m_index;
     }
@@ -73,7 +78,14 @@ class R1Witness
 public:
     R1Witness() = default;
 
+    void clear() {
+        m_va.clear();
+        m_unsetIdx.clear();
+    }
+
     void assignVar(const R1Variable<T>& x, const T& value) {
+        assert(! x.zeroIndex());
+
         // subtract one to make absolute index
         const std::size_t idx = x.index() - 1;
 
@@ -87,6 +99,8 @@ public:
     }
 
     R1Witness truncate(const std::size_t leadingSize) const {
+        assert(leadingSize <= m_va.size());
+
         std::set<std::size_t> unsetIdx;
         for (std::size_t i = 0; i < leadingSize; ++i) {
             if (m_unsetIdx.count(i))
@@ -100,6 +114,8 @@ public:
     }
 
     const T& operator[] (const std::size_t index) const {
+        assert(index < m_va.size());
+
         return m_va[index];
     }
 
@@ -173,6 +189,14 @@ public:
     // immutable coefficient
     const T& coeff() const {
         return m_coeff;
+    }
+
+    bool isVariable() const {
+        return T::one() == coeff() && ! var().zeroIndex();
+    }
+
+    bool zeroTerm() const {
+        return T::zero() == coeff() && var().zeroIndex();
     }
 
 private:
@@ -749,9 +773,15 @@ public:
     std::size_t minIndex() const {
         return m_minIndex;
     }
-    
+
     std::size_t maxIndex() const {
         return m_maxIndex;
+    }
+
+    void swap_AB() {
+        for (auto& constraint : m_constraints) {
+            constraint.swapAB();
+        }
     }
 
     bool swap_AB_if_beneficial()
@@ -781,10 +811,7 @@ public:
         }
 
         if (non_zero_A_count < non_zero_B_count) {
-            for (auto& constraint : m_constraints) {
-                constraint.swapAB(); // swapping A and B is beneficial
-            }
-
+            swap_AB();
             return true;
         }
 
