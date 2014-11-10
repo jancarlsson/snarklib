@@ -498,10 +498,19 @@ public:
         return allPass;
     }
 
+    bool runTest(const std::size_t indexNumber) {
+        m_testVector[indexNumber]->runTest();
+        return m_testVector[indexNumber]->testPass();
+    }
+
     void testLog(std::ostream& out) const {
         for (const auto& a : m_testVector) {
             a->testLog(out);
         }
+    }
+
+    void testLog(std::ostream& out, const std::size_t indexNumber) const {
+        m_testVector[indexNumber]->testLog(out);
     }
 
 private:
