@@ -238,6 +238,13 @@ public:
         }
     }
 
+    void clearBit(const std::size_t i) {
+        const std::size_t part = i / GMP_NUMB_BITS;
+        const std::size_t bit = i - (GMP_NUMB_BITS * part);
+
+        m_data[part] &= ~(1ul << bit);
+    }
+
     BigInt<N>& randomize() {
         assert(GMP_NUMB_BITS == sizeof(mp_limb_t) * CHAR_BIT);
 
