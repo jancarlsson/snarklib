@@ -404,13 +404,10 @@ public:
         {
             a.m_monty.randomize();
 
-            std::size_t bitno = GMP_NUMB_BITS * N;
+            std::size_t bitno = BigInt<N>::maxBits();
 
             while (! MODULUS.testBit(bitno)) {
-                const std::size_t part = bitno / GMP_NUMB_BITS;
-                const std::size_t bit = bitno - (GMP_NUMB_BITS * part);
-
-                a.m_monty.data()[part] &= ~(1ul << bit);
+                a.m_monty.clearBit(bitno);
 
                 --bitno;
             }
