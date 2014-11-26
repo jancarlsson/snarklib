@@ -6,6 +6,7 @@
 #include <cassert>
 #include <cstdint>
 #include <iostream>
+#include <istream>
 #include <ostream>
 #include <set>
 #include <vector>
@@ -130,6 +131,62 @@ public:
 
     const std::vector<T>& operator* () const {
         return m_va;
+    }
+
+    bool operator== (const R1Witness& other) const {
+        return
+            m_va == other.m_va &&
+            m_unsetIdx == other.m_unsetIdx;
+    }
+
+    bool operator!= (const R1Witness& other) const {
+        return ! (*this == other);
+    }
+
+    void marshal_out(std::ostream& os) const {
+        // variable assignment vector
+        os << m_va.size() << std::endl;
+        for (const auto& a : m_va) {
+            os << a << std::endl;
+        }
+
+        // unset indices set
+        os << m_unsetIdx.size() << std::endl;
+        for (const auto a : m_unsetIdx) {
+            os << a << std::endl;
+        }
+    }
+
+    bool marshal_in(std::istream& is) {
+        // number of variable assignments
+        std::size_t numberElems;
+        is >> numberElems;
+        if (!is) return false;
+
+        // variable assignment vector
+        m_va.clear();
+        m_va.reserve(numberElems);
+        for (std::size_t i = 0; i < numberElems; ++i) {
+            T f;
+            if (!f.marshal_in(is)) return false;
+            m_va.emplace_back(f);
+        }
+
+        // number of unset indices
+        std::size_t numberIdx;
+        is >> numberIdx;
+        if (!is) return false;
+
+        // unset indices set
+        m_unsetIdx.clear();
+        for (std::size_t i = 0; i < numberIdx; ++i) {
+            std::size_t idx;
+            is >> idx;
+            if (!is) return false;
+            m_unsetIdx.insert(idx);
+        }
+
+        return true; // ok
     }
 
 private:
