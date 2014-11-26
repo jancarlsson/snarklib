@@ -3,6 +3,9 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <iostream>
+#include <istream>
+#include <ostream>
 #include <queue>
 #include <vector>
 
@@ -113,6 +116,68 @@ public:
             static const T dummy; // neutral zero element
             return dummy;
         }
+    }
+
+    bool operator== (const SparseVector<T>& other) const {
+        if (size() != other.size()) {
+            return false;
+        }
+
+        for (std::size_t i = 0; i < size(); ++i) {
+            if ((getIndex(i) != other.getIndex(i)) ||
+                (getElement(i) != other.getElement(i)))
+                return false;
+        }
+
+        return true;
+    }
+
+    bool operator!= (const SparseVector<T>& other) const {
+        return ! (*this == other);
+    }
+
+    void marshal_out(std::ostream& os) const {
+        // size
+        os << size() << std::endl;
+
+        // index vector
+        for (const auto a : m_index) {
+            os << a << std::endl;
+        }
+
+        // value vector
+        for (const auto& a : m_value) {
+            a.marshal_out(os);
+            os << std::endl;
+        }
+    }
+
+    bool marshal_in(std::istream& is) {
+        // size
+        std::size_t numberElems;
+        is >> numberElems;
+        if (!is) return false;
+
+        // index vector
+        m_index.clear();
+        m_index.reserve(numberElems);
+        for (std::size_t i = 0; i < numberElems; ++i) {
+            std::size_t index;
+            is >> index;
+            if (!is) return false;
+            m_index.push_back(index);
+        }
+
+        // value vector
+        m_value.clear();
+        m_value.reserve(numberElems);
+        for (std::size_t i = 0; i < numberElems; ++i) {
+            T a;
+            if (!a.marshal_in(is)) return false;
+            m_value.emplace_back(a);
+        }
+
+        return true; // ok
     }
 
 private:
