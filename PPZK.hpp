@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
+#include <istream>
+#include <ostream>
 #include <vector>
 #include "AuxSTL.hpp"
 #include "Group.hpp"
@@ -45,6 +47,36 @@ public:
     const SparseVector<Pairing<G1, G1>>& C_query() const { return m_C_query; }
     const std::vector<G1>& H_query() const { return m_H_query; }
     const std::vector<G1>& K_query() const { return m_K_query; }
+
+    bool operator== (const PPZK_ProvingKey& other) const {
+        return
+            A_query() == other.A_query() &&
+            B_query() == other.B_query() &&
+            C_query() == other.C_query() &&
+            H_query() == other.H_query() &&
+            K_query() == other.K_query();
+    }
+
+    bool operator!= (const PPZK_ProvingKey& other) const {
+        return ! (*this == other);
+    }
+
+    void marshal_out(std::ostream& os) const {
+        A_query().marshal_out(os);
+        B_query().marshal_out(os);
+        C_query().marshal_out(os);
+        snarklib::marshal_out(os, H_query());
+        snarklib::marshal_out(os, K_query());
+    }
+
+    bool marshal_in(std::istream& is) {
+        return
+            m_A_query.marshal_in(is) &&
+            m_B_query.marshal_in(is) &&
+            m_C_query.marshal_in(is) &&
+            snarklib::marshal_in(is, m_H_query) &&
+            snarklib::marshal_in(is, m_K_query);
+    }
 
 private:
     SparseVector<Pairing<G1, G1>> m_A_query;
@@ -120,6 +152,31 @@ public:
         return m_encoded_terms.size();
     }
 
+    const std::vector<G1>& encoded_terms() const {
+        return m_encoded_terms;
+    }
+
+    bool operator== (const PPZK_IC_Query& other) const {
+        return
+            base() == other.base() &&
+            encoded_terms() == other.encoded_terms();
+    }
+
+    bool operator!= (const PPZK_IC_Query& other) const {
+        return ! (*this == other);
+    }
+
+    void marshal_out(std::ostream& os) const {
+        base().marshal_out(os);
+        snarklib::marshal_out(os, encoded_terms());
+    }
+
+    bool marshal_in(std::istream& is) {
+        return
+            m_base.marshal_in(is) &&
+            snarklib::marshal_in(is, m_encoded_terms);
+    }
+
 private:
     G1 m_base;
     std::vector<G1> m_encoded_terms;
@@ -167,6 +224,45 @@ public:
 
     const PPZK_IC_Query<PAIRING>& encoded_IC_query() const {
         return m_encoded_IC_query;
+    }
+
+    bool operator== (const PPZK_VerificationKey& other) const {
+        return
+            alphaA_g2() == other.alphaA_g2() &&
+            alphaB_g1() == other.alphaB_g1() &&
+            alphaC_g2() == other.alphaC_g2() &&
+            gamma_g2() == other.gamma_g2() &&
+            gamma_beta_g1() == other.gamma_beta_g1() &&
+            gamma_beta_g2() == other.gamma_beta_g2() &&
+            rC_Z_g2() == other.rC_Z_g2() &&
+            encoded_IC_query() == other.encoded_IC_query();
+    }
+
+    bool operator!= (const PPZK_VerificationKey& other) const {
+        return ! (*this == other);
+    }
+
+    void marshal_out(std::ostream& os) const {
+        alphaA_g2().marshal_out(os);
+        alphaB_g1().marshal_out(os);
+        alphaC_g2().marshal_out(os);
+        gamma_g2().marshal_out(os);
+        gamma_beta_g1().marshal_out(os);
+        gamma_beta_g2().marshal_out(os);
+        rC_Z_g2().marshal_out(os);
+        encoded_IC_query().marshal_out(os);
+    }
+
+    bool marshal_in(std::istream& is) {
+        return
+            m_alphaA_g2.marshal_in(is) &&
+            m_alphaB_g1.marshal_in(is) &&
+            m_alphaC_g2.marshal_in(is) &&
+            m_gamma_g2.marshal_in(is) &&
+            m_gamma_beta_g1.marshal_in(is) &&
+            m_gamma_beta_g2.marshal_in(is) &&
+            m_rC_Z_g2.marshal_in(is) &&
+            m_encoded_IC_query.marshal_in(is);
     }
 
 private:
@@ -241,6 +337,14 @@ class PPZK_Keypair
     typedef typename PAIRING::G2 G2;
 
 public:
+    PPZK_Keypair() = default;
+
+    PPZK_Keypair(const PPZK_ProvingKey<PAIRING>& pk,
+                 const PPZK_VerificationKey<PAIRING> vk)
+        : m_pk(pk),
+          m_vk(vk)
+    {}
+
     PPZK_Keypair(const R1System<Fr>& constraintSystem,
                  const std::size_t numCircuitInputs)
     {
@@ -294,6 +398,27 @@ public:
     const PPZK_ProvingKey<PAIRING>& pk() const { return m_pk; }
     const PPZK_VerificationKey<PAIRING>& vk() const { return m_vk; }
 
+    bool operator== (const PPZK_Keypair& other) const {
+        return
+            pk() == other.pk() &&
+            vk() == other.vk();
+    }
+
+    bool operator!= (const PPZK_Keypair& other) const {
+        return ! (*this == other);
+    }
+
+    void marshal_out(std::ostream& os) const {
+        pk().marshal_out(os);
+        vk().marshal_out(os);
+    }
+
+    bool marshal_in(std::istream& is) {
+        return
+            m_pk.marshal_in(is) &&
+            m_vk.marshal_in(is);
+    }
+
 private:
     PPZK_ProvingKey<PAIRING> m_pk;
     PPZK_VerificationKey<PAIRING> m_vk;
@@ -311,6 +436,8 @@ class PPZK_Proof
     typedef typename PAIRING::G2 G2;
 
 public:
+    PPZK_Proof() = default;
+
     PPZK_Proof(const Pairing<G1, G1>& A,
                const Pairing<G2, G1>& B,
                const Pairing<G1, G1>& C,
@@ -376,6 +503,36 @@ public:
             m_C.G().wellFormed() && m_C.H().wellFormed() &&
             m_H.wellFormed() &&
             m_K.wellFormed();
+    }
+
+    bool operator== (const PPZK_Proof& other) const {
+        return
+            A() == other.A() &&
+            B() == other.B() &&
+            C() == other.C() &&
+            H() == other.H() &&
+            K() == other.K();
+    }
+
+    bool operator!= (const PPZK_Proof& other) const {
+        return ! (*this == other);
+    }
+
+    void marshal_out(std::ostream& os) const {
+        A().marshal_out(os);
+        B().marshal_out(os);
+        C().marshal_out(os);
+        H().marshal_out(os);
+        K().marshal_out(os);
+    }
+
+    bool marshal_in(std::istream& is) {
+        return
+            m_A.marshal_in(is) &&
+            m_B.marshal_in(is) &&
+            m_C.marshal_in(is) &&
+            m_H.marshal_in(is) &&
+            m_K.marshal_in(is);
     }
 
 private:
@@ -490,7 +647,6 @@ bool strongVerify(const PPZK_VerificationKey<PAIRING>& vk,
                         input,
                         proof);
 }
-
 
 } // namespace snarklib
 
