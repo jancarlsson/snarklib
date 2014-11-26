@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <cctype>
 #include <gmp.h>
+#include <iostream>
+#include <istream>
 #include <memory>
 #include <ostream>
 #include <random>
@@ -89,6 +91,10 @@ public:
 
     BigInt<N>& operator= (const unsigned long a) {
         return *this = BigInt<N>(a);
+    }
+
+    BigInt<N>& operator= (const std::string& s) {
+        return *this = BigInt<N>(s);
     }
 
     BigInt<N>& operator= (const char* s) {
@@ -282,6 +288,27 @@ public:
         return m_data.data();
     }
 
+    void marshal_out(std::ostream& os, const bool use_endl = true) const {
+        mpz_t t;
+        mpz_init(t);
+        toMPZ(t);
+
+        os << t;
+        if (use_endl) os << std::endl;
+
+        mpz_clear(t);
+    }
+
+    bool marshal_in(std::istream& is) {
+        std::string s;
+        is >> s;
+        if (!is) return false;
+
+        *this = s;
+
+        return true; // ok
+    }
+
 private:
     std::array<mp_limb_t, N> m_data;
 };
@@ -292,27 +319,16 @@ private:
 
 // print to stream
 template <mp_size_t N>
-std::ostream& operator<< (std::ostream& out, const BigInt<N>& a) {
-    mpz_t t;
-    mpz_init(t);
-    a.toMPZ(t);
-
-    out << t;
-
-    mpz_clear(t);
-
-    return out;
+std::ostream& operator<< (std::ostream& os, const BigInt<N>& a) {
+    a.marshal_out(os, false);
+    return os;
 }
 
 // extract from stream
 template <mp_size_t N>
-std::istream& operator>> (std::istream& in, BigInt<N>& a) {
-    std::string s;
-    in >> s;
-
-    a = s.c_str();
-
-    return in;
+std::istream& operator>> (std::istream& is, BigInt<N>& a) {
+    a.marshal_in(is);
+    return is;
 }
 
 // Russian peasant algorithm (field exponentiation)
