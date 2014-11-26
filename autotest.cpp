@@ -14,6 +14,7 @@
 #include "AutoTest_Field.hpp"
 #include "AutoTest_Group.hpp"
 #include "AutoTest_LagrangeFFT.hpp"
+#include "AutoTest_Marshalling.hpp"
 #include "AutoTest_MultiExp.hpp"
 #include "AutoTest_Pairing.hpp"
 #include "AutoTest_PPZK.hpp"
@@ -25,6 +26,7 @@
 #include "EC.hpp"
 #include "Field.hpp"
 #include "FpModel.hpp"
+#include "Rank1DSL.hpp"
 
 using namespace snarklib;
 using namespace std;
@@ -305,6 +307,25 @@ void add_PPZK(AutoTestBattery& ATB)
     }
 }
 
+template <typename GA, typename GB, mp_size_t N, typename F, typename PAIRING>
+void add_Marshalling(AutoTestBattery& ATB)
+{
+    for (size_t i = 0; i < 2; ++i) {
+        ATB.addTest(new AutoTest_Marshal_SparseVectorPairing<GA, GB>(rd() % 100, rd() % 10));
+        ATB.addTest(new AutoTest_Marshal_BFG<BigInt<N>>);
+        ATB.addTest(new AutoTest_Marshal_BFG<F>);
+        ATB.addTest(new AutoTest_Marshal_BFG<GA>);
+        ATB.addTest(new AutoTest_Marshal_BFG<GB>);
+        ATB.addTest(new AutoTest_Marshal_Pairing<GA, GB>);
+        ATB.addTest(new AutoTest_Marshal_ProvingKey<PAIRING>(rd() % 100, rd() % 10));
+        ATB.addTest(new AutoTest_Marshal_IC_Query<PAIRING>(rd() % 100));
+        ATB.addTest(new AutoTest_Marshal_VerificationKey<PAIRING>(rd() % 100));
+        ATB.addTest(new AutoTest_Marshal_Keypair<PAIRING>(rd() % 100, rd() % 10));
+        ATB.addTest(new AutoTest_Marshal_Proof<PAIRING>);
+        ATB.addTest(new AutoTest_Marshal_R1Witness<F>(rd() % 100));
+    }
+}
+
 void printUsage(const char* exeName) {
     cout << "run all tests:  " << exeName << " -a" << endl
          << "specified test: " << exeName << " -i testnumber" << endl;
@@ -399,6 +420,12 @@ int main(int argc, char *argv[])
 
     // pre-processed zero knowledge proof
     add_PPZK<PAIRING, Fr, libsnark_Fr>(ATB);
+
+    // marshalling
+    add_Marshalling<G1, G1, 1, Fr, PAIRING>(ATB);
+    add_Marshalling<G1, G2, 2, Fr, PAIRING>(ATB);
+    add_Marshalling<G2, G1, 3, Fq, PAIRING>(ATB);
+    add_Marshalling<G2, G2, 4, Fq, PAIRING>(ATB);
 
     if (-1 == testNumber) {
         // run all tests
