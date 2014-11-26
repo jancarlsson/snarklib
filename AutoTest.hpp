@@ -23,6 +23,7 @@
 #include "algebra/fields/fp6_2over3.hpp"
 #include "algebra/fields/fp6_3over2.hpp"
 #include "algebra/fields/fp12_2over3over2.hpp"
+#include "AuxSTL.hpp"
 #include "BigInt.hpp"
 #include "common/types.hpp"
 #include "EC.hpp"
@@ -573,6 +574,32 @@ std::string sparseUniformBase10(const unsigned long low, const unsigned long hig
 template <mp_size_t N>
 libsnark::bigint<N> to_bigint(const std::string& base10) {
     return libsnark::bigint<N>(base10.c_str());
+}
+
+template <typename GA, typename GB>
+void randomSparseVector(SparseVector<Pairing<GA, GB>>& a,
+                        const std::size_t numberElems,
+                        const std::size_t startIndex)
+{
+    a.reserve(numberElems);
+
+    for (std::size_t i = 0; i < numberElems; ++i) {
+        a.pushBack(
+            startIndex + i,
+            Pairing<GA, GB>(GA::random(), GB::random()));
+    }
+}
+
+template <typename T>
+void randomVector(std::vector<T>& a,
+                  const std::size_t numberElems)
+{
+    a.reserve(numberElems);
+
+    for (std::size_t i = 0; i < numberElems; ++i) {
+        a.emplace_back(
+            T::random());
+    }
 }
 
 } // namespace snarklib
