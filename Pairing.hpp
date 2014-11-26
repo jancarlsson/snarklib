@@ -3,6 +3,8 @@
 
 #include <cstdint>
 #include <gmp.h>
+#include <istream>
+#include <ostream>
 #include <vector>
 #include "AuxSTL.hpp"
 #include "BigInt.hpp"
@@ -39,6 +41,17 @@ public:
 
     static Pairing zero() {
         return Pairing<GA, GB>(GA::zero(), GB::zero());
+    }
+
+    void marshal_out(std::ostream& os) const {
+        G().marshal_out(os);
+        H().marshal_out(os);
+    }
+
+    bool marshal_in(std::istream& is) {
+        return
+            m_G.marshal_in(is) &&
+            m_H.marshal_in(is);
     }
 
 private:
