@@ -188,6 +188,19 @@ public:
         return a;
     }
 
+    void marshal_out(std::ostream& os) const {
+        for (const auto& a : m_A)
+            a.marshal_out(os);
+    }
+
+    bool marshal_in(std::istream& is) {
+        for (auto& a : m_A) {
+            if (!a.marshal_in(is)) return false;
+        }
+
+        return true; // ok
+    }
+
 private:
     std::array<T, N> m_A;
 };
