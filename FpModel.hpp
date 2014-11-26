@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <gmp.h>
-#include <iostream>
+#include <istream>
 #include <memory>
 #include <ostream>
 #include <string>
@@ -415,6 +415,14 @@ public:
         while (mpn_cmp(a.m_monty.data(), MODULUS.data(), N) >= 0);
 
         return a;
+    }
+
+    void marshal_out(std::ostream& os) const {
+        m_monty.marshal_out(os);
+    }
+
+    bool marshal_in(std::istream& is) {
+        return m_monty.marshal_in(is);
     }
 
 private:
