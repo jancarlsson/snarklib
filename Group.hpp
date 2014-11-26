@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <cstdint>
 #include <gmp.h>
+#include <iostream>
+#include <istream>
 #include <ostream>
 #include <tuple>
 #include <vector>
@@ -20,24 +22,6 @@ namespace snarklib {
 template <typename BASE, typename SCALAR, typename CURVE>
 class Group
 {
-    template <typename BASE2, typename SCALAR2, typename CURVE2>
-    friend
-    std::ostream&
-    operator<< (std::ostream& out,
-                const Group<BASE2, SCALAR2, CURVE2>&);
-
-    template <typename BASE2, typename SCALAR2, typename CURVE2>
-    friend
-    Group<BASE2, SCALAR2, CURVE2>
-    operator+ (const Group<BASE2, SCALAR2, CURVE2>&,
-               const Group<BASE2, SCALAR2, CURVE2>&);
-
-    template <typename BASE2, typename SCALAR2, typename CURVE2>
-    friend
-    Group<BASE2, SCALAR2, CURVE2>
-    fastAddSpecial(const Group<BASE2, SCALAR2, CURVE2>&,
-                   const Group<BASE2, SCALAR2, CURVE2>&);
-
 public:
     typedef BASE BaseField;
     typedef SCALAR ScalarField;
@@ -189,6 +173,19 @@ public:
         return SCALAR::BaseType::modulus();
     }
 
+    void marshal_out(std::ostream& os) const {
+        x().marshal_out(os);
+        y().marshal_out(os);
+        z().marshal_out(os);
+    }
+
+    bool marshal_in(std::istream& is) {
+        return
+            m_X.marshal_in(is) &&
+            m_Y.marshal_in(is) &&
+            m_Z.marshal_in(is);
+    }
+
 private:
     BASE m_X, m_Y, m_Z;
 };
@@ -214,6 +211,38 @@ Group<BASE, SCALAR, CURVE>::params;
 //
 
 template <typename BASE, typename SCALAR, typename CURVE>
+void marshal_out(std::ostream& os,
+                 const std::vector<Group<BASE, SCALAR, CURVE>>& a) {
+    // size
+    os << a.size() << std::endl;
+
+    // group vector
+    for (const auto& g : a) {
+        g.marshal_out(os);
+    }
+}
+
+template <typename BASE, typename SCALAR, typename CURVE>
+bool marshal_in(std::istream& is,
+                std::vector<Group<BASE, SCALAR, CURVE>>& a) {
+    // size
+    std::size_t numberElems;
+    is >> numberElems;
+    if (!is) return false;
+
+    // group vector
+    a.clear();
+    a.reserve(numberElems);
+    for (std::size_t i = 0; i < numberElems; ++i) {
+        Group<BASE, SCALAR, CURVE> g;
+        if (!g.marshal_in(is)) return false;
+        a.emplace_back(g);
+    }
+
+    return true; // ok
+}
+
+template <typename BASE, typename SCALAR, typename CURVE>
 std::ostream& operator<< (std::ostream& out,
                           const Group<BASE, SCALAR, CURVE>& a) {
     auto copy(a);
@@ -221,16 +250,16 @@ std::ostream& operator<< (std::ostream& out,
 
     CURVE::outputPrefix(out, a);
 
-    return out << copy.m_X << " "
-               << (copy.m_Y[0].asUnsignedLong() & 1);
+    return out << copy.x() << " "
+               << (copy.y()[0].asUnsignedLong() & 1);
 }
 
 template <typename BASE, typename SCALAR, typename CURVE>
 Group<BASE, SCALAR, CURVE> operator+ (const Group<BASE, SCALAR, CURVE>& a,
                                       const Group<BASE, SCALAR, CURVE>& b) {
     return CURVE::addOp(
-        a.m_X, a.m_Y, a.m_Z,
-        b.m_X, b.m_Y, b.m_Z,
+        a.x(), a.y(), a.z(),
+        b.x(), b.y(), b.z(),
         a);
 }
     
@@ -244,8 +273,8 @@ template <typename BASE, typename SCALAR, typename CURVE>
 Group<BASE, SCALAR, CURVE> fastAddSpecial(const Group<BASE, SCALAR, CURVE>& a,
                                           const Group<BASE, SCALAR, CURVE>& b) {
     return CURVE::fastAddSpecial(
-        a.m_X, a.m_Y, a.m_Z,
-        b.m_X, b.m_Y, b.m_Z,
+        a.x(), a.y(), a.z(),
+        b.x(), b.y(), b.z(),
         a);
 }
     
