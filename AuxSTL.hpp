@@ -79,6 +79,10 @@ public:
         m_value.clear();
     }
 
+    bool empty() const {
+        return m_value.empty();
+    }
+
     void reserve(const std::size_t capacity) {
         m_index.reserve(capacity);
         m_value.reserve(capacity);
