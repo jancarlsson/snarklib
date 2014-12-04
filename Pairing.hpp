@@ -39,6 +39,10 @@ public:
         return ! (*this == other);
     }
 
+    bool isZero() const {
+        return *this == zero();
+    }
+
     static Pairing zero() {
         return Pairing<GA, GB>(GA::zero(), GB::zero());
     }
