@@ -124,6 +124,10 @@ public:
         return m_va.size();
     }
 
+    bool empty() const {
+        return m_va.empty();
+    }
+
     // returns true if all variables are assigned
     bool assignOk() const {
         return m_unsetIdx.empty();
