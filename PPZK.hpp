@@ -78,6 +78,23 @@ public:
             snarklib::marshal_in(is, m_K_query);
     }
 
+    void clear() {
+        m_A_query.clear();
+        m_B_query.clear();
+        m_C_query.clear();
+        m_H_query.clear();
+        m_K_query.clear();
+    }
+
+    bool empty() const {
+        return
+            m_A_query.empty() ||
+            m_B_query.empty() ||
+            m_C_query.empty() ||
+            m_H_query.empty() ||
+            m_K_query.empty();
+    }
+
 private:
     SparseVector<Pairing<G1, G1>> m_A_query;
     SparseVector<Pairing<G2, G1>> m_B_query;
@@ -177,6 +194,17 @@ public:
             snarklib::marshal_in(is, m_encoded_terms);
     }
 
+    void clear() {
+        m_base = G1::zero();
+        m_encoded_terms.clear();
+    }
+
+    bool empty() const {
+        return
+            m_base.isZero() ||
+            m_encoded_terms.empty();
+    }
+
 private:
     G1 m_base;
     std::vector<G1> m_encoded_terms;
@@ -263,6 +291,29 @@ public:
             m_gamma_beta_g2.marshal_in(is) &&
             m_rC_Z_g2.marshal_in(is) &&
             m_encoded_IC_query.marshal_in(is);
+    }
+
+    void clear() {
+        m_alphaA_g2 = G2::zero();
+        m_alphaB_g1 = G1::zero();
+        m_alphaC_g2 = G2::zero();
+        m_gamma_g2 = G2::zero();
+        m_gamma_beta_g1 = G1::zero();
+        m_gamma_beta_g2 = G2::zero();
+        m_rC_Z_g2 = G2::zero();
+        m_encoded_IC_query.clear();
+    }
+
+    bool empty() const {
+        return
+            m_alphaA_g2.isZero() ||
+            m_alphaB_g1.isZero() ||
+            m_alphaC_g2.isZero() ||
+            m_gamma_g2.isZero() ||
+            m_gamma_beta_g1.isZero() ||
+            m_gamma_beta_g2.isZero() ||
+            m_rC_Z_g2.isZero() ||
+            m_encoded_IC_query.empty();
     }
 
 private:
@@ -419,10 +470,33 @@ public:
             m_vk.marshal_in(is);
     }
 
+    void clear() {
+        m_pk.clear();
+        m_vk.clear();
+    }
+
+    bool empty() const {
+        return
+            m_pk.empty() ||
+            m_vk.empty();
+    }
+
 private:
     PPZK_ProvingKey<PAIRING> m_pk;
     PPZK_VerificationKey<PAIRING> m_vk;
 };
+
+template <typename PAIRING>
+std::ostream& operator<< (std::ostream& os, const PPZK_Keypair<PAIRING>& a) {
+    a.marshal_out(os);
+    return os;
+}
+
+template <typename PAIRING>
+std::istream& operator>> (std::istream& is, PPZK_Keypair<PAIRING>& a) {
+    if (! a.marshal_in(is)) a.clear();
+    return is;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Proof
@@ -535,6 +609,23 @@ public:
             m_K.marshal_in(is);
     }
 
+    void clear() {
+        m_A = Pairing<G1, G1>::zero();
+        m_B = Pairing<G2, G1>::zero();
+        m_C = Pairing<G1, G1>::zero();
+        m_H = G1::zero();
+        m_K = G1::zero();
+    }
+
+    bool empty() const {
+        return
+            m_A.isZero() ||
+            m_B.isZero() ||
+            m_C.isZero() ||
+            m_H.isZero() ||
+            m_K.isZero();
+    }
+
 private:
     Pairing<G1, G1> m_A;
     Pairing<G2, G1> m_B;
@@ -542,6 +633,18 @@ private:
     G1 m_H;
     G1 m_K;
 };
+
+template <typename PAIRING>
+std::ostream& operator<< (std::ostream& os, const PPZK_Proof<PAIRING>& a) {
+    a.marshal_out(os);
+    return os;
+}
+
+template <typename PAIRING>
+std::istream& operator>> (std::istream& is, PPZK_Proof<PAIRING>& a) {
+    if (! a.marshal_in(is)) a.clear();
+    return is;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Verification functions
