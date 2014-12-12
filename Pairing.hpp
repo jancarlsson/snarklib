@@ -9,6 +9,7 @@
 #include "AuxSTL.hpp"
 #include "BigInt.hpp"
 #include "Group.hpp"
+#include "ProgressCallback.hpp"
 #include "WindowExp.hpp"
 
 namespace snarklib {
@@ -123,15 +124,40 @@ SparseVector<Pairing<GA, GB>> batchExp(const WindowExp<GA>& tableA,
                                        const WindowExp<GB>& tableB,
                                        const FR& coeffA,
                                        const FR& coeffB,
-                                       const std::vector<FR>& vec)
+                                       const std::vector<FR>& vec,
+                                       ProgressCallback* callback = nullptr)
 {
-    SparseVector<Pairing<GA, GB>> res(vec.size());
+    const std::size_t M = callback ? callback->minorSteps() : 0;
+    const std::size_t N = vec.size();
 
-    for (std::size_t i = 0; i < vec.size(); ++i) {
-        if (! vec[i].isZero())
+    SparseVector<Pairing<GA, GB>> res(N);
+
+    std::size_t i = 0;
+
+    // full blocks
+    for (std::size_t j = 0; j < M; ++j) {
+        for (std::size_t k = 0; k < N / M; ++k) {
+            if (! vec[i].isZero()) {
+                res.pushBack(i,
+                             Pairing<GA, GB>(tableA.exp(coeffA * vec[i]),
+                                             tableB.exp(coeffB * vec[i])));
+            }
+
+            ++i;
+        }
+
+        callback->minor();
+    }
+
+    // remaining steps smaller than one block
+    while (i < N) {
+        if (! vec[i].isZero()) {
             res.pushBack(i,
                          Pairing<GA, GB>(tableA.exp(coeffA * vec[i]),
                                          tableB.exp(coeffB * vec[i])));
+        }
+
+        ++i;
     }
 
 #ifdef USE_ADD_SPECIAL
@@ -145,7 +171,8 @@ template <typename GA, typename GB, typename FR>
 Pairing<GA, GB> multiExp01(const SparseVector<Pairing<GA, GB>>& base,
                            const std::vector<FR>& scalar,
                            const std::size_t minIndex,
-                           const std::size_t maxIndex)
+                           const std::size_t maxIndex,
+                           ProgressCallback* callback = nullptr)
 {
     const auto
         ZERO = FR::zero(),
@@ -182,7 +209,7 @@ Pairing<GA, GB> multiExp01(const SparseVector<Pairing<GA, GB>>& base,
         }
     }
 
-    return accum + multiExp(base2, scalar2);
+    return accum + multiExp(base2, scalar2, callback);
 }
 
 } // namespace snarklib
