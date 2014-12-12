@@ -1,11 +1,13 @@
 #ifndef _SNARKLIB_QAP_HPP_
 #define _SNARKLIB_QAP_HPP_
 
+#include <array>
 #include <cassert>
 #include <cstdint>
 #include <vector>
 #include "LagrangeFFT.hpp"
 #include "LagrangeFFTX.hpp"
+#include "ProgressCallback.hpp"
 #include "Rank1DSL.hpp"
 
 namespace snarklib {
@@ -55,7 +57,8 @@ public:
 
     QAP_ABCH(const R1System<T>& constraintSystem,
              const std::size_t numInputs,
-             const T& point)
+             const T& point,
+             ProgressCallback* callback = nullptr)
         : QAP<T>(constraintSystem, numInputs),
           m_nonzeroAt(0),
           m_nonzeroBt(0),
@@ -65,6 +68,9 @@ public:
           m_Bt(3 + numVariables() + 1, T::zero()),
           m_Ct(3 + numVariables() + 1, T::zero())
     {
+        const std::size_t N = constraintSystem.constraints().size();
+        const std::size_t M = callback ? callback->minorSteps() : 0;
+
         m_Ht.reserve(degree() + 1);
 
         const T Z = FFT()->compute_Z(point);
@@ -80,7 +86,37 @@ public:
             m_At[3 + i] += (*uit) * T(i + 1);
         }
 
-        for (const auto& constraint : constraintSystem.constraints()) {
+        std::size_t i = 0;
+
+        // full blocks
+        for (std::size_t j = 0; j < M; ++j) {
+            for (std::size_t k = 0; k < N / M; ++k) {
+                const auto& constraint = constraintSystem.constraints()[i];
+
+                ++uit;
+
+                for (const auto& term : constraint.a().terms()) {
+                    m_At[3 + term.index()] += (*uit) * term.coeff();
+                }
+
+                for (const auto& term : constraint.b().terms()) {
+                    m_Bt[3 + term.index()] += (*uit) * term.coeff();
+                }
+
+                for (const auto& term : constraint.c().terms()) {
+                    m_Ct[3 + term.index()] += (*uit) * term.coeff();
+                }
+
+                ++i;
+            }
+
+            callback->minor();
+        }
+
+        // remaining steps smaller than one block
+        while (i < N) {
+            const auto& constraint = constraintSystem.constraints()[i];
+
             ++uit;
 
             for (const auto& term : constraint.a().terms()) {
@@ -90,9 +126,12 @@ public:
             for (const auto& term : constraint.b().terms()) {
                 m_Bt[3 + term.index()] += (*uit) * term.coeff();
             }
+
             for (const auto& term : constraint.c().terms()) {
                 m_Ct[3 + term.index()] += (*uit) * term.coeff();
             }
+
+            ++i;
         }
 
         auto ti = T::one();
@@ -199,10 +238,16 @@ public:
                 const R1Witness<T>& witness,
                 const T& d1,
                 const T& d2,
-                const T& d3)
+                const T& d3,
+                ProgressCallback* callback = nullptr)
         : QAP<T>(constraintSystem, numInputs),
           m_H(degree() + 1, T::zero())
     {
+        const std::size_t N = constraintSystem.constraints().size();
+        const std::size_t M1 = callback ? callback->minorSteps() / 2 : 0;
+        const std::size_t M2 = callback ? callback->minorSteps() - M1 : 0;
+        std::size_t idx;
+
         std::vector<T>
             aA(degree(), T::zero()),
             aB(degree(), T::zero());
@@ -216,12 +261,25 @@ public:
             *aAit += witness[i] * T(i + 2);
         }
 
-        for (const auto& constraint : constraintSystem.constraints()) {
-            ++aAit;
-            *aAit += constraint.a() * witness;
+        // full blocks
+        idx = 0;
+        for (std::size_t j = 0; j < M1; ++j) {
+            for (std::size_t k = 0; k < N / M1; ++k) {
+                const auto& constraint = constraintSystem.constraints()[idx];
+                ++aAit; *aAit += constraint.a() * witness;
+                ++aBit; *aBit += constraint.b() * witness;
+                ++idx;
+            }
 
-            ++aBit;
-            *aBit += constraint.b() * witness;
+            callback->minor();
+        }
+
+        // remaining steps smaller than one block
+        while (idx < N) {
+            const auto& constraint = constraintSystem.constraints()[idx];
+            ++aAit; *aAit += constraint.a() * witness;
+            ++aBit; *aBit += constraint.b() * witness;
+            ++idx;
         }
 
         FFT()->iFFT(aA);
@@ -237,16 +295,32 @@ public:
         FFT()->cosetFFT(aB, T::params.multiplicative_generator());
 
         auto& H_tmp = aA;
-
         for (std::size_t i = 0; i < degree(); ++i) {
             H_tmp[i] = aA[i] * aB[i];
         }
 
         std::vector<T> aC(degree(), T::zero());
         auto aCit = aC.begin();
-        for (const auto& constraint : constraintSystem.constraints()) {
+
+        // full blocks
+        idx = 0;
+        for (std::size_t j = 0; j < M2; ++j) {
+            for (std::size_t k = 0; k < N / M2; ++k) {
+                const auto& constraint = constraintSystem.constraints()[idx];
+                ++aCit;
+                *aCit += constraint.c() * witness;
+                ++idx;
+            }
+
+            callback->minor();
+        }
+
+        // remaining steps smaller than one block
+        while (idx < N) {
+            const auto& constraint = constraintSystem.constraints()[idx];
             ++aCit;
             *aCit += constraint.c() * witness;
+            ++idx;
         }
 
         FFT()->iFFT(aC);
