@@ -5,12 +5,14 @@
 #include <cassert>
 #include <cstdint>
 #include <istream>
+#include <memory>
 #include <ostream>
 #include <vector>
 #include "AuxSTL.hpp"
 #include "Group.hpp"
 #include "MultiExp.hpp"
 #include "Pairing.hpp"
+#include "ProgressCallback.hpp"
 #include "QAP.hpp"
 #include "Rank1DSL.hpp"
 #include "WindowExp.hpp"
@@ -397,8 +399,14 @@ public:
     {}
 
     PPZK_Keypair(const R1System<Fr>& constraintSystem,
-                 const std::size_t numCircuitInputs)
+                 const std::size_t numCircuitInputs,
+                 ProgressCallback* callback = nullptr)
     {
+        ProgressCallback_NOP<PAIRING> dummyNOP;
+        ProgressCallback* dummy = callback ? callback : std::addressof(dummyNOP);
+
+        dummy->majorSteps(8); // 8 major steps
+
         const auto
             point = Fr::random(),
             alphaA = Fr::random(),
@@ -409,18 +417,29 @@ public:
             beta = Fr::random(),
             gamma = Fr::random();
 
+        dummy->major(true); // step 8 (starting)
+
         const auto rC = rA * rB;
 
-        QAP_ABCH<Fr> abch(constraintSystem,
-                          numCircuitInputs,
-                          point);
+        QAP_ABCH<Fr> abch(constraintSystem, numCircuitInputs, point,
+                          callback);
+
+        dummy->major(true); // step 7
 
         const auto Z = abch.FFT()->compute_Z(point);
 
-        const WindowExp<G1> g1_table(WindowExp<G1>::windowBits(abch.g1_exp_count()));
-        const WindowExp<G2> g2_table(WindowExp<G2>::windowBits(abch.g2_exp_count()));
+        const WindowExp<G1> g1_table(WindowExp<G1>::windowBits(abch.g1_exp_count()),
+                                     callback);
 
-        auto K_query = g1_table.batchExp(abch.K_query(beta, rA, rB, rC));
+        dummy->major(true); // step 6
+
+        const WindowExp<G2> g2_table(WindowExp<G2>::windowBits(abch.g2_exp_count()),
+                                     callback);
+
+        dummy->major(true); // step 5
+
+        auto K_query = g1_table.batchExp(abch.K_query(beta, rA, rB, rC),
+                                         callback);
 #ifdef USE_ADD_SPECIAL
         batchSpecial(K_query);
 #endif
@@ -429,10 +448,22 @@ public:
         const auto IC_coefficients = abch.IC_coefficients(rA);
 
         m_pk = PPZK_ProvingKey<PAIRING>(
-            batchExp(g1_table, g1_table, rA, rA * alphaA, abch.A_query()),
-            batchExp(g2_table, g1_table, rB, rB * alphaB, abch.B_query()),
-            batchExp(g1_table, g1_table, rC, rC * alphaC, abch.C_query()),
-            g1_table.batchExp(abch.H_query()),
+            (dummy->major(true), // step 4
+             batchExp(g1_table, g1_table, rA, rA * alphaA, abch.A_query(),
+                      callback)),
+
+            (dummy->major(true), // step 3
+             batchExp(g2_table, g1_table, rB, rB * alphaB, abch.B_query(),
+                      callback)),
+
+            (dummy->major(true), // step 2
+             batchExp(g1_table, g1_table, rC, rC * alphaC, abch.C_query(),
+                      callback)),
+
+            (dummy->major(true), // step 1
+             g1_table.batchExp(abch.H_query(),
+                               callback)),
+
             K_query);
 
         m_vk = PPZK_VerificationKey<PAIRING>(
@@ -527,15 +558,25 @@ public:
     PPZK_Proof(const R1System<Fr>& constraintSystem,
                const std::size_t numCircuitInputs,
                const PPZK_ProvingKey<PAIRING>& pk,
-               const R1Witness<Fr>& witness)
+               const R1Witness<Fr>& witness,
+               ProgressCallback* callback = nullptr)
     {
+        ProgressCallback_NOP<PAIRING> dummyNOP;
+        ProgressCallback* dummy = callback ? callback : std::addressof(dummyNOP);
+
+        dummy->majorSteps(6); // 6 major steps
+
         const auto
             d1 = Fr::random(),
             d2 = Fr::random(),
             d3 = Fr::random();
 
-        const QAP_Witness<Fr> qap(
-            constraintSystem, numCircuitInputs, witness, d1, d2, d3);
+        dummy->major(true); // step 6 (starting)
+
+        const QAP_Witness<Fr> qap(constraintSystem, numCircuitInputs, witness, d1, d2, d3,
+                                  callback);
+
+        dummy->major(true); // step 5
 
         const auto& A_query = pk.A_query();
         const auto& B_query = pk.B_query();
@@ -545,23 +586,35 @@ public:
 
         m_A = (d1 * A_query.getElementForIndex(0))
             + A_query.getElementForIndex(3)
-            + multiExp01(A_query, *witness, 4, 4 + qap.numVariables());
+            + multiExp01(A_query, *witness, 4, 4 + qap.numVariables(),
+                         callback);
+
+        dummy->major(true); // step 4
 
         m_B = (d2 * B_query.getElementForIndex(1))
             + B_query.getElementForIndex(3)
-            + multiExp01(B_query, *witness, 4, 4 + qap.numVariables());
+            + multiExp01(B_query, *witness, 4, 4 + qap.numVariables(),
+                         callback);
+
+        dummy->major(true); // step 3
 
         m_C = (d3 * C_query.getElementForIndex(2))
             + C_query.getElementForIndex(3)
-            + multiExp01(C_query, *witness, 4, 4 + qap.numVariables());
+            + multiExp01(C_query, *witness, 4, 4 + qap.numVariables(),
+                         callback);
 
-        m_H = multiExp(H_query, qap.H());
+        dummy->major(true); // step 2
+
+        m_H = multiExp(H_query, qap.H(),
+                       callback);
+
+        dummy->major(true); // step 1
 
         m_K = (d1 * K_query[0]) + (d2 * K_query[1]) + (d3 * K_query[2])
             + K_query[3]
             + multiExp01(
-                std::vector<G1>(K_query.begin() + 4, K_query.end()),
-                *witness);
+                std::vector<G1>(K_query.begin() + 4, K_query.end()), *witness,
+                callback);
     }
 
     const Pairing<G1, G1>& A() const { return m_A; }
@@ -653,8 +706,16 @@ std::istream& operator>> (std::istream& is, PPZK_Proof<PAIRING>& a) {
 template <typename PAIRING>
 bool weakVerify(const PPZK_PrecompVerificationKey<PAIRING>& pvk,
                 const R1Witness<typename PAIRING::Fr>& input,
-                const PPZK_Proof<PAIRING>& proof)
+                const PPZK_Proof<PAIRING>& proof,
+                ProgressCallback* callback = nullptr)
 {
+    ProgressCallback_NOP<PAIRING> dummyNOP;
+    ProgressCallback* dummy = callback ? callback : std::addressof(dummyNOP);
+
+    dummy->majorSteps(5); // 5 major steps
+
+    dummy->major(); // step 5 (starting)
+
     typedef typename PAIRING::GT GT;
     typedef typename PAIRING::G1_precomp G1_precomp;
     typedef typename PAIRING::G2_precomp G2_precomp;
@@ -677,7 +738,9 @@ bool weakVerify(const PPZK_PrecompVerificationKey<PAIRING>& pvk,
     if (ONE != kc_A) {
         return false;
     }
-    
+
+    dummy->major(); // step 4
+
     // knowledge commitment for B
     const G2_precomp proof_g_B_g_precomp(proof.B().G());
     const G1_precomp proof_g_B_h_precomp(proof.B().H());
@@ -687,6 +750,8 @@ bool weakVerify(const PPZK_PrecompVerificationKey<PAIRING>& pvk,
     if (ONE != kc_B) {
         return false;
     }
+
+    dummy->major(); // step 3
 
     // knowledge commitment for C
     const G1_precomp proof_g_C_g_precomp(proof.C().G());
@@ -698,6 +763,8 @@ bool weakVerify(const PPZK_PrecompVerificationKey<PAIRING>& pvk,
         return false;
     }
 
+    dummy->major(); // step 2
+
     // quadratic arithmetic program divisibility
     const G1_precomp proof_g_A_g_acc_precomp(proof.A().G() + accum_IC.base());
     const G1_precomp proof_g_H_precomp(proof.H());
@@ -707,6 +774,8 @@ bool weakVerify(const PPZK_PrecompVerificationKey<PAIRING>& pvk,
     if (ONE != QAP) {
         return false;
     }
+
+    dummy->major(); // step 1
 
     // same coefficients
     const G1_precomp proof_g_K_precomp(proof.K());
@@ -724,31 +793,36 @@ bool weakVerify(const PPZK_PrecompVerificationKey<PAIRING>& pvk,
 template <typename PAIRING>
 bool weakVerify(const PPZK_VerificationKey<PAIRING>& vk,
                 const R1Witness<typename PAIRING::Fr>& input,
-                const PPZK_Proof<PAIRING>& proof)
+                const PPZK_Proof<PAIRING>& proof,
+                ProgressCallback* callback = nullptr)
 {
     return weakVerify(PPZK_PrecompVerificationKey<PAIRING>(vk),
                       input,
-                      proof);
+                      proof,
+                      callback);
 }
 
 template <typename PAIRING>
 bool strongVerify(const PPZK_PrecompVerificationKey<PAIRING>& pvk,
                   const R1Witness<typename PAIRING::Fr>& input,
-                  const PPZK_Proof<PAIRING>& proof)
+                  const PPZK_Proof<PAIRING>& proof,
+                  ProgressCallback* callback = nullptr)
 {
     return (pvk.encoded_IC_query().input_size() == input.size())
-        ? weakVerify(pvk, input, proof)
+        ? weakVerify(pvk, input, proof, callback)
         : false;
 }
 
 template <typename PAIRING>
 bool strongVerify(const PPZK_VerificationKey<PAIRING>& vk,
                   const R1Witness<typename PAIRING::Fr>& input,
-                  const PPZK_Proof<PAIRING>& proof)
+                  const PPZK_Proof<PAIRING>& proof,
+                  ProgressCallback* callback = nullptr)
 {
     return strongVerify(PPZK_PrecompVerificationKey<PAIRING>(vk),
                         input,
-                        proof);
+                        proof,
+                        callback);
 }
 
 } // namespace snarklib
