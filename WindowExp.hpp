@@ -6,6 +6,7 @@
 #include <vector>
 #include "BigInt.hpp"
 #include "Group.hpp"
+#include "ProgressCallback.hpp"
 
 namespace snarklib {
 
@@ -30,16 +31,51 @@ public:
         return 1;
     }
 
-    WindowExp(const std::size_t windowBits)
+    WindowExp(const std::size_t windowBits,
+              ProgressCallback* callback = nullptr)
         : m_windowBits(windowBits),
           m_powers_of_g(numWindows(windowBits),
                         std::vector<GROUP>(windowSize(windowBits), GROUP::zero()))
     {
+        const std::size_t N = m_powers_of_g.size();
+        const std::size_t M = callback ? callback->minorSteps() : 0;
+
         GROUP outerG = GROUP::one();
-        for (std::size_t outer = 0; outer < m_powers_of_g.size(); ++outer) {
+
+        std::size_t outer = 0;
+
+        // full blocks
+        for (std::size_t j = 0; j < M; ++j) {
+            for (std::size_t k = 0; k < N / M; ++k) {
+                GROUP innerG = GROUP::zero();
+
+                const bool lastRow = (outer == N - 1);
+
+                const std::size_t cur_in_window = lastRow
+                    ? lastInWindow(windowBits)
+                    : m_powers_of_g[outer].size();
+
+                for (std::size_t inner = 0; inner < cur_in_window; ++inner) {
+                    m_powers_of_g[outer][inner] = innerG;
+                    innerG = innerG + outerG;
+                }
+
+                if (! lastRow) {
+                    for (std::size_t i = 0; i < windowBits; ++i)
+                        outerG = outerG + outerG;
+                }
+
+                ++outer;
+            }
+
+            callback->minor();
+        }
+
+        // remaining steps smaller than one block
+        while (outer < N) {
             GROUP innerG = GROUP::zero();
 
-            const bool lastRow = (outer == m_powers_of_g.size() - 1);
+            const bool lastRow = (outer == N - 1);
 
             const std::size_t cur_in_window = lastRow
                 ? lastInWindow(windowBits)
@@ -54,6 +90,8 @@ public:
                 for (std::size_t i = 0; i < windowBits; ++i)
                     outerG = outerG + outerG;
             }
+
+            ++outer;
         }
     }
 
@@ -76,11 +114,30 @@ public:
         return res;
     }
 
-    std::vector<GROUP> batchExp(const std::vector<Fr>& exponentVec) const {
-        std::vector<GROUP> res(exponentVec.size(), m_powers_of_g[0][0]);
+    std::vector<GROUP> batchExp(const std::vector<Fr>& exponentVec,
+                                ProgressCallback* callback = nullptr) const
+    {
+        const std::size_t N = exponentVec.size();
+        const std::size_t M = callback ? callback->minorSteps() : 0;
 
-        for (std::size_t i = 0; i < exponentVec.size(); ++i) {
+        std::vector<GROUP> res(N, m_powers_of_g[0][0]);
+
+        std::size_t i = 0;
+
+        // for full blocks
+        for (std::size_t j = 0; j < M; ++j) {
+            for (std::size_t k = 0; k < N / M; ++k) {
+                res[i] = exp(exponentVec[i]);
+                ++i;
+            }
+
+            callback->minor();
+        }
+
+        // remaining steps smaller than one block
+        while (i < N) {
             res[i] = exp(exponentVec[i]);
+            ++i;
         }
 
         return res;
