@@ -4,31 +4,68 @@ CXXFLAGS = -O2 -g3 -std=c++11 -fPIC
 AR = ar
 RANLIB = ranlib
 
+LIBRARY_FILES = \
+	AsmMacros.hpp \
+	AuxSTL.hpp\
+	BigInt.hpp \
+	EC_BN128_GroupCurve.hpp \
+	EC_BN128_InitFields.hpp \
+	EC_BN128_InitGroups.hpp \
+	EC_BN128_Modulus.hpp \
+	EC_BN128_Pairing.hpp \
+	EC_Edwards_GroupCurve.hpp \
+	EC_Edwards_InitFields.hpp \
+	EC_Edwards_InitGroups.hpp \
+	EC_Edwards_Modulus.hpp \
+	EC_Edwards_Pairing.hpp \
+	EC.hpp \
+	EC_Pairing.hpp \
+	Field.hpp \
+	FpModel.hpp \
+	FpModel.tcc \
+	FpX.hpp \
+	Group.hpp \
+	LagrangeFFT.hpp \
+	LagrangeFFTX.hpp \
+	MultiExp.hpp \
+	Pairing.hpp \
+	PPZK.hpp \
+	ProgressCallback.hpp \
+	QAP.hpp \
+	Rank1DSL.hpp \
+	Util.hpp \
+	WindowExp.hpp
+
 default :
 	@echo Build options:
 	@echo make autotest_bn128 LIBSNARK_PREFIX=\<path\>
-	@echo make autotest_edwards LIBSNARK_PREFIX\=\<path\>
-	@echo make install DIR\=\<path\>
+	@echo make autotest_edwards LIBSNARK_PREFIX=\<path\>
+	@echo make install DIR=\<path\>
 	@echo make doc
 	@echo make clean
 
-doc :
+README.html : README.md
 	markdown_py -f README.html README.md -x toc -x extra --noisy
+
+doc : README.html
 
 ifeq ($(DIR),)
 install :
-	$(error Please provide DIR, e.g. make install DIR=/usr/local/include/snarklib)
+	$(error Please provide DIR, e.g. make install DIR=~/snarkinstall)
 else
-LIBRARY_FILES = $(shell ls *hpp *tcc | grep -v -i autotest)
-
 # installing just copies over the template library header files
 install :
 	mkdir -p $(DIR)
 	cp $(LIBRARY_FILES) $(DIR)
 endif
 
+CLEAN_FILES = \
+	autotest_bn128 \
+	autotest_edwards \
+	README.html
+
 clean :
-	rm -f *.o autotest_bn128 autotest_edwards README.html
+	rm -f *.o $(CLEAN_FILES)
 
 
 ################################################################################
@@ -49,7 +86,7 @@ LDFLAGS_CURVE_ALT_BN128 = \
 	-Wl,-rpath $(LIBSNARK_PREFIX)/lib \
 	-lgmpxx -lgmp -lprocps -lsnark
 
-autotest_bn128 : autotest.cpp
+autotest_bn128 : autotest.cpp $(LIBRARY_FILES)
 	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_ALT_BN128) $< -o autotest_bn128.o
 	$(CXX) -o $@ autotest_bn128.o $(LDFLAGS_CURVE_ALT_BN128)
 endif
@@ -73,7 +110,7 @@ LDFLAGS_CURVE_EDWARDS = \
 	-Wl,-rpath $(LIBSNARK_PREFIX)/lib \
 	-lgmpxx -lgmp -lprocps -lsnark
 
-autotest_edwards : autotest.cpp
+autotest_edwards : autotest.cpp $(LIBRARY_FILES)
 	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_EDWARDS) $< -o autotest_edwards.o
 	$(CXX) -o $@ autotest_edwards.o $(LDFLAGS_CURVE_EDWARDS)
 endif
