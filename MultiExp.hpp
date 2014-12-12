@@ -8,6 +8,7 @@
 #include <vector>
 #include "AuxSTL.hpp"
 #include "BigInt.hpp"
+#include "ProgressCallback.hpp"
 
 namespace snarklib {
 
@@ -84,15 +85,27 @@ T wnafExp(const BigInt<N>& scalar,
 // calculates sum(scalar[i] * base[i])
 template <typename T, typename F>
 T multiExp(const std::vector<T>& base,
-           const std::vector<F>& scalar)
+           const std::vector<F>& scalar,
+           ProgressCallback* callback = nullptr)
 {
+    const std::size_t M = callback ? callback->minorSteps() : 0;
+    std::size_t progressCount = 0, callbackCount = 0;
+
     assert(base.size() == scalar.size());
 
     if (base.empty()) {
+        // final callbacks
+        for (std::size_t i = callbackCount; i < M; ++i)
+            callback->minor();
+
         return T::zero();
     }
 
     if (1 == base.size()) {
+        // final callbacks
+        for (std::size_t i = callbackCount; i < M; ++i)
+            callback->minor();
+
         return scalar[0][0] * base[0];
     }
 
@@ -141,7 +154,19 @@ T multiExp(const std::vector<T>& base,
         } else {
             res = res + wnafExp(a.key, baseVec[a.value]);
         }
+
+        // progress on the max-heap is difficult to estimate, use
+        // heuristic of iteration over original size as one unit
+        if (callbackCount < M && (scalar.size() == ++progressCount)) {
+            progressCount = 0;
+            ++callbackCount;
+            callback->minor();
+        }
     }
+
+    // final callbacks
+    for (std::size_t i = callbackCount; i < M; ++i)
+        callback->minor();
 
     return res;
 }
@@ -149,7 +174,8 @@ T multiExp(const std::vector<T>& base,
 // sum of multi-exponentiation when scalar vector has many zeros and ones
 template <typename T, typename F>
 T multiExp01(const std::vector<T>& base,
-             const std::vector<F>& scalar)
+             const std::vector<F>& scalar,
+             ProgressCallback* callback = nullptr)
 {
     const auto
         ZERO = F::zero(),
@@ -179,7 +205,7 @@ T multiExp01(const std::vector<T>& base,
         }
     }
 
-    return accum + multiExp(base2, scalar2);
+    return accum + multiExp(base2, scalar2, callback);
 }
 
 } // namespace snarklib
