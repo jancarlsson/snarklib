@@ -47,15 +47,22 @@ Software engineering
 
 Goals:
 
-1. reliability (library code should never crash or fail for any reason)
-2. extensive template metaprogramming, avoid copy and paste OOP
-3. no garbage collection (i.e. reference counting with std::shared_ptr)
-4. automated regression test suite compares libsnark and snarklib
+1. provide a back-end for a high-level language: [GitHub snarkfront project]
+2. reliability
+3. extensive template metaprogramming
+4. no garbage collection
+5. automated regression test suite
 
-Parts of libsnark omitted from snarklib:
+Omitted libsnark features:
 
 1. gadgets
 2. CURVE_BN128
+
+Potential issues:
+
+1. randomness taken directly from /dev/urandom
+2. non-standard proof and verification key formats (PKCS and X.509 for ZKP?)
+3. memory not secured
 
 --------------------------------------------------------------------------------
 Build instructions
@@ -70,6 +77,11 @@ If the autotests are built, then the [GitHub libsnark project] is required.
 The libsnark library also uses GNU GMP.
 
 C++11 is required.
+
+To install snarklib: (nothing to build because all header files)
+
+    $ cd ~/snarklib
+    $ make install PREFIX=/usr/local
 
 The only thing to build is the autotests which compare snarklib with libsnark.
 Of course, libsnark must be built then. The libsnark library is configured with
@@ -261,7 +273,7 @@ in key pair generation is the secret in this form of zero knowledge. An
 adversary who holds the original random samples which generated proving and
 verification keys can cheat.
 
-Whoever generates the proving and verification key pair is a trusted entity.
+*Whoever generates the proving and verification key pair is a trusted entity.*
 
     All systems require trust, just as there is always risk.
     Technology can move trust and risk, perhaps to a place we do not see.
@@ -302,6 +314,8 @@ If you have more time, two additional research papers are:
 [GitHub libsnark project]: https://github.com/scipr-lab/libsnark
 
 [GNU Multiple Precision Arithmetic Library]: https://gmplib.org/
+
+[GitHub snarkfront project]: https://github.com/jancarlsson/snarkfront
 
 --------------------------------------------------------------------------------
 Bugs found in libsnark
