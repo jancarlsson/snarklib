@@ -156,7 +156,7 @@ public:
 
         // unset indices set
         os << m_unsetIdx.size() << std::endl;
-        for (const auto a : m_unsetIdx) {
+        for (const auto& a : m_unsetIdx) {
             os << a << std::endl;
         }
     }
@@ -853,11 +853,11 @@ public:
 
         for (const auto& constraint : m_constraints)
         {
-            for (const auto term : constraint.a().terms()) {
+            for (const auto& term : constraint.a().terms()) {
                 touched_by_A[term.index()] = true;
             }
 
-            for (const auto term : constraint.b().terms()) {
+            for (const auto& term : constraint.b().terms()) {
                 touched_by_B[term.index()] = true;
             }
         }
