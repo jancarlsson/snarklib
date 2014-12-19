@@ -145,7 +145,7 @@ public:
         os << size() << std::endl;
 
         // index vector
-        for (const auto a : m_index) {
+        for (const auto& a : m_index) {
             os << a << std::endl;
         }
 
