@@ -52,7 +52,7 @@ public:
         std::vector<unsigned char> v;
         v.reserve(base10.size());
 
-        for (const auto c : base10) {
+        for (const auto& c : base10) {
             assert(isdigit(c));
             v.push_back(c - '0');
         }
@@ -258,7 +258,7 @@ public:
         const std::size_t n = sizeof(mp_limb_t) / sizeof(unsigned int);
 
         for (auto& r : m_data) {
-            for (size_t i = 0; i < n; ++i) {
+            for (std::size_t i = 0; i < n; ++i) {
                 r <<= sizeof(unsigned int) * 8;
                 r |= rd();
             }
