@@ -40,7 +40,7 @@ default :
 	@echo Build options:
 	@echo make autotest_bn128 LIBSNARK_PREFIX=\<path\>
 	@echo make autotest_edwards LIBSNARK_PREFIX=\<path\>
-	@echo make install DIR=\<path\>
+	@echo make install PREFIX=\<path\>
 	@echo make doc
 	@echo make clean
 
@@ -49,14 +49,14 @@ README.html : README.md
 
 doc : README.html
 
-ifeq ($(DIR),)
+ifeq ($(PREFIX),)
 install :
-	$(error Please provide DIR, e.g. make install DIR=~/snarkinstall)
+	$(error Please provide PREFIX, e.g. make install PREFIX=/usr/local)
 else
 # installing just copies over the template library header files
 install :
-	mkdir -p $(DIR)
-	cp $(LIBRARY_FILES) $(DIR)
+	mkdir -p $(PREFIX)/include/snarklib
+	cp $(LIBRARY_FILES) $(PREFIX)/include/snarklib
 endif
 
 CLEAN_FILES = \
