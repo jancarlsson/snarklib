@@ -259,7 +259,7 @@ public:
 
         for (auto& r : m_data) {
             for (std::size_t i = 0; i < n; ++i) {
-                r <<= sizeof(unsigned int) * 8;
+                r <<= sizeof(unsigned int) * CHAR_BIT;
                 r |= rd();
             }
         }
