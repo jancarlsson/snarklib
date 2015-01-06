@@ -68,11 +68,10 @@ class SparseVector
 public:
     SparseVector() = default;
 
-    SparseVector(const std::size_t reserveSize)
-    {
-        m_index.reserve(reserveSize);
-        m_value.reserve(reserveSize);
-    }
+    SparseVector(const std::size_t n)
+        : m_index(n),
+          m_value(n)
+    {}
 
     void clear() {
         m_index.clear();
@@ -92,9 +91,21 @@ public:
         return m_value.size();
     }
 
+    void resize(const std::size_t n) {
+        m_index.resize(n);
+        m_value.resize(n);
+    }
+
     void pushBack(const std::size_t elementIndex, const T& elementValue) {
         m_index.push_back(elementIndex);
         m_value.emplace_back(elementValue);
+    }
+
+    void setIndexElement(const std::size_t index,
+                         const std::size_t elementIndex,
+                         const T& elementValue) {
+        m_index[index] = elementIndex;
+        m_value[index] = elementValue;
     }
 
     void setElement(const std::size_t idx, const T& elementValue) {
