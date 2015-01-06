@@ -153,7 +153,8 @@ public:
             m_A.is_sparse = true;
             m_A.original_size = 0;
 
-            m_B.pushBack(
+            m_B.setIndexElement(
+                i,
                 idx,
                 Pairing<TG, TH>(BigInt<N>(a) * TG::one(), BigInt<N>(b) * TH::one()));
 
@@ -353,7 +354,8 @@ public:
             m_baseA.is_sparse = true;
             m_baseA.original_size = 0;
 
-            m_baseB.pushBack(
+            m_baseB.setIndexElement(
+                i,
                 idx,
                 Pairing<TG, TH>(BigInt<N>(a) * TG::one(), BigInt<N>(b) * TH::one()));
 
