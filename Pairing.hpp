@@ -132,15 +132,17 @@ SparseVector<Pairing<GA, GB>> batchExp(const WindowExp<GA>& tableA,
 
     SparseVector<Pairing<GA, GB>> res(N);
 
-    std::size_t i = 0;
+    std::size_t i = 0, index = 0;
 
     // full blocks
     for (std::size_t j = 0; j < M; ++j) {
         for (std::size_t k = 0; k < N / M; ++k) {
             if (! vec[i].isZero()) {
-                res.pushBack(i,
-                             Pairing<GA, GB>(tableA.exp(coeffA * vec[i]),
-                                             tableB.exp(coeffB * vec[i])));
+                res.setIndexElement(
+                    index++,
+                    i,
+                    Pairing<GA, GB>(tableA.exp(coeffA * vec[i]),
+                                    tableB.exp(coeffB * vec[i])));
             }
 
             ++i;
@@ -152,13 +154,17 @@ SparseVector<Pairing<GA, GB>> batchExp(const WindowExp<GA>& tableA,
     // remaining steps smaller than one block
     while (i < N) {
         if (! vec[i].isZero()) {
-            res.pushBack(i,
-                         Pairing<GA, GB>(tableA.exp(coeffA * vec[i]),
-                                         tableB.exp(coeffB * vec[i])));
+            res.setIndexElement(
+                index++,
+                i,
+                Pairing<GA, GB>(tableA.exp(coeffA * vec[i]),
+                                tableB.exp(coeffB * vec[i])));
         }
 
         ++i;
     }
+
+    res.resize(index);
 
 #ifdef USE_ADD_SPECIAL
     batchSpecial(res);
