@@ -29,7 +29,7 @@ public:
                         const std::string& b,
                         const std::string& c,
                         const std::string& d)
-        : AutoTest(a, b),
+        : AutoTest(a, b, c, d),
           m_A1({to_bigint<N>(a) * UG::one(), to_bigint<N>(b) * UH::one()}),
           m_A2({to_bigint<N>(c) * UG::one(), to_bigint<N>(d) * UH::one()}),
           m_B1(BigInt<N>(a) * TG::one(), BigInt<N>(b) * TH::one()),
@@ -100,7 +100,7 @@ public:
                                    const std::string& b,
                                    const std::string& c,
                                    const std::string& d)
-        : AutoTest(a, b),
+        : AutoTest(a, b, c, d),
           m_A1({to_bigint<N>(a) * UG::one(), to_bigint<N>(b) * UH::one()}),
           m_A2({to_bigint<N>(c) * UG::one(), to_bigint<N>(d) * UH::one()}),
           m_B1(BigInt<N>(a) * TG::one(), BigInt<N>(b) * TH::one()),
@@ -133,7 +133,7 @@ public:
     AutoTest_PairingBatchSpecial(const std::size_t vecSize)
         : AutoTest(vecSize),
           m_vecSize(vecSize),
-          m_B(vecSize)
+          m_B(vecSize, Pairing<TG, TH>::zero())
     {
         m_A.values.reserve(vecSize);
         m_A.indices.reserve(vecSize);
@@ -194,7 +194,7 @@ public:
     AutoTest_Pairing_wnafExp(const std::string& a,
                              const std::string& b,
                              const std::string& c)
-        : AutoTest(a, b),
+        : AutoTest(a, b, c),
           m_scalarA(a.c_str()),
           m_scalarB(a),
           m_baseA({to_bigint<N>(b) * UG::one(), to_bigint<N>(c) * UH::one()}),
@@ -282,8 +282,8 @@ public:
                                                               expSize_UH_A,
                                                               UH::one());
 
-        WindowExp<TG> winTable_TG_B(expSize_TG_B);
-        WindowExp<TH> winTable_TH_B(expSize_TH_B);
+        const WindowExp<TG> winTable_TG_B(m_exp_count);
+        const WindowExp<TH> winTable_TH_B(m_exp_count);
 
         // batch exponentiation
         const auto sparseVec_A = kc_batch_exp(UF::num_bits,
@@ -334,7 +334,7 @@ class AutoTest_Pairing_multiExp01 : public AutoTest
 public:
     AutoTest_Pairing_multiExp01(const std::size_t vecSize)
         : AutoTest(vecSize),
-          m_baseB(vecSize)
+          m_baseB(vecSize, Pairing<TG, TH>::zero())
     {
         m_baseA.values.reserve(vecSize);
         m_baseA.indices.reserve(vecSize);
@@ -399,6 +399,151 @@ private:
     std::vector<UF> m_scalarA;
     std::vector<TF> m_scalarB;
     std::size_t m_minIndex, m_maxIndex;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// compare map-reduce with monolithic batchExp
+//
+
+template <typename TG, typename TH, typename TF>
+class AutoTest_Pairing_batchExpMapReduce1 : public AutoTest
+{
+public:
+    AutoTest_Pairing_batchExpMapReduce1(const std::size_t exp_count,
+                                        const TF& coeffA,
+                                        const TF& coeffB,
+                                        const std::size_t vecSize)
+        : AutoTest(exp_count, coeffA, coeffB, vecSize),
+          m_exp_count(exp_count),
+          m_coeffA(coeffA),
+          m_coeffB(coeffB),
+          m_vec(vecSize, TF::zero())
+    {
+        for (std::size_t i = 0; i < vecSize; ++i)
+            m_vec[i] = TF(uniformBase10(1, 1000000));
+    }
+
+    AutoTest_Pairing_batchExpMapReduce1(const std::size_t exp_count,
+                                        const std::size_t vecSize)
+        : AutoTest_Pairing_batchExpMapReduce1{exp_count, TF::random(), TF::random(), vecSize}
+    {}
+
+    void runTest() {
+        const WindowExp<TG> tableG(m_exp_count);
+        const WindowExp<TH> tableH(m_exp_count);
+
+        const auto result_A = batchExp(tableG, tableH, m_coeffA, m_coeffB, m_vec);
+
+        const auto space = WindowExp<TG>::space(m_exp_count);
+
+        // try all possible block partitionings
+        for (std::size_t numBlocks = 1; numBlocks <= space.globalID()[0]; ++numBlocks) {
+            auto idx = space;
+            idx.blockPartition(std::array<std::size_t, 1>{ numBlocks });
+
+            // initial block
+            const WindowExp<TG> startG(idx, 0);
+            const WindowExp<TH> startH(idx, 0);
+            auto result_B = batchExp(startG, startH, m_coeffA, m_coeffB, m_vec);
+
+            // mapping subsequent blocks
+            for (std::size_t block = 1; block < numBlocks; ++block) {
+                const WindowExp<TG> partG(idx, block);
+                const WindowExp<TH> partH(idx, block);
+
+                // reducing subsequent blocks
+                batchExp(result_B, partG, partH, m_coeffA, m_coeffB, m_vec);
+            }
+
+            checkPass(result_A == result_B);
+        }
+    }
+
+private:
+    const std::size_t m_exp_count;
+    const TF m_coeffA, m_coeffB;
+    std::vector<TF> m_vec;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// map-reduce window tables and block partitioned vector batchExp
+//
+
+template <typename TG, typename TH, typename TF>
+class AutoTest_Pairing_batchExpMapReduce2 : public AutoTest
+{
+public:
+    AutoTest_Pairing_batchExpMapReduce2(const std::size_t exp_count,
+                                        const TF& coeffA,
+                                        const TF& coeffB,
+                                        const std::size_t vecSize)
+        : AutoTest(exp_count, coeffA, coeffB, vecSize),
+          m_exp_count(exp_count),
+          m_coeffA(coeffA),
+          m_coeffB(coeffB),
+          m_vec(vecSize, TF::zero())
+    {
+        for (std::size_t i = 0; i < vecSize; ++i)
+            m_vec[i] = TF(uniformBase10(1, 1000000));
+    }
+
+    AutoTest_Pairing_batchExpMapReduce2(const std::size_t exp_count,
+                                        const std::size_t vecSize)
+        : AutoTest_Pairing_batchExpMapReduce2{exp_count, TF::random(), TF::random(), vecSize}
+    {}
+
+    void runTest() {
+        const WindowExp<TG> tableG(m_exp_count);
+        const WindowExp<TH> tableH(m_exp_count);
+
+        const auto result_A = batchExp(tableG, tableH, m_coeffA, m_coeffB, m_vec);
+
+        const auto winSpace = WindowExp<TG>::space(m_exp_count);
+        const auto vecSpace = BlockVector<TF>::space(m_vec);
+
+        // just try three partitionings of window table
+        for (const auto numWinBlks : std::array<std::size_t, 3>{ 1, 2, winSpace.globalID()[0] }) {
+            auto winIdx = winSpace;
+            winIdx.blockPartition(std::array<std::size_t, 1>{ numWinBlks });
+
+            // try all possible block partitionings of vector
+            for (std::size_t numVecBlks = 1; numVecBlks <= vecSpace.globalID()[0]; ++numVecBlks) {
+                auto vecIdx = vecSpace;
+                vecIdx.blockPartition(std::array<std::size_t, 1>{ numVecBlks });
+
+                std::vector<SparseVector<Pairing<TG, TH>>> result(numVecBlks);
+
+                // initial block
+                const WindowExp<TG> startG(winIdx, 0);
+                const WindowExp<TH> startH(winIdx, 0);
+                for (std::size_t vecblock = 0; vecblock < numVecBlks; ++vecblock) {
+                    BlockVector<TF> partvec(vecIdx, vecblock, m_vec);
+                    result[vecblock] = batchExp(startG, startH, m_coeffA, m_coeffB, partvec);
+                }
+
+                // subsequent blocks
+                for (std::size_t winblock = 1; winblock < numWinBlks; ++winblock) {
+                    const WindowExp<TG> partG(winIdx, winblock);
+                    const WindowExp<TH> partH(winIdx, winblock);
+                    for (std::size_t vecblock = 0; vecblock < numVecBlks; ++vecblock) {
+                        BlockVector<TF> partvec(vecIdx, vecblock, m_vec);
+                        batchExp(result[vecblock], partG, partH, m_coeffA, m_coeffB, partvec);
+                    }
+                }
+
+                auto& result_B = result[0];
+                for (std::size_t i = 1; i < numVecBlks; ++i)
+                    result_B.concat(result[i]);
+
+                checkPass(result_A == result_B);
+            }
+        }
+    }
+
+private:
+    const std::size_t m_exp_count;
+    const TF m_coeffA, m_coeffB;
+    std::vector<TF> m_vec;
 };
 
 } // namespace snarklib
