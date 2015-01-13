@@ -66,12 +66,11 @@ public:
           m_nonzeroHt(0),
           m_At(3 + numVariables() + 1, T::zero()),
           m_Bt(3 + numVariables() + 1, T::zero()),
-          m_Ct(3 + numVariables() + 1, T::zero())
+          m_Ct(3 + numVariables() + 1, T::zero()),
+          m_Ht(degree() + 1)
     {
         const std::size_t N = constraintSystem.constraints().size();
         const std::size_t M = callback ? callback->minorSteps() : 0;
-
-        m_Ht.reserve(degree() + 1);
 
         const T Z = FFT()->compute_Z(point);
 
@@ -136,7 +135,7 @@ public:
 
         auto ti = T::one();
         for (std::size_t i = 0; i <= degree(); ++i) {
-            m_Ht.emplace_back(ti);
+            m_Ht[i] = ti;
             ti *= point;
         }
 
@@ -175,26 +174,20 @@ public:
                            const T& rA,
                            const T& rB,
                            const T& rC) const {
-        std::vector<T> vec;
-        vec.reserve(3 + numVariables() + 1);
+        std::vector<T> vec(3 + numVariables() + 1);
 
         for (std::size_t i = 0; i < 3 + numVariables() + 1; ++i) {
-            vec.emplace_back(
-                beta * (
-                    (rA * A_query()[i]) +
-                    (rB * B_query()[i]) +
-                    (rC * C_query()[i])));
+            vec[i] = beta * ((rA * A_query()[i]) + (rB * B_query()[i]) + (rC * C_query()[i]));
         }
 
         return vec;
     }
 
     std::vector<T> IC_coefficients(const T& rA) {
-        std::vector<T> vec;
-        vec.reserve(numCircuitInputs() + 1);
+        std::vector<T> vec(numCircuitInputs() + 1);
 
         for (std::size_t i = 0; i < numCircuitInputs() + 1; ++i) {
-            vec.emplace_back(m_At[3 + i] * rA);
+            vec[i] = m_At[3 + i] * rA;
             assert(! vec[i].isZero());
             m_At[3 + i] = T::zero();
         }
