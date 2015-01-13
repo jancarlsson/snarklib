@@ -428,12 +428,12 @@ public:
 
         const auto Z = abch.FFT()->compute_Z(point);
 
-        const WindowExp<G1> g1_table(WindowExp<G1>::windowBits(abch.g1_exp_count()),
+        const WindowExp<G1> g1_table(abch.g1_exp_count(),
                                      callback);
 
         dummy->major(true); // step 6
 
-        const WindowExp<G2> g2_table(WindowExp<G2>::windowBits(abch.g2_exp_count()),
+        const WindowExp<G2> g2_table(abch.g2_exp_count(),
                                      callback);
 
         dummy->major(true); // step 5
