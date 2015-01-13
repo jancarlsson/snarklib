@@ -2,12 +2,14 @@
 #define _SNARKLIB_AUX_STL_HPP_
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <iostream>
 #include <istream>
 #include <ostream>
 #include <queue>
 #include <vector>
+#include "IndexSpace.hpp"
 
 namespace snarklib {
 
@@ -71,6 +73,11 @@ public:
     SparseVector(const std::size_t n)
         : m_index(n),
           m_value(n)
+    {}
+
+    SparseVector(const std::size_t n, const T& obj)
+        : m_index(n),
+          m_value(n, obj)
     {}
 
     void clear() {
@@ -151,6 +158,16 @@ public:
         return ! (*this == other);
     }
 
+    // useful for map-reduce, concatenate sparse vectors from batchExp()
+    void concat(const SparseVector<T>& other) {
+        const std::size_t N = other.size();
+
+        for (std::size_t i = 0; i < N; ++i) {
+            m_index.emplace_back(other.m_index[i]);
+            m_value.emplace_back(other.m_value[i]);
+        }
+    }
+
     void marshal_out(std::ostream& os) const {
         // size
         os << size() << std::endl;
@@ -197,6 +214,94 @@ public:
 
 private:
     std::vector<std::size_t> m_index;
+    std::vector<T> m_value;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// Vector subsection corresponding to map-reduce block partitioning
+// Originates from mapping of constraint system through QAP ABCH.
+//
+
+template <typename T>
+class BlockVector
+{
+public:
+    // one-dimensional index space
+    static IndexSpace<1> space(const std::vector<T>& a) {
+        return IndexSpace<1>(a.size());
+    }
+
+    // zero block partition
+    BlockVector(const IndexSpace<1>& space,
+                const std::array<std::size_t, 1>& block)
+        : m_space(space),
+          m_block(block),
+          m_startIndex(space.indexOffset(m_block)[0]),
+          m_stopIndex(m_startIndex + space.indexSize(m_block)[0]),
+          m_value(m_stopIndex - m_startIndex) // initializes to zero
+    {}
+
+    // zero block partition
+    BlockVector(const IndexSpace<1>& space,
+                const std::size_t block)
+        : BlockVector{space, std::array<std::size_t, 1>{block}}
+    {}
+
+    // standard vector -> block partition
+    BlockVector(const IndexSpace<1>& space,
+                const std::array<std::size_t, 1>& block,
+                const std::vector<T>& a)
+        : m_space(space),
+          m_block(block),
+          m_startIndex(space.indexOffset(m_block)[0]),
+          m_stopIndex(m_startIndex + space.indexSize(m_block)[0]),
+          m_value(a.begin() + m_startIndex, a.begin() + m_stopIndex)
+    {}
+
+    // standard vector -> block partition
+    BlockVector(const IndexSpace<1>& space,
+                const std::size_t block,
+                const std::vector<T>& a)
+        : BlockVector{space, std::array<std::size_t, 1>{block}, a}
+    {}
+
+    const IndexSpace<1>& space() const { return m_space; }
+    const std::array<std::size_t, 1>& block() const { return m_block; }
+
+    std::size_t globalSize() const { return m_space.globalID()[0]; }
+    std::size_t size() const { return m_stopIndex - m_startIndex; }
+
+    std::size_t startIndex() const { return m_startIndex; }
+    std::size_t stopIndex() const { return m_stopIndex; }
+
+    const T& operator[] (const std::size_t index) const {
+        return m_value[index - m_startIndex];
+    }
+
+    T& operator[] (const std::size_t index) {
+        return m_value[index - m_startIndex];
+    }
+
+    // in-place accumulation
+    BlockVector& operator+= (const BlockVector& other) {
+        if (m_space == other.m_space) {
+            for (std::size_t i = 0; i < size(); ++i)
+                m_value[i] = m_value[i] + other.m_value[i];
+        }
+
+        return *this;
+    }
+
+    // block partition -> standard vector
+    void emplace(std::vector<T>& a) const {
+        for (std::size_t i = m_startIndex; i < m_stopIndex; ++i)
+            a[i] = m_value[i - m_startIndex];
+    }
+
+private:
+    const IndexSpace<1> m_space;
+    const std::array<std::size_t, 1> m_block;
+    const std::size_t m_startIndex, m_stopIndex;
     std::vector<T> m_value;
 };
 
