@@ -90,14 +90,12 @@ Pairing<GA, GB> fastAddSpecial(const Pairing<GA, GB>& a,
 template <typename GA, typename GB>
 SparseVector<Pairing<GA, GB>>& batchSpecial(SparseVector<Pairing<GA, GB>>& vec)
 {
-    std::vector<GA> G_vec;
-    std::vector<GB> H_vec;
-    G_vec.reserve(vec.size());
-    H_vec.reserve(vec.size());
+    std::vector<GA> G_vec(vec.size());
+    std::vector<GB> H_vec(vec.size());
 
     for (std::size_t i = 0; i < vec.size(); ++i) {
-        G_vec.push_back(vec.getElement(i).G());
-        H_vec.push_back(vec.getElement(i).H());
+        G_vec[i] = vec.getElement(i).G();
+        H_vec[i] = vec.getElement(i).H();
     }
 
     batchSpecial(G_vec);
@@ -119,6 +117,7 @@ Pairing<GA, GB> wnafExp(const BigInt<N>& scalar,
                            wnafExp(scalar, base.H()));
 }
 
+// standard vector, works with map-reduce or monolithic window tables
 template <typename GA, typename GB, typename FR>
 SparseVector<Pairing<GA, GB>> batchExp(const WindowExp<GA>& tableA,
                                        const WindowExp<GB>& tableB,
@@ -130,7 +129,7 @@ SparseVector<Pairing<GA, GB>> batchExp(const WindowExp<GA>& tableA,
     const std::size_t M = callback ? callback->minorSteps() : 0;
     const std::size_t N = vec.size();
 
-    SparseVector<Pairing<GA, GB>> res(N);
+    SparseVector<Pairing<GA, GB>> res(N, Pairing<GA, GB>::zero());
 
     std::size_t i = 0, index = 0;
 
@@ -171,6 +170,80 @@ SparseVector<Pairing<GA, GB>> batchExp(const WindowExp<GA>& tableA,
 #endif
 
     return res;
+}
+
+// block partitioned vector, works with map-reduce or monolithic window table
+template <typename GA, typename GB, typename FR>
+SparseVector<Pairing<GA, GB>> batchExp(const WindowExp<GA>& tableA,
+                                       const WindowExp<GB>& tableB,
+                                       const FR& coeffA,
+                                       const FR& coeffB,
+                                       const BlockVector<FR>& vec)
+{
+    SparseVector<Pairing<GA, GB>> res(vec.size(), Pairing<GA, GB>::zero());
+
+    std::size_t index = 0;
+
+    for (std::size_t i = vec.startIndex(); i < vec.stopIndex(); ++i) {
+        if (! vec[i].isZero())
+            res.setIndexElement(
+                index++,
+                i,
+                Pairing<GA, GB>(tableA.exp(coeffA * vec[i]),
+                                tableB.exp(coeffB * vec[i])));
+    }
+
+    res.resize(index);
+
+#ifdef USE_ADD_SPECIAL
+    batchSpecial(res);
+#endif
+
+    return res;
+}
+
+// used with map-reduce
+template <typename GA, typename GB, typename FR>
+void batchExp(SparseVector<Pairing<GA, GB>>& res, // returned from batchExp()
+              const WindowExp<GA>& tableA,
+              const WindowExp<GB>& tableB,
+              const FR& coeffA,
+              const FR& coeffB,
+              const std::vector<FR>& vec)
+{
+    // iterate over sparse vector directly
+    for (std::size_t index = 0; index < res.size(); ++index) {
+        const auto i = res.getIndex(index);
+        const auto elem = res.getElement(index);
+
+        res.setIndexElement(
+            index,
+            i,
+            elem + Pairing<GA, GB>(tableA.exp(coeffA * vec[i]),
+                                   tableB.exp(coeffB * vec[i])));
+    }
+}
+
+// block partitioned vector, used with map-reduce
+template <typename GA, typename GB, typename FR>
+void batchExp(SparseVector<Pairing<GA, GB>>& res, //returned from batchExp()
+              const WindowExp<GA>& tableA,
+              const WindowExp<GB>& tableB,
+              const FR& coeffA,
+              const FR& coeffB,
+              const BlockVector<FR>& vec)
+{
+    // iterate over sparse vector directly
+    for (std::size_t index = 0; index < res.size(); ++index) {
+        const auto i = res.getIndex(index);
+        const auto elem = res.getElement(index);
+
+        res.setIndexElement(
+            index,
+            i,
+            elem + Pairing<GA, GB>(tableA.exp(coeffA * vec[i]),
+                                   tableB.exp(coeffB * vec[i])));
+    }
 }
 
 template <typename GA, typename GB, typename FR>
