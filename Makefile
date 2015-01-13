@@ -25,6 +25,7 @@ LIBRARY_FILES = \
 	FpModel.tcc \
 	FpX.hpp \
 	Group.hpp \
+	IndexSpace.hpp \
 	LagrangeFFT.hpp \
 	LagrangeFFTX.hpp \
 	MultiExp.hpp \
