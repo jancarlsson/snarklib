@@ -226,6 +226,16 @@ void add_WindowExp(AutoTestBattery& ATB)
                         1 + rd() % 100,
                         1 + rd() % 10));
     }
+    
+    for (size_t i = 0; i < 2; ++i) {
+        ATB.addTest(new AutoTest_WindowExp_expMapReduce<T, F>(1 + rd() % 100));
+        ATB.addTest(new AutoTest_WindowExp_batchExpMapReduce1<T, F>(
+                        1 + rd() % 100,
+                        1 + rd() % 10));
+        ATB.addTest(new AutoTest_WindowExp_batchExpMapReduce2<T, F>(
+                        1 + rd() % 100,
+                        1 + rd() % 10));
+    }
 }
 
 template <mp_size_t N,
@@ -257,6 +267,15 @@ void add_Pairing(AutoTestBattery& ATB)
                         1 + rd() % 10));
         ATB.addTest(new AutoTest_Pairing_multiExp01<N, TG, TH, TF, UG, UH, UF>(
                         1 + rd() % 100));
+    }
+
+    for (size_t i = 0; i < 2; ++i) {
+        ATB.addTest(new AutoTest_Pairing_batchExpMapReduce1<TG, TH, TF>(
+                        1 + rd() % 100,
+                        1 + rd() % 10));
+        ATB.addTest(new AutoTest_Pairing_batchExpMapReduce2<TG, TH, TF>(
+                        1 + rd() % 100,
+                        1 + rd() % 10));
     }
 }
 
