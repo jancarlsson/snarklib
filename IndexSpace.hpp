@@ -3,6 +3,9 @@
 
 #include <array>
 #include <cstdint>
+#include <iostream>
+#include <istream>
+#include <ostream>
 
 namespace snarklib {
 
@@ -14,6 +17,13 @@ template <std::size_t N>
 class IndexSpace
 {
 public:
+    // for marshalling support
+    IndexSpace()
+        : m_globalID{0},
+          m_blockID{0},
+          m_blockSize{0}
+    {}
+
     IndexSpace(const std::array<std::size_t, N>& globalID)
         : m_globalID(globalID),
           m_blockID{0},
@@ -53,15 +63,8 @@ public:
     void blockPartition(const std::array<std::size_t, N>& blockID) {
         m_blockID = blockID;
 
-        for (std::size_t i = 0; i < N; ++i) {
-            if (evenPartition(i)) {
-                // global IDs evenly partition into blocks
-                m_blockSize[i] = m_globalID[i] / m_blockID[i];
-            } else {
-                // blocks must be slightly larger
-                m_blockSize[i] = m_globalID[i] / m_blockID[i] + 1;
-            }
-        }
+        for (std::size_t i = 0; i < N; ++i)
+            calculateSize(i);
     }
 
     std::array<std::size_t, N> indexSize(const std::array<std::size_t, N>& block) const {
@@ -102,13 +105,70 @@ public:
         return a;
     }
 
+    void marshal_out(std::ostream& os) const {
+        // dimension N is for error checking only
+        os << N << std::endl;
+
+        // global ID
+        for (const auto& a : m_globalID)
+            os << a << std::endl;
+
+        // block ID
+        for (const auto& a : m_blockID)
+            os << a << std::endl;
+
+        // optional parameters
+        os << m_param.size() << std::endl;
+        for (const auto& a : m_param)
+            os << a << std::endl;
+    }
+
+    bool marshal_in(std::istream& is) {
+        // dimension N, check if matches template parameter
+        std::size_t dimN;
+        is >> dimN;
+        if (!is || (N != dimN)) return false;
+
+        // global ID
+        for (auto& r : m_globalID) {
+            if (!(is >> r)) return false;
+        }
+
+        // block ID
+        for (std::size_t i = 0; i < N; ++i) {
+            if (!(is >> m_blockID[i])) return false;
+
+            calculateSize(i);
+        }
+
+        // optional parameters
+        std::size_t len;
+        if (!(is >> len)) return false;
+        m_param.resize(len);
+        for (auto& r : m_param) {
+            if (!(is >> r)) return false;
+        }
+
+        return true; // ok
+    }
+
 private:
     bool evenPartition(const std::size_t i) const {
         return 0 == m_globalID[i] % m_blockID[i];
     }
 
+    void calculateSize(const std::size_t i) {
+        if (evenPartition(i)) {
+            // global IDs evenly partition into blocks
+            m_blockSize[i] = m_globalID[i] / m_blockID[i];
+        } else {
+            // blocks must be slightly larger
+            m_blockSize[i] = m_globalID[i] / m_blockID[i] + 1;
+        }
+    }
+
     // underlying grid of work
-    const std::array<std::size_t, N> m_globalID;
+    std::array<std::size_t, N> m_globalID;
 
     // block partition of the underlying grid
     std::array<std::size_t, N> m_blockID, m_blockSize;
