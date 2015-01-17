@@ -610,6 +610,22 @@ public:
         return m_c;
     }
 
+    const R1Combination<T>& combo(const char c) const {
+        switch (c) {
+
+        case ('a') :
+        case ('A') :
+            return m_a;
+
+        case ('b') :
+        case ('B') :
+            return m_b;
+
+        default :
+            return m_c;
+        }
+    }
+
     void swapAB() {
         std::swap(m_a, m_b);
     }
