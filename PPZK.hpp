@@ -405,8 +405,9 @@ public:
         ProgressCallback_NOP<PAIRING> dummyNOP;
         ProgressCallback* dummy = callback ? callback : std::addressof(dummyNOP);
 
-        dummy->majorSteps(8); // 8 major steps
+        dummy->majorSteps(7); // 7 major steps
 
+        // randomness
         const auto
             point = Fr::random(),
             alphaA = Fr::random(),
@@ -417,54 +418,48 @@ public:
             beta = Fr::random(),
             gamma = Fr::random();
 
-        dummy->major(true); // step 8 (starting)
-
         const auto rC = rA * rB;
 
-        QAP_ABCH<Fr> abch(constraintSystem, numCircuitInputs, point,
-                          callback);
+        const QAP_SystemPoint<Fr> qap(constraintSystem, numCircuitInputs, point);
 
-        dummy->major(true); // step 7
+        // ABCH
+        QAP_QueryA<Fr> At(qap); // changed by IC_coefficients
+        const QAP_QueryB<Fr> Bt(qap);
+        const QAP_QueryC<Fr> Ct(qap);
+        const QAP_QueryH<Fr> Ht(qap);
 
-        const auto Z = abch.FFT()->compute_Z(point);
+        dummy->major(true); // step 7 (starting)
 
-        const WindowExp<G1> g1_table(abch.g1_exp_count(),
-                                     callback);
+        const WindowExp<G1> g1_table(g1_exp_count(qap, At, Bt, Ct, Ht), callback);
 
         dummy->major(true); // step 6
 
-        const WindowExp<G2> g2_table(abch.g2_exp_count(),
-                                     callback);
+        const WindowExp<G2> g2_table(g2_exp_count(Bt), callback);
 
         dummy->major(true); // step 5
 
-        auto K_query = g1_table.batchExp(abch.K_query(beta, rA, rB, rC),
-                                         callback);
+        auto Kt = g1_table.batchExp(QAP_QueryK<Fr>(qap, At, Bt, Ct, rA, rB, beta).vec(), callback);
 #ifdef USE_ADD_SPECIAL
-        batchSpecial(K_query);
+        batchSpecial(Kt);
 #endif
 
-        // zero out IC from A_query and place it into IC coefficients
-        const auto IC_coefficients = abch.IC_coefficients(rA);
+        // side-effect: this modifies At query vector
+        const QAP_IC_coefficients<Fr> IC_coefficients(qap, At, rA);
 
         m_pk = PPZK_ProvingKey<PAIRING>(
             (dummy->major(true), // step 4
-             batchExp(g1_table, g1_table, rA, rA * alphaA, abch.A_query(),
-                      callback)),
+             batchExp(g1_table, g1_table, rA, rA * alphaA, At.vec(), callback)),
 
             (dummy->major(true), // step 3
-             batchExp(g2_table, g1_table, rB, rB * alphaB, abch.B_query(),
-                      callback)),
+             batchExp(g2_table, g1_table, rB, rB * alphaB, Bt.vec(), callback)),
 
             (dummy->major(true), // step 2
-             batchExp(g1_table, g1_table, rC, rC * alphaC, abch.C_query(),
-                      callback)),
+             batchExp(g1_table, g1_table, rC, rC * alphaC, Ct.vec(), callback)),
 
             (dummy->major(true), // step 1
-             g1_table.batchExp(abch.H_query(),
-                               callback)),
+             g1_table.batchExp(Ht.vec(), callback)),
 
-            K_query);
+            Kt);
 
         m_vk = PPZK_VerificationKey<PAIRING>(
             alphaA * G2::one(),
@@ -473,8 +468,8 @@ public:
             gamma * G2::one(),
             (gamma * beta) * G1::one(),
             (gamma * beta) * G2::one(),
-            (rC * Z) * G2::one(),
-            PPZK_IC_Query<PAIRING>(g1_table, IC_coefficients));
+            (rC * qap.compute_Z()) * G2::one(),
+            PPZK_IC_Query<PAIRING>(g1_table, IC_coefficients.vec()));
     }
 
     const PPZK_ProvingKey<PAIRING>& pk() const { return m_pk; }
@@ -559,24 +554,35 @@ public:
                const std::size_t numCircuitInputs,
                const PPZK_ProvingKey<PAIRING>& pk,
                const R1Witness<Fr>& witness,
-               ProgressCallback* callback = nullptr)
+               const std::size_t reserveTune,
+               ProgressCallback* callback)
     {
         ProgressCallback_NOP<PAIRING> dummyNOP;
         ProgressCallback* dummy = callback ? callback : std::addressof(dummyNOP);
 
-        dummy->majorSteps(6); // 6 major steps
+        dummy->majorSteps(5); // 5 major steps
 
+        // randomness
         const auto
             d1 = Fr::random(),
             d2 = Fr::random(),
             d3 = Fr::random();
 
-        dummy->major(true); // step 6 (starting)
+        const QAP_SystemPoint<Fr> qap(constraintSystem, numCircuitInputs);
 
-        const QAP_Witness<Fr> qap(constraintSystem, numCircuitInputs, witness, d1, d2, d3,
-                                  callback);
+        // ABCH
+        QAP_WitnessA<Fr> aA(qap, witness);
+        QAP_WitnessB<Fr> aB(qap, witness);
+        QAP_WitnessC<Fr> aC(qap, witness);
+        QAP_WitnessH<Fr> aH(qap, aA, aB, d1, d2, d3);
 
-        dummy->major(true); // step 5
+        aA.cosetFFT();
+        aB.cosetFFT();
+        aC.cosetFFT();
+
+        aH.addTemporary(QAP_WitnessH<Fr>(qap, aA, aB, aC));
+
+        dummy->major(true); // step 5 (starting)
 
         const auto& A_query = pk.A_query();
         const auto& B_query = pk.B_query();
@@ -584,38 +590,89 @@ public:
         const auto& H_query = pk.H_query();
         const auto& K_query = pk.K_query();
 
-        m_A = (d1 * A_query.getElementForIndex(0))
-            + A_query.getElementForIndex(3)
-            + multiExp01(A_query, *witness, 4, 4 + qap.numVariables(),
-                         callback);
+        // A
+        m_A = (d1 * A_query.getElementForIndex(0)) + A_query.getElementForIndex(3);
+        if (0 == reserveTune) {
+            m_A = m_A + multiExp01(A_query,
+                                   *witness,
+                                   4,
+                                   4 + qap.numVariables(),
+                                   callback);
+        } else {
+            m_A = m_A + multiExp01(A_query,
+                                   *witness,
+                                   4,
+                                   4 + qap.numVariables(),
+                                   qap.numVariables() / reserveTune,
+                                   callback);
+        }
 
         dummy->major(true); // step 4
 
-        m_B = (d2 * B_query.getElementForIndex(1))
-            + B_query.getElementForIndex(3)
-            + multiExp01(B_query, *witness, 4, 4 + qap.numVariables(),
-                         callback);
+        // B
+        m_B = (d2 * B_query.getElementForIndex(1)) + B_query.getElementForIndex(3);
+        if (0 == reserveTune) {
+            m_B = m_B + multiExp01(B_query,
+                                   *witness,
+                                   4,
+                                   4 + qap.numVariables(),
+                                   callback);
+        } else {
+            m_B = m_B + multiExp01(B_query,
+                                   *witness,
+                                   4,
+                                   4 + qap.numVariables(),
+                                   qap.numVariables() / reserveTune,
+                                   callback);
+        }
 
         dummy->major(true); // step 3
 
-        m_C = (d3 * C_query.getElementForIndex(2))
-            + C_query.getElementForIndex(3)
-            + multiExp01(C_query, *witness, 4, 4 + qap.numVariables(),
-                         callback);
+        // C
+        m_C = (d3 * C_query.getElementForIndex(2)) + C_query.getElementForIndex(3);
+        if (0 == reserveTune) {
+            m_C = m_C + multiExp01(C_query,
+                                   *witness,
+                                   4,
+                                   4 + qap.numVariables(),
+                                   callback);
+        } else {
+            m_C = m_C + multiExp01(C_query,
+                                   *witness,
+                                   4,
+                                   4 + qap.numVariables(),
+                                   qap.numVariables() / reserveTune,
+                                   callback);
+        }
 
         dummy->major(true); // step 2
 
-        m_H = multiExp(H_query, qap.H(),
-                       callback);
+        // H
+        m_H = multiExp(H_query, aH.vec(), callback);
 
         dummy->major(true); // step 1
 
-        m_K = (d1 * K_query[0]) + (d2 * K_query[1]) + (d3 * K_query[2])
-            + K_query[3]
-            + multiExp01(
-                std::vector<G1>(K_query.begin() + 4, K_query.end()), *witness,
-                callback);
+        // K
+        m_K = (d1 * K_query[0]) + (d2 * K_query[1]) + (d3 * K_query[2]) + K_query[3];
+        if (0 == reserveTune) {
+            m_K = m_K + multiExp01(std::vector<G1>(K_query.begin() + 4, K_query.end()),
+                                   *witness,
+                                   callback);
+        } else {
+            m_K = m_K + multiExp01(std::vector<G1>(K_query.begin() + 4, K_query.end()),
+                                   *witness,
+                                   (K_query.size() - 4) / reserveTune,
+                                   callback);
+        }
     }
+
+    PPZK_Proof(const R1System<Fr>& constraintSystem,
+               const std::size_t numCircuitInputs,
+               const PPZK_ProvingKey<PAIRING>& pk,
+               const R1Witness<Fr>& witness,
+               ProgressCallback* callback = nullptr)
+        : PPZK_Proof{constraintSystem, numCircuitInputs, pk, witness, 0, callback}
+    {}
 
     const Pairing<G1, G1>& A() const { return m_A; }
     const Pairing<G2, G1>& B() const { return m_B; }
