@@ -43,300 +43,311 @@ private:
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-// ABCH evaluated at t (from constraint system to generated keypair)
+// constraint system evaluated at point
 //
 
 template <typename T>
-class QAP_ABCH : public QAP<T>
+class QAP_SystemPoint : public QAP<T>
 {
 public:
+    // used for keypair generation: ABCH, IC coefficients, and K
+    QAP_SystemPoint(const R1System<T>& constraintSystem,
+                    const std::size_t numCircuitInputs,
+                    const T& point)
+        : QAP<T>(constraintSystem, numCircuitInputs),
+          m_constraintSystem(constraintSystem),
+          m_point(point),
+          m_compute_Z(QAP<T>::FFT()->compute_Z(point)),
+          m_lagrange_coeffs(QAP<T>::FFT()->lagrange_coeffs(point))
+    {}
+
+    // used for proof generation
+    QAP_SystemPoint(const R1System<T>& constraintSystem,
+                    const std::size_t numCircuitInputs)
+        : QAP<T>(constraintSystem, numCircuitInputs),
+          m_constraintSystem(constraintSystem),
+          m_point(T::zero()),
+          m_compute_Z(T::zero()),
+          m_lagrange_coeffs()
+    {}
+
     std::size_t degree() const { return QAP<T>::degree(); }
     std::size_t numVariables() const { return QAP<T>::numVariables(); }
     std::size_t numCircuitInputs() const { return QAP<T>::numCircuitInputs(); }
-    const LagrangeFFT<T>& FFT() const { return QAP<T>::FFT(); }
 
-    QAP_ABCH(const R1System<T>& constraintSystem,
-             const std::size_t numInputs,
-             const T& point,
-             ProgressCallback* callback = nullptr)
-        : QAP<T>(constraintSystem, numInputs),
-          m_nonzeroAt(0),
-          m_nonzeroBt(0),
-          m_nonzeroCt(0),
-          m_nonzeroHt(0),
-          m_At(3 + numVariables() + 1, T::zero()),
-          m_Bt(3 + numVariables() + 1, T::zero()),
-          m_Ct(3 + numVariables() + 1, T::zero()),
-          m_Ht(degree() + 1)
-    {
-        const std::size_t N = constraintSystem.constraints().size();
-        const std::size_t M = callback ? callback->minorSteps() : 0;
-
-        const T Z = FFT()->compute_Z(point);
-
-        m_At[0] = Z;
-        m_Bt[1] = Z;
-        m_Ct[2] = Z;
-
-        const auto u = FFT()->lagrange_coeffs(point);
-        auto uit = u.begin();
-
-        for (std::size_t i = 0; i <= numCircuitInputs(); ++i) {
-            m_At[3 + i] += (*uit) * T(i + 1);
-        }
-
-        std::size_t i = 0;
-
-        // full blocks
-        for (std::size_t j = 0; j < M; ++j) {
-            for (std::size_t k = 0; k < N / M; ++k) {
-                const auto& constraint = constraintSystem.constraints()[i];
-
-                ++uit;
-
-                for (const auto& term : constraint.a().terms()) {
-                    m_At[3 + term.index()] += (*uit) * term.coeff();
-                }
-
-                for (const auto& term : constraint.b().terms()) {
-                    m_Bt[3 + term.index()] += (*uit) * term.coeff();
-                }
-
-                for (const auto& term : constraint.c().terms()) {
-                    m_Ct[3 + term.index()] += (*uit) * term.coeff();
-                }
-
-                ++i;
-            }
-
-            callback->minor();
-        }
-
-        // remaining steps smaller than one block
-        while (i < N) {
-            const auto& constraint = constraintSystem.constraints()[i];
-
-            ++uit;
-
-            for (const auto& term : constraint.a().terms()) {
-                m_At[3 + term.index()] += (*uit) * term.coeff();
-            }
-
-            for (const auto& term : constraint.b().terms()) {
-                m_Bt[3 + term.index()] += (*uit) * term.coeff();
-            }
-
-            for (const auto& term : constraint.c().terms()) {
-                m_Ct[3 + term.index()] += (*uit) * term.coeff();
-            }
-
-            ++i;
-        }
-
-        auto ti = T::one();
-        for (std::size_t i = 0; i <= degree(); ++i) {
-            m_Ht[i] = ti;
-            ti *= point;
-        }
-
-        for (const auto& v : m_At) {
-            if (! v.isZero())
-                ++m_nonzeroAt;
-        }
-
-        for (const auto& v : m_Bt) {
-            if (! v.isZero())
-                ++m_nonzeroBt;
-        }
-
-        for (const auto& v : m_Ct) {
-            if (! v.isZero())
-                ++m_nonzeroCt;
-        }
-
-        for (const auto& v : m_Ht) {
-            if (! v.isZero())
-                ++m_nonzeroHt;
-        }
-    }
-
-    const std::vector<T>& A_query() const { return m_At; }
-    const std::vector<T>& B_query() const { return m_Bt; }
-    const std::vector<T>& C_query() const { return m_Ct; }
-    const std::vector<T>& H_query() const { return m_Ht; }
-
-    std::size_t nonzeroAt() const { return m_nonzeroAt; }
-    std::size_t nonzeroBt() const { return m_nonzeroBt; }
-    std::size_t nonzeroCt() const { return m_nonzeroCt; }
-    std::size_t nonzeroHt() const { return m_nonzeroHt; }
-
-    std::vector<T> K_query(const T& beta,
-                           const T& rA,
-                           const T& rB,
-                           const T& rC) const {
-        std::vector<T> vec(3 + numVariables() + 1);
-
-        for (std::size_t i = 0; i < 3 + numVariables() + 1; ++i) {
-            vec[i] = beta * ((rA * A_query()[i]) + (rB * B_query()[i]) + (rC * C_query()[i]));
-        }
-
-        return vec;
-    }
-
-    std::vector<T> IC_coefficients(const T& rA) {
-        std::vector<T> vec(numCircuitInputs() + 1);
-
-        for (std::size_t i = 0; i < numCircuitInputs() + 1; ++i) {
-            vec[i] = m_At[3 + i] * rA;
-            assert(! vec[i].isZero());
-            m_At[3 + i] = T::zero();
-        }
-
-        return vec;
-    }
-
-    std::size_t g1_exp_count() const {
-        return 2 * (nonzeroAt() -
-                    numCircuitInputs() +
-                    nonzeroCt())
-            + nonzeroBt()
-            + nonzeroHt()
-            + 3 + numVariables() + 1; // K_query.size()
-    }
-    
-    std::size_t g2_exp_count() const {
-        return nonzeroBt();
-    }
+    const R1System<T>& constraintSystem() const { return m_constraintSystem; }
+    const T& point() const { return m_point; }
+    const T& compute_Z() const { return m_compute_Z; }
+    const std::vector<T>& lagrange_coeffs() const { return m_lagrange_coeffs; }
 
 private:
-    std::size_t m_nonzeroAt, m_nonzeroBt, m_nonzeroCt, m_nonzeroHt;
-    std::vector<T> m_At, m_Bt, m_Ct, m_Ht;
+    const R1System<T>& m_constraintSystem;
+    const T m_point, m_compute_Z;
+    const std::vector<T> m_lagrange_coeffs;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-// witness map (combined with proving key to construct the proof)
+// query vectors A, B, C
 //
 
-template <typename T>
-class QAP_Witness : public QAP<T>
+template <typename T, char R1C, std::size_t Z_INDEX>
+class QAP_QueryABC
 {
 public:
-    std::size_t degree() const { return QAP<T>::degree(); }
-    std::size_t numVariables() const { return QAP<T>::numVariables(); }
-    std::size_t numCircuitInputs() const { return QAP<T>::numCircuitInputs(); }
-    const LagrangeFFT<T>& FFT() const { return QAP<T>::FFT(); }
-
-    QAP_Witness(const R1System<T>& constraintSystem,
-                const std::size_t numInputs,
-                const R1Witness<T>& witness,
-                const T& d1,
-                const T& d2,
-                const T& d3,
-                ProgressCallback* callback = nullptr)
-        : QAP<T>(constraintSystem, numInputs),
-          m_H(degree() + 1, T::zero())
+    QAP_QueryABC(const QAP_SystemPoint<T>& qap)
+        : m_nonzeroCount(0),
+          m_vec(3 + qap.numVariables() + 1, T::zero())
     {
-        const std::size_t N = constraintSystem.constraints().size();
-        const std::size_t M1 = callback ? callback->minorSteps() / 2 : 0;
-        const std::size_t M2 = callback ? callback->minorSteps() - M1 : 0;
-        std::size_t idx;
+        m_vec[Z_INDEX] = qap.compute_Z();
+        auto uit = qap.lagrange_coeffs().begin();
 
-        std::vector<T>
-            aA(degree(), T::zero()),
-            aB(degree(), T::zero());
-
-        auto
-            aAit = aA.begin(),
-            aBit = aB.begin();
-
-        *aAit = T::one();
-        for (std::size_t i = 0; i < numCircuitInputs(); ++i) {
-            *aAit += witness[i] * T(i + 2);
+        // input consistency
+        switch (R1C) {
+        case ('a') :
+        case ('A') :
+            for (std::size_t i = 0; i <= qap.numCircuitInputs(); ++i)
+                m_vec[3 + i] = (*uit) * T(i + 1);
         }
 
-        // full blocks
-        idx = 0;
-        for (std::size_t j = 0; j < M1; ++j) {
-            for (std::size_t k = 0; k < N / M1; ++k) {
-                const auto& constraint = constraintSystem.constraints()[idx];
-                ++aAit; *aAit += constraint.a() * witness;
-                ++aBit; *aBit += constraint.b() * witness;
-                ++idx;
-            }
+        for (const auto& constraint : qap.constraintSystem().constraints()) {
+            ++uit;
 
-            callback->minor();
+            for (const auto& term : constraint.combo(R1C).terms())
+                m_vec[3 + term.index()] += (*uit) * term.coeff();
         }
 
-        // remaining steps smaller than one block
-        while (idx < N) {
-            const auto& constraint = constraintSystem.constraints()[idx];
-            ++aAit; *aAit += constraint.a() * witness;
-            ++aBit; *aBit += constraint.b() * witness;
-            ++idx;
-        }
-
-        FFT()->iFFT(aA);
-        FFT()->iFFT(aB);
-
-        for (std::size_t i = 0; i < degree(); ++i) {
-            m_H[i] = d2 * aA[i] + d1 * aB[i];
-        }
-        m_H[0] -= d3;
-        FFT()->add_poly_Z(d1 * d2, m_H);
-
-        FFT()->cosetFFT(aA, T::params.multiplicative_generator());
-        FFT()->cosetFFT(aB, T::params.multiplicative_generator());
-
-        auto& H_tmp = aA;
-        for (std::size_t i = 0; i < degree(); ++i) {
-            H_tmp[i] = aA[i] * aB[i];
-        }
-
-        std::vector<T> aC(degree(), T::zero());
-        auto aCit = aC.begin();
-
-        // full blocks
-        idx = 0;
-        for (std::size_t j = 0; j < M2; ++j) {
-            for (std::size_t k = 0; k < N / M2; ++k) {
-                const auto& constraint = constraintSystem.constraints()[idx];
-                ++aCit;
-                *aCit += constraint.c() * witness;
-                ++idx;
-            }
-
-            callback->minor();
-        }
-
-        // remaining steps smaller than one block
-        while (idx < N) {
-            const auto& constraint = constraintSystem.constraints()[idx];
-            ++aCit;
-            *aCit += constraint.c() * witness;
-            ++idx;
-        }
-
-        FFT()->iFFT(aC);
-        FFT()->cosetFFT(aC, T::params.multiplicative_generator());
-
-        for (std::size_t i = 0; i < degree(); ++i) {
-            H_tmp[i] = H_tmp[i] - aC[i];
-        }
-
-        FFT()->divide_by_Z_on_coset(H_tmp);
-        FFT()->icosetFFT(H_tmp, T::params.multiplicative_generator());
-
-        for (std::size_t i = 0; i < degree(); ++i) {
-            m_H[i] += H_tmp[i];
-        }
+        for (const auto& v : m_vec)
+            if (! v.isZero()) ++m_nonzeroCount;
     }
 
-    const std::vector<T>& H() const {
-        return m_H;
+    std::size_t nonzeroCount() const { return m_nonzeroCount; }
+    const std::vector<T>& vec() const { return m_vec; }
+
+    // only used by QAP_IC_coefficients<T>
+    void zeroElement(const std::size_t index) {
+        m_vec[index] = T::zero();
     }
 
 private:
-    std::vector<T> m_H;
+    std::size_t m_nonzeroCount;
+    std::vector<T> m_vec;
+};
+
+template <typename T> using QAP_QueryA = QAP_QueryABC<T, 'A', 0>;
+template <typename T> using QAP_QueryB = QAP_QueryABC<T, 'B', 1>;
+template <typename T> using QAP_QueryC = QAP_QueryABC<T, 'C', 2>;
+
+////////////////////////////////////////////////////////////////////////////////
+// query vector H
+//
+
+template <typename T>
+class QAP_QueryH
+{
+public:
+    QAP_QueryH(const QAP_SystemPoint<T>& qap)
+        : m_nonzeroCount(0),
+          m_vec(qap.degree() + 1, T::zero())
+    {
+        auto ti = T::one();
+
+        for (auto& r : m_vec) {
+            r = ti;
+            ti *= qap.point();
+        }
+
+        for (const auto& v : m_vec)
+            if (! v.isZero()) ++m_nonzeroCount;
+    }
+
+    std::size_t nonzeroCount() const { return m_nonzeroCount; }
+    const std::vector<T>& vec() const { return m_vec; }
+
+private:
+    std::size_t m_nonzeroCount;
+    std::vector<T> m_vec;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// window table dimensions
+//
+
+template <typename T>
+std::size_t g1_exp_count(const QAP_SystemPoint<T>& qap,
+                         const QAP_QueryA<T>& At,
+                         const QAP_QueryB<T>& Bt,
+                         const QAP_QueryC<T>& Ct,
+                         const QAP_QueryH<T>& Ht) {
+    return
+        2 * (At.nonzeroCount() - qap.numCircuitInputs() + Ct.nonzeroCount())
+        + Bt.nonzeroCount()
+        + Ht.nonzeroCount()
+        + 3 + qap.numVariables() + 1; // K_query.size()
+}
+
+template <typename T>
+std::size_t g2_exp_count(const QAP_QueryB<T>& Bt) {
+    return Bt.nonzeroCount();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// randomness derived input consistency coefficients
+//
+
+template <typename T>
+class QAP_IC_coefficients
+{
+public:
+    QAP_IC_coefficients(const QAP_SystemPoint<T>& qap,
+                        QAP_QueryA<T>& At,
+                        const T& random_A)
+        : m_vec(qap.numCircuitInputs() + 1, T::zero())
+    {
+        // zero out IC from At query and place it into IC coefficients
+        // calculation of IC coefficients changes At vector
+        for (std::size_t i = 0; i < m_vec.size(); ++i) {
+            m_vec[i] = At.vec()[3 + i] * random_A;
+            assert(! m_vec[i].isZero());
+            At.zeroElement(3 + i);
+        }
+    }
+    
+    const std::vector<T>& vec() const { return m_vec; }
+
+private:
+    std::vector<T> m_vec;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// randomness derived vector K
+//
+
+template <typename T>
+class QAP_QueryK
+{
+public:
+    QAP_QueryK(const QAP_SystemPoint<T>& qap,
+               const QAP_QueryA<T>& At,
+               const QAP_QueryB<T>& Bt,
+               const QAP_QueryC<T>& Ct,
+               const T& random_A,
+               const T& random_B,
+               const T& random_beta)
+        : m_vec(3 + qap.numVariables() + 1, T::zero())
+    {
+        const auto random_C = random_A * random_B;
+
+        for (std::size_t i = 0; i < m_vec.size(); ++i) {
+            m_vec[i] = random_beta * (random_A * At.vec()[i]
+                                      + random_B * Bt.vec()[i]
+                                      + random_C * Ct.vec()[i]);
+        }
+    }
+
+    const std::vector<T>& vec() const { return m_vec; }
+
+private:
+    std::vector<T> m_vec;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// witness vectors A, B, C
+//
+
+template <typename T, char R1C>
+class QAP_WitnessABC
+{
+public:
+    QAP_WitnessABC(const QAP_SystemPoint<T>& qap,
+                   const R1Witness<T>& witness)
+        : m_qap(qap),
+          m_vec(qap.degree(), T::zero())
+    {
+        auto uit = m_vec.begin();
+
+        // input consistency
+        switch (R1C) {
+        case ('a') :
+        case ('A') :
+            *uit = T::one();
+            for (std::size_t i = 0; i < qap.numCircuitInputs(); ++i) {
+                *uit += witness[i] * T(i + 2);
+            }
+        }
+
+        for (const auto& constraint : qap.constraintSystem().constraints()) {
+            ++uit;
+            *uit += constraint.combo(R1C) * witness;
+        }
+
+        qap.FFT()->iFFT(m_vec);
+    }
+
+    void cosetFFT() {
+        m_qap.FFT()->cosetFFT(m_vec, T::params.multiplicative_generator());
+    }
+
+    const std::vector<T>& vec() const { return m_vec; }
+
+private:
+    const QAP_SystemPoint<T>& m_qap;
+    std::vector<T> m_vec;
+};
+
+template <typename T> using QAP_WitnessA = QAP_WitnessABC<T, 'A'>;
+template <typename T> using QAP_WitnessB = QAP_WitnessABC<T, 'B'>;
+template <typename T> using QAP_WitnessC = QAP_WitnessABC<T, 'C'>;
+
+////////////////////////////////////////////////////////////////////////////////
+// witness vector H
+//
+
+template <typename T>
+class QAP_WitnessH
+{
+public:
+    // used for H
+    QAP_WitnessH(const QAP_SystemPoint<T>& qap,
+                 const QAP_WitnessA<T>& aA, // before cosetFFT()
+                 const QAP_WitnessB<T>& aB, // before cosetFFT()
+                 const T& random_d1,
+                 const T& random_d2,
+                 const T& random_d3)
+        : m_vec(qap.degree() + 1, T::zero())
+    {
+        for (std::size_t i = 0; i < qap.degree(); ++i)
+            m_vec[i] = random_d2 * aA.vec()[i] + random_d1 * aB.vec()[i];
+
+        m_vec[0] -= random_d3;
+        qap.FFT()->add_poly_Z(random_d1 * random_d2, m_vec);
+    }
+
+    // use for temporary H
+    QAP_WitnessH(const QAP_SystemPoint<T>& qap,
+                 const QAP_WitnessA<T>& aA, // after cosetFFT()
+                 const QAP_WitnessB<T>& aB, // after cosetFFT()
+                 const QAP_WitnessC<T>& aC) // after cosetFFT()
+        : m_vec(qap.degree(), T::zero())
+    {
+        for (std::size_t i = 0; i < m_vec.size(); ++i)
+            m_vec[i] = aA.vec()[i] * aB.vec()[i] - aC.vec()[i];
+
+        qap.FFT()->divide_by_Z_on_coset(m_vec);
+        qap.FFT()->icosetFFT(m_vec, T::params.multiplicative_generator());
+    }
+
+    void addTemporary(const QAP_WitnessH& tmpH) {
+        // make sure to add temporary H, not regular H
+        assert(tmpH.vec().size() < m_vec.size());
+
+        for (std::size_t i = 0; i < tmpH.vec().size(); ++i)
+            m_vec[i] += tmpH.vec()[i];
+    }
+
+    const std::vector<T>& vec() const { return m_vec; }
+
+private:
+    std::vector<T> m_vec;
 };
 
 } // namespace snarklib
