@@ -191,22 +191,15 @@ public:
         if (!is) return false;
 
         // index vector
-        m_index.clear();
-        m_index.reserve(numberElems);
+        m_index.resize(numberElems);
         for (std::size_t i = 0; i < numberElems; ++i) {
-            std::size_t index;
-            is >> index;
-            if (!is) return false;
-            m_index.push_back(index);
+            if (!(is >> m_index[i])) return false;
         }
 
         // value vector
-        m_value.clear();
-        m_value.reserve(numberElems);
+        m_value.resize(numberElems);
         for (std::size_t i = 0; i < numberElems; ++i) {
-            T a;
-            if (!a.marshal_in(is)) return false;
-            m_value.emplace_back(a);
+            if (! m_value[i].marshal_in(is)) return false;
         }
 
         return true; // ok
@@ -230,6 +223,12 @@ public:
     static IndexSpace<1> space(const std::vector<T>& a) {
         return IndexSpace<1>(a.size());
     }
+
+    BlockVector()
+        : m_block{0},
+          m_startIndex(0),
+          m_stopIndex(0)
+    {}
 
     // zero block partition
     BlockVector(const IndexSpace<1>& space,
@@ -298,10 +297,44 @@ public:
             a[i] = m_value[i - m_startIndex];
     }
 
+    void marshal_out(std::ostream& os) const {
+        // index space
+        m_space.marshal_out(os);
+
+        // block
+        for (const auto& a : m_block)
+            os << a << std::endl;
+
+        // value
+        for (const auto& a : m_value)
+            os << a << std::endl;
+    }
+
+    bool marshal_in(std::istream& is) {
+        // index space
+        if (! m_space.marshal_in(is)) return false;
+
+        // block
+        if (!(is >> m_block[0])) return false;
+
+        // start and stop
+        m_startIndex = m_space.indexOffset(m_block)[0];
+        m_stopIndex = m_startIndex + m_space.indexSize(m_block)[0];
+
+        // value
+        const std::size_t len = m_stopIndex - m_startIndex;
+        m_value.resize(len);
+        for (std::size_t i = 0; i < len; ++i) {
+            if (!(is >> m_value[i])) return false;
+        }
+
+        return true; // ok
+    }
+
 private:
-    const IndexSpace<1> m_space;
-    const std::array<std::size_t, 1> m_block;
-    const std::size_t m_startIndex, m_stopIndex;
+    IndexSpace<1> m_space;
+    std::array<std::size_t, 1> m_block;
+    std::size_t m_startIndex, m_stopIndex;
     std::vector<T> m_value;
 };
 
