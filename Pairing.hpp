@@ -90,8 +90,8 @@ Pairing<GA, GB> fastAddSpecial(const Pairing<GA, GB>& a,
 template <typename GA, typename GB>
 SparseVector<Pairing<GA, GB>>& batchSpecial(SparseVector<Pairing<GA, GB>>& vec)
 {
-    std::vector<GA> G_vec(vec.size());
-    std::vector<GB> H_vec(vec.size());
+    std::vector<GA> G_vec(vec.size(), GA::zero());
+    std::vector<GB> H_vec(vec.size(), GB::zero());
 
     for (std::size_t i = 0; i < vec.size(); ++i) {
         G_vec[i] = vec.getElement(i).G();
@@ -226,7 +226,7 @@ void batchExp(SparseVector<Pairing<GA, GB>>& res, // returned from batchExp()
 
 // block partitioned vector, used with map-reduce
 template <typename GA, typename GB, typename FR>
-void batchExp(SparseVector<Pairing<GA, GB>>& res, //returned from batchExp()
+void batchExp(SparseVector<Pairing<GA, GB>>& res, // returned from batchExp()
               const WindowExp<GA>& tableA,
               const WindowExp<GB>& tableB,
               const FR& coeffA,
@@ -251,7 +251,8 @@ Pairing<GA, GB> multiExp01(const SparseVector<Pairing<GA, GB>>& base,
                            const std::vector<FR>& scalar,
                            const std::size_t minIndex,
                            const std::size_t maxIndex,
-                           ProgressCallback* callback = nullptr)
+                           const std::size_t reserveCount, // for performance tuning
+                           ProgressCallback* callback)
 {
     const auto
         ZERO = FR::zero(),
@@ -259,6 +260,10 @@ Pairing<GA, GB> multiExp01(const SparseVector<Pairing<GA, GB>>& base,
 
     std::vector<Pairing<GA, GB>> base2;
     std::vector<FR> scalar2;
+    if (reserveCount) {
+        base2.reserve(reserveCount);
+        scalar2.reserve(reserveCount);
+    }
 
     auto accum = Pairing<GA, GB>::zero();
 
@@ -289,6 +294,16 @@ Pairing<GA, GB> multiExp01(const SparseVector<Pairing<GA, GB>>& base,
     }
 
     return accum + multiExp(base2, scalar2, callback);
+}
+
+template <typename GA, typename GB, typename FR>
+Pairing<GA, GB> multiExp01(const SparseVector<Pairing<GA, GB>>& base,
+                           const std::vector<FR>& scalar,
+                           const std::size_t minIndex,
+                           const std::size_t maxIndex,
+                           ProgressCallback* callback = nullptr)
+{
+    return multiExp01(base, scalar, minIndex, maxIndex, 0, callback);
 }
 
 } // namespace snarklib
