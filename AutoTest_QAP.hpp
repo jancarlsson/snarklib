@@ -37,9 +37,9 @@ public:
             = libsnark::qap_instance_map(m_constraintSystem.systemA(),
                                          m_A);
 
-        const QAP_ABCH<T> qapB(m_constraintSystem.systemB(),
-                               m_constraintSystem.numberInputs(),
-                               m_B);
+        const QAP_SystemPoint<T> qapB(m_constraintSystem.systemB(),
+                                      m_constraintSystem.numberInputs(),
+                                      m_B);
 
         if (resultsMatch(qapA, qapB)) {
             checkPass(true);
@@ -51,9 +51,9 @@ public:
             auto copyCS = m_constraintSystem.systemB();
             copyCS.swap_AB();
 
-            const QAP_ABCH<T> qapB(copyCS,
-                                   m_constraintSystem.numberInputs(),
-                                   m_B);
+            const QAP_SystemPoint<T> qapB(copyCS,
+                                          m_constraintSystem.numberInputs(),
+                                          m_B);
 
             checkPass(resultsMatch(qapA, qapB));
         }
@@ -61,16 +61,21 @@ public:
 
 private:
     template <typename A>
-    bool resultsMatch(const A& qapA, const QAP_ABCH<T>& qapB) {
+    bool resultsMatch(const A& qapA, const QAP_SystemPoint<T>& qapB) {
+        const QAP_QueryA<T> At(qapB);
+        const QAP_QueryB<T> Bt(qapB);
+        const QAP_QueryC<T> Ct(qapB);
+        const QAP_QueryH<T> Ht(qapB);
+
         return
-            sameData(qapA.At, qapB.A_query()) &&
-            sameData(qapA.Bt, qapB.B_query()) &&
-            sameData(qapA.Ct, qapB.C_query()) &&
-            sameData(qapA.Ht, qapB.H_query()) &&
-            (qapA.non_zero_At == qapB.nonzeroAt()) &&
-            (qapA.non_zero_Bt == qapB.nonzeroBt()) &&
-            (qapA.non_zero_Ct == qapB.nonzeroCt()) &&
-            (qapA.non_zero_Ht == qapB.nonzeroHt());
+            sameData(qapA.At, At.vec()) &&
+            sameData(qapA.Bt, Bt.vec()) &&
+            sameData(qapA.Ct, Ct.vec()) &&
+            sameData(qapA.Ht, Ht.vec()) &&
+            (qapA.non_zero_At == At.nonzeroCount()) &&
+            (qapA.non_zero_Bt == Bt.nonzeroCount()) &&
+            (qapA.non_zero_Ct == Ct.nonzeroCount()) &&
+            (qapA.non_zero_Ht == Ht.nonzeroCount());
     }
 
     const AutoTestR1CS<T, U> m_constraintSystem;
@@ -113,14 +118,10 @@ public:
                                         m_d2A,
                                         m_d3A);
 
-        const QAP_Witness<T> qapB(m_constraintSystem.systemB(),
-                                  m_constraintSystem.numberInputs(),
-                                  m_constraintSystem.witnessB(),
-                                  m_d1B,
-                                  m_d2B,
-                                  m_d3B);
+        const QAP_SystemPoint<T> qap(m_constraintSystem.systemB(),
+                                     m_constraintSystem.numberInputs());
 
-        const auto& HB = qapB.H();
+        const auto& HB = witnessH(qap);
 
         if (sameData(HA, HB)) {
             checkPass(true);
@@ -132,20 +133,31 @@ public:
             auto copyCS = m_constraintSystem.systemB();
             copyCS.swap_AB();
 
-            const QAP_Witness<T> qapB(copyCS,
-                                      m_constraintSystem.numberInputs(),
-                                      m_constraintSystem.witnessB(),
-                                      m_d1B,
-                                      m_d2B,
-                                      m_d3B);
+            const QAP_SystemPoint<T> qap(copyCS,
+                                         m_constraintSystem.numberInputs());
 
-            const auto& HB = qapB.H();
+            const auto& HB = witnessH(qap);
 
             checkPass(sameData(HA, HB));
         }
     }
 
 private:
+    std::vector<T> witnessH(const QAP_SystemPoint<T>& qap) const {
+        QAP_WitnessA<T> aA(qap, m_constraintSystem.witnessB());
+        QAP_WitnessB<T> aB(qap, m_constraintSystem.witnessB());
+        QAP_WitnessC<T> aC(qap, m_constraintSystem.witnessB());
+        QAP_WitnessH<T> aH(qap, aA, aB, m_d1B, m_d2B, m_d3B);
+
+        aA.cosetFFT();
+        aB.cosetFFT();
+        aC.cosetFFT();
+
+        aH.addTemporary(QAP_WitnessH<T>(qap, aA, aB, aC));
+
+        return aH.vec();
+    }
+
     const AutoTestR1CS<T, U> m_constraintSystem;
     U m_d1A, m_d2A, m_d3A;
     const T m_d1B, m_d2B, m_d3B;
