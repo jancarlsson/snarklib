@@ -175,7 +175,8 @@ T multiExp(const std::vector<T>& base,
 template <typename T, typename F>
 T multiExp01(const std::vector<T>& base,
              const std::vector<F>& scalar,
-             ProgressCallback* callback = nullptr)
+             const std::size_t reserveCount, // for performance tuning
+             ProgressCallback* callback)
 {
     const auto
         ZERO = F::zero(),
@@ -183,6 +184,10 @@ T multiExp01(const std::vector<T>& base,
 
     std::vector<T> base2;
     std::vector<F> scalar2;
+    if (reserveCount) {
+        base2.reserve(reserveCount);
+        scalar2.reserve(reserveCount);
+    }
 
     auto accum = T::zero();
 
@@ -206,6 +211,15 @@ T multiExp01(const std::vector<T>& base,
     }
 
     return accum + multiExp(base2, scalar2, callback);
+}
+
+// sum of multi-exponentiation when scalar vector has many zeros and ones
+template <typename T, typename F>
+T multiExp01(const std::vector<T>& base,
+             const std::vector<F>& scalar,
+             ProgressCallback* callback = nullptr)
+{
+    return multiExp01(base, scalar, 0, callback);
 }
 
 } // namespace snarklib
