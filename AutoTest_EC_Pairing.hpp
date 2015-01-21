@@ -195,7 +195,7 @@ class AutoTest_EC_PairingAteMillerLoop : public AutoTest
 
 public:
     AutoTest_EC_PairingAteMillerLoop(const std::string& g1,
-                                  const std::string& g2)
+                                     const std::string& g2)
         : AutoTest(g1, g2),
           m_g1A(to_bigint<N>(g1) * UG1::one()),
           m_g2A(to_bigint<N>(g2) * UG2::one()),
@@ -244,9 +244,9 @@ class AutoTest_EC_PairingAteDoubleMillerLoop : public AutoTest
 
 public:
     AutoTest_EC_PairingAteDoubleMillerLoop(const std::string& g1_0,
-                                        const std::string& g2_1,
-                                        const std::string& g1_2,
-                                        const std::string& g2_3)
+                                           const std::string& g2_1,
+                                           const std::string& g1_2,
+                                           const std::string& g2_3)
         : AutoTest(g1_0, g2_1, g1_2, g2_3),
           m_g1_0A(to_bigint<N>(g1_0) * UG1::one()),
           m_g2_1A(to_bigint<N>(g2_1) * UG2::one()),
