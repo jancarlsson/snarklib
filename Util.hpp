@@ -22,7 +22,7 @@ T ceil_log2(T n) {
 
     return r;
 }
-    
+
 template <typename T>
 T bit_reverse(T n, const std::size_t l) {
     T r = 0;
@@ -43,7 +43,9 @@ void batch_invert(std::vector<T>& vec) {
     T accum = T::one();
 
     for (const auto& elem : vec) {
+#ifdef USE_ASSERT
         assert(! elem.isZero());
+#endif
         prod.push_back(accum);
         accum = accum * elem;
     }
