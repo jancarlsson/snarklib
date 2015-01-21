@@ -8,7 +8,11 @@
 #include "AuxSTL.hpp"
 #include "common/types.hpp"
 #include "Pairing.hpp"
-#include "PPZK.hpp"
+#include "PPZK_keypair.hpp"
+#include "PPZK_keystruct.hpp"
+#include "PPZK_query.hpp"
+#include "PPZK_proof.hpp"
+#include "PPZK_verify.hpp"
 #include "r1cs_ppzksnark/r1cs_ppzksnark.hpp"
 
 namespace snarklib {
@@ -96,7 +100,7 @@ public:
         for (std::size_t i = 0; i < encSize; ++i) {
             copyData(keypair.vk.encoded_IC_query->encoded_terms[i], encoded_terms[i]);
         }
-        const PPZK_IC_Query<PAIRING> icqB(base, encoded_terms);
+        const PPZK_QueryIC<PAIRING> icqB(base, encoded_terms);
 
         // verification key
         G1 alphaB_g1, gamma_beta_g1;
@@ -210,11 +214,13 @@ public:
                                            K_query);
 
         // proof from redesigned code
+        const auto proofRand = PPZK_Proof<PAIRING>::randomness();
         const PPZK_Proof<PAIRING> proofFromRedesign(
             m_constraintSystem.systemB(),
             m_constraintSystem.numberInputs(),
             pkB,
-            m_constraintSystem.witnessB());
+            m_constraintSystem.witnessB(),
+            proofRand);
 
         // compare proofs (expect different results because of random numbers)
         if (! checkPass(proofFromOriginal.A() != proofFromRedesign.A())) {
@@ -300,7 +306,7 @@ public:
         for (std::size_t i = 0; i < encSize; ++i) {
             copyData(keypair.vk.encoded_IC_query->encoded_terms[i], encoded_terms[i]);
         }
-        const PPZK_IC_Query<PAIRING> icqB(base, encoded_terms);
+        const PPZK_QueryIC<PAIRING> icqB(base, encoded_terms);
 
         // verification key
         G1 alphaB_g1, gamma_beta_g1;
@@ -322,10 +328,12 @@ public:
                                                 icqB);
 
         // proof
+        const auto proofRand = PPZK_Proof<PAIRING>::randomness();
         const PPZK_Proof<PAIRING> proofB(m_constraintSystem.systemB(),
                                          m_constraintSystem.numberInputs(),
                                          pkB,
-                                         m_constraintSystem.witnessB());
+                                         m_constraintSystem.witnessB(),
+                                         proofRand);
 
         const auto ans
             = strongVerify(
@@ -360,14 +368,17 @@ public:
     {}
 
     void runTest() {
-        const PPZK_Keypair<PAIRING> keypair(
-            m_constraintSystem.systemB(),
-            m_constraintSystem.numberInputs());
+        const auto keyRand = PPZK_Keypair<PAIRING>::randomness();
+        const PPZK_Keypair<PAIRING> keypair(m_constraintSystem.systemB(),
+                                            m_constraintSystem.numberInputs(),
+                                            keyRand);
 
+        const auto proofRand = PPZK_Proof<PAIRING>::randomness();
         const PPZK_Proof<PAIRING> proofB(m_constraintSystem.systemB(),
                                          m_constraintSystem.numberInputs(),
                                          keypair.pk(),
-                                         m_constraintSystem.witnessB());
+                                         m_constraintSystem.witnessB(),
+                                         proofRand);
 
         const auto ans = strongVerify(keypair.vk(),
                                       m_constraintSystem.inputB(),
