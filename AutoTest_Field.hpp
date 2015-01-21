@@ -260,7 +260,7 @@ public:
     void runTest() {
         const auto a = m_A.squared();
         const auto b = squared(m_B);
-        
+
         checkPass(sameData(a, b));
     }
 
