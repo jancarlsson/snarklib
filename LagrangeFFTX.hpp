@@ -19,8 +19,10 @@ public:
         : BASE(min_size),
           omega(BASE::get_root_of_unity(min_size))
     {
+#ifdef USE_ASSERT
         assert(min_size > 1);
         assert(ceil_log2(min_size) <= T::params.s());
+#endif
     }
 
     std::vector<T> lagrange_coeffs(const T& t) const {
@@ -82,8 +84,10 @@ public:
           omega(BASE::get_root_of_unity(small_m)),
           shift(BASE::coset_shift())
     {
+#ifdef USE_ASSERT
         assert(min_size > 1);
         assert(ceil_log2(min_size) == T::params.s() + 1);
+#endif
     }
 
     std::vector<T> lagrange_coeffs(const T& t) const {
@@ -223,8 +227,10 @@ public:
           big_omega(squared(omega)),
           small_omega(BASE::get_root_of_unity(small_m))
     {
+#ifdef USE_ASSERT
         assert(min_size > 1);
         assert(small_m == 1u << ceil_log2(small_m));
+#endif
     }
 
     std::vector<T> lagrange_coeffs(const T& t) const {
@@ -400,9 +406,13 @@ template <typename T>
 void* get_evaluation_domain(const std::size_t min_size) {
     typename LagrangeFFT<T>::Base* ptr = nullptr;
 
+#ifdef USE_ASSERT
     assert(min_size > 1);
+#endif
     const std::size_t log_min_size = ceil_log2(min_size);
+#ifdef USE_ASSERT
     assert(log_min_size <= (T::params.s() + 1));
+#endif
 
     if (min_size == (1u << log_min_size)) {
         if (log_min_size == T::params.s() + 1) {
