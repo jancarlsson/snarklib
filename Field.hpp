@@ -168,7 +168,7 @@ public:
 
         return a;
     }
-    
+
     static Field<T, N> one() {
         std::array<T, N> a;
         a[0] = T::one(); // first ordinate is one
