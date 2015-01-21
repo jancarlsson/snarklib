@@ -262,7 +262,7 @@ Group<BASE, SCALAR, CURVE> operator+ (const Group<BASE, SCALAR, CURVE>& a,
         b.x(), b.y(), b.z(),
         a);
 }
-    
+
 template <typename BASE, typename SCALAR, typename CURVE>
 Group<BASE, SCALAR, CURVE> operator- (const Group<BASE, SCALAR, CURVE>& a,
                                       const Group<BASE, SCALAR, CURVE>& b) {
@@ -277,7 +277,7 @@ Group<BASE, SCALAR, CURVE> fastAddSpecial(const Group<BASE, SCALAR, CURVE>& a,
         b.x(), b.y(), b.z(),
         a);
 }
-    
+
 template <mp_size_t N,
           typename BASE, typename SCALAR, typename CURVE>
 Group<BASE, SCALAR, CURVE> operator* (const BigInt<N>& exponent,
@@ -285,7 +285,7 @@ Group<BASE, SCALAR, CURVE> operator* (const BigInt<N>& exponent,
     return power(exponent, base); // group version: base follows power
                                   // this uses dbl() and operator+
 }
-    
+
 template <mp_size_t N, const BigInt<N>& MODULUS,
           typename BASE, typename SCALAR, typename CURVE>
 Group<BASE, SCALAR, CURVE> operator* (const FpModel<N, MODULUS>& exponent,
