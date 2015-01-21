@@ -41,7 +41,9 @@ public:
     explicit BigInt(const unsigned long a)
         : BigInt{}
     {
+#ifdef USE_ASSERT
         assert(CHAR_BIT * sizeof(a) <= GMP_NUMB_BITS);
+#endif
         m_data[0] = a;
     }
 
@@ -53,7 +55,9 @@ public:
         v.reserve(base10.size());
 
         for (const auto& c : base10) {
+#ifdef USE_ASSERT
             assert(isdigit(c));
+#endif
             v.push_back(c - '0');
         }
 
@@ -62,7 +66,9 @@ public:
                                                    v.size(),
                                                    10);
 
+#ifdef USE_ASSERT
         assert(limbsWritten <= N);
+#endif
     }
 
     // C-string
@@ -83,7 +89,9 @@ public:
                             GMP_NUMB_BITS);
         }
 
+#ifdef USE_ASSERT
         assert(0 == mpz_sgn(k));
+#endif
         mpz_clear(k);
     }
 
@@ -252,7 +260,9 @@ public:
     }
 
     BigInt<N>& randomize() {
+#ifdef USE_ASSERT
         assert(GMP_NUMB_BITS == sizeof(mp_limb_t) * CHAR_BIT);
+#endif
 
         std::random_device rd; // uses /dev/urandom
         const std::size_t n = sizeof(mp_limb_t) / sizeof(unsigned int);
@@ -270,7 +280,7 @@ public:
     static BigInt<N> zero() {
         return BigInt<N>(0ul);
     }
-    
+
     static BigInt<N> one() {
         return BigInt<N>(1ul);
     }
