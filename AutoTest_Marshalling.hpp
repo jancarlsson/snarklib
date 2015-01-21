@@ -10,7 +10,10 @@
 #include "Field.hpp"
 #include "Group.hpp"
 #include "Pairing.hpp"
-#include "PPZK.hpp"
+#include "PPZK_keypair.hpp"
+#include "PPZK_keystruct.hpp"
+#include "PPZK_proof.hpp"
+#include "PPZK_query.hpp"
 
 namespace snarklib {
 
@@ -156,16 +159,16 @@ private:
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-// roundtrip for PPZK_IC_Query<PAIRING>
+// roundtrip for PPZK_QueryIC<PAIRING>
 //
 
 template <typename PAIRING>
-class AutoTest_Marshal_IC_Query : public AutoTest
+class AutoTest_Marshal_QueryIC : public AutoTest
 {
     typedef typename PAIRING::G1 G1;
 
 public:
-    AutoTest_Marshal_IC_Query(const std::size_t numberElems)
+    AutoTest_Marshal_QueryIC(const std::size_t numberElems)
         : AutoTest(numberElems),
           m_numberElems(numberElems)
     {}
@@ -174,17 +177,17 @@ public:
         std::vector<G1> encoded_terms;
         randomVector(encoded_terms, m_numberElems);
 
-        const PPZK_IC_Query<PAIRING> A(G1::random(),
-                                       encoded_terms);
+        const PPZK_QueryIC<PAIRING> A(G1::random(),
+                                      encoded_terms);
 
         std::stringstream oss;
         A.marshal_out(oss);
 
-        PPZK_IC_Query<PAIRING> B;
+        PPZK_QueryIC<PAIRING> B;
 
         std::stringstream iss(oss.str());
         checkPass(B.marshal_in(iss));
-        
+
         checkPass(A == B);
     }
 
@@ -220,7 +223,7 @@ public:
               G1::random(),
               G2::random(),
               G2::random(),
-              PPZK_IC_Query<PAIRING>(G1::random(), encoded_terms));
+              PPZK_QueryIC<PAIRING>(G1::random(), encoded_terms));
 
         std::stringstream oss;
         A.marshal_out(oss);
@@ -286,7 +289,7 @@ public:
                   G1::random(),
                   G2::random(),
                   G2::random(),
-                  PPZK_IC_Query<PAIRING>(G1::random(), encoded_terms)));
+                  PPZK_QueryIC<PAIRING>(G1::random(), encoded_terms)));
 
         std::stringstream oss;
         A.marshal_out(oss);
