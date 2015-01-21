@@ -29,12 +29,16 @@ public:
         virtual ~Base() = default;
 
         void FFT(std::vector<T>& a) const {
+#ifdef USE_ASSERT
             assert(a.size() == min_size());
+#endif
             m_FFT(a);
         }
-        
+
         void iFFT(std::vector<T>& a) const {
+#ifdef USE_ASSERT
             assert(a.size() == min_size());
+#endif
             m_iFFT(a);
         }
 
@@ -54,7 +58,9 @@ public:
         virtual T compute_Z(const T& t) const = 0;
 
         void add_poly_Z(const T& coeff, std::vector<T>& H) const {
+#ifdef USE_ASSERT
             assert(H.size() == min_size() + 1);
+#endif
             m_add_poly_Z(coeff, H);
         }
 
@@ -75,8 +81,10 @@ public:
 
         T get_root_of_unity(const std::size_t n) const {
             const std::size_t logn = ceil_log2(n);
+#ifdef USE_ASSERT
             assert(n == (1u << logn));
             assert(logn <= T::params.s());
+#endif
 
             T omega = T::params.root_of_unity();
             for (std::size_t i = T::params.s(); i > logn; --i) {
@@ -93,8 +101,10 @@ public:
         void basic_radix2_FFT(std::vector<T>& a, const T& omega) const {
             const std::size_t n = a.size();
             const std::size_t logn = ceil_log2(n);
+#ifdef USE_ASSERT
             assert(n == (1u << logn));
-            
+#endif
+
             for (std::size_t k = 0; k < n; ++k) {
                 const std::size_t rk = bit_reverse(k, logn);
                 if (k < rk)
@@ -133,7 +143,9 @@ public:
                 return std::vector<T>(1, T::one());
             }
 
+#ifdef USE_ASSERT
             assert(m == (1u << ceil_log2(m)));
+#endif
 
             const T omega = get_root_of_unity(m);
 
@@ -189,9 +201,13 @@ public:
 
     static
     std::size_t getDegree(const std::size_t min_size) {
+#ifdef USE_ASSERT
         assert(min_size > 1);
+#endif
         const std::size_t log_min_size = ceil_log2(min_size);
+#ifdef USE_ASSERT
         assert(log_min_size <= (T::params.s() + 1));
+#endif
 
         if (min_size == (1u << log_min_size)) {
             return min_size;
