@@ -188,7 +188,7 @@ arithmetic in evaluating a polynomial. Each equation in a rank-1 constraint
 system involves the product of two 1st degree polynomials.
 
     (a0*x0 + a1*x1 +...) * (b0*y0 + b1*y1 +...) = (c0*z0 + c1*z1 +...)
-    
+
 To evaluate the 1st degree polynomials, two operators are needed.
 
 - scalar * variable = term
