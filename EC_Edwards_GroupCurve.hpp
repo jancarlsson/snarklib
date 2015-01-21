@@ -44,7 +44,7 @@ public:
     static Fq mul_by_d(const Fq& elt) {
         return coeff_d() * elt;
     }
-        
+
     static Fq3 mul_by_d(const Fq3& elt) {
         return Fq3(twist_mul_by_d_c0()[0] * elt[2],
                    twist_mul_by_d_c1()[0] * elt[0],
