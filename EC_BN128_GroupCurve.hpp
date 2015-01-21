@@ -164,7 +164,7 @@ public:
         const auto
             A = squared(x),
             B = squared(y);
-        
+
         const auto C = squared(B);
         auto D = squared(x + B) - A - C;
         D = D + D;
