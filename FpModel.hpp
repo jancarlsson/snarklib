@@ -269,7 +269,9 @@ public:
             const mp_limb_t borrow
                 = mpn_sub_1(m_monty.data(), MODULUS.data(), N, -a);
 
+#ifdef USE_ASSERT
             assert(0 == borrow);
+#endif
         }
 
         mulReduce(Fp::params.Rsquared()); // asm
@@ -347,7 +349,9 @@ public:
 
     // inversion in-place
     FpModel& invert() {
+#ifdef USE_ASSERT
         assert(! isZero());
+#endif
 
         BigInt<N> g, v = MODULUS;
         std::array<mp_limb_t, N+1> s;
@@ -361,7 +365,9 @@ public:
                                         v.data(),
                                         N);
 
+#ifdef USE_ASSERT
         assert(1 == gn && 1 == g.data()[0]);
+#endif
 
         mp_limb_t q;
 
@@ -382,7 +388,9 @@ public:
             const mp_limb_t borrow
                 = mpn_sub_n(m_monty.data(), MODULUS.data(), m_monty.data(), N);
 
+#ifdef USE_ASSERT
             assert(0 == borrow);
+#endif
         }
 
         mulReduce(Fp::params.Rcubed()); // asm
