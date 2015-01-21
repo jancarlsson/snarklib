@@ -85,7 +85,9 @@ public:
     }
 
     void assignVar(const R1Variable<T>& x, const T& value) {
+#ifdef USE_ASSERT
         assert(! x.zeroIndex());
+#endif
 
         // subtract one to make absolute index
         const std::size_t idx = x.index() - 1;
@@ -100,7 +102,9 @@ public:
     }
 
     R1Witness truncate(const std::size_t leadingSize) const {
+#ifdef USE_ASSERT
         assert(leadingSize <= m_va.size());
+#endif
 
         std::set<std::size_t> unsetIdx;
         for (std::size_t i = 0; i < leadingSize; ++i) {
@@ -115,7 +119,9 @@ public:
     }
 
     const T& operator[] (const std::size_t index) const {
+#ifdef USE_ASSERT
         assert(index < m_va.size());
+#endif
 
         return m_va[index];
     }
@@ -705,7 +711,7 @@ template <typename A, typename T>
 R1Constraint<T> operator== (const A& c, const R1Term<T>& a) {
     return R1Constraint<T>(c, a);
 }
-    
+
 // term == variable
 // variable == term
 template <typename T>
