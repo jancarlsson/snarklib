@@ -226,7 +226,7 @@ void add_WindowExp(AutoTestBattery& ATB)
                         1 + rd() % 100,
                         1 + rd() % 10));
     }
-    
+
     for (size_t i = 0; i < 2; ++i) {
         ATB.addTest(new AutoTest_WindowExp_expMapReduce<T, F>(1 + rd() % 100));
         ATB.addTest(new AutoTest_WindowExp_batchExpMapReduce1<T, F>(
@@ -337,7 +337,7 @@ void add_Marshalling(AutoTestBattery& ATB)
         ATB.addTest(new AutoTest_Marshal_BFG<GB>);
         ATB.addTest(new AutoTest_Marshal_Pairing<GA, GB>);
         ATB.addTest(new AutoTest_Marshal_ProvingKey<PAIRING>(rd() % 100, rd() % 10));
-        ATB.addTest(new AutoTest_Marshal_IC_Query<PAIRING>(rd() % 100));
+        ATB.addTest(new AutoTest_Marshal_QueryIC<PAIRING>(rd() % 100));
         ATB.addTest(new AutoTest_Marshal_VerificationKey<PAIRING>(rd() % 100));
         ATB.addTest(new AutoTest_Marshal_Keypair<PAIRING>(rd() % 100, rd() % 10));
         ATB.addTest(new AutoTest_Marshal_Proof<PAIRING>);
