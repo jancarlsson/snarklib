@@ -1,6 +1,7 @@
 #ifndef _SNARKLIB_WINDOW_EXP_HPP_
 #define _SNARKLIB_WINDOW_EXP_HPP_
 
+#include <cassert>
 #include <cstdint>
 #include <gmp.h>
 #include <vector>
@@ -211,16 +212,98 @@ public:
     }
 
     // works for both map-reduce and monolithic versions
-    // additional map-reduce dimension from block partitioning of vector
-    BlockVector<GROUP> batchExp(const BlockVector<Fr>& exponentVec) const {
-        BlockVector<GROUP> res(exponentVec.space(),
-                               exponentVec.block());
+    void batchExp(std::vector<GROUP>& res,
+                  const std::vector<Fr>& exponentVec,
+                  ProgressCallback* callback = nullptr) const
+    {
+#ifdef USE_ASSERT
+        assert(res.size() == exponentVec.size());
+#endif
 
-        for (std::size_t i = exponentVec.startIndex(); i < exponentVec.stopIndex(); ++i) {
+        const std::size_t N = exponentVec.size();
+        const std::size_t M = callback ? callback->minorSteps() : 0;
+
+        std::size_t i = 0;
+
+        // for full blocks
+        for (std::size_t j = 0; j < M; ++j) {
+            for (std::size_t k = 0; k < N / M; ++k) {
+                res[i] = res[i] + exp(exponentVec[i]);
+                ++i;
+            }
+
+            callback->minor();
+        }
+
+        // remaining steps smaller than one block
+        while (i < N) {
+            res[i] = res[i] + exp(exponentVec[i]);
+            ++i;
+        }
+    }
+
+    // works for both map-reduce and monolithic versions
+    // additional map-reduce dimension from block partitioning of vector
+    BlockVector<GROUP> batchExp(const BlockVector<Fr>& exponentVec,
+                                ProgressCallback* callback = nullptr) const
+    {
+        const std::size_t N = exponentVec.size();
+        const std::size_t M = callback ? callback->minorSteps() : 0;
+
+        BlockVector<GROUP> res(exponentVec.space(), exponentVec.block());
+
+        std::size_t i = exponentVec.startIndex();
+
+        // for full blocks
+        for (std::size_t j = 0; j < M; ++j) {
+            for (std::size_t k = 0; k < N / M; ++k) {
+                res[i] = exp(exponentVec[i]);
+                ++i;
+            }
+
+            callback->minor();
+        }
+
+        // remaining steps smaller than one block
+        while (i < exponentVec.stopIndex()) {
             res[i] = exp(exponentVec[i]);
+            ++i;
         }
 
         return res;
+    }
+
+    // works for both map-reduce and monolithic versions
+    // additional map-reduce dimension from block partitioning of vector
+    void batchExp(BlockVector<GROUP>& res,
+                  const BlockVector<Fr>& exponentVec,
+                  ProgressCallback* callback = nullptr) const
+    {
+#ifdef USE_ASSERT
+        assert(res.space() == exponentVec.space() &&
+               res.block() == exponentVec.block());
+#endif
+
+        const std::size_t N = exponentVec.size();
+        const std::size_t M = callback ? callback->minorSteps() : 0;
+
+        std::size_t i = exponentVec.startIndex();
+
+        // for full blocks
+        for (std::size_t j = 0; j < M; ++j) {
+            for (std::size_t k = 0; k < N / M; ++k) {
+                res[i] = res[i] + exp(exponentVec[i]);
+                ++i;
+            }
+
+            callback->minor();
+        }
+
+        // remaining steps smaller than one block
+        while (i < exponentVec.stopIndex()) {
+            res[i] = res[i] + exp(exponentVec[i]);
+            ++i;
+        }
     }
 
 private:
