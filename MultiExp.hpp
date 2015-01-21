@@ -91,7 +91,9 @@ T multiExp(const std::vector<T>& base,
     const std::size_t M = callback ? callback->minorSteps() : 0;
     std::size_t progressCount = 0, callbackCount = 0;
 
+#ifdef USE_ASSERT
     assert(base.size() == scalar.size());
+#endif
 
     if (base.empty()) {
         // final callbacks
@@ -113,7 +115,7 @@ T multiExp(const std::vector<T>& base,
 
     const mp_size_t N = F::BaseType::numberLimbs();
     typedef OrdPair<BigInt<N>, std::size_t> ScalarIndex;
-    
+
     PriorityQueue<ScalarIndex> scalarPQ(base.size());
 
     for (std::size_t i = 0; i < scalar.size(); ++i) {
