@@ -37,7 +37,7 @@ protected:
           m_FFT(m_degree)
     {}
 
-private:    
+private:
     std::size_t m_degree, m_numVariables, m_numCircuitInputs;
     LagrangeFFT<T> m_FFT;
 };
@@ -50,7 +50,7 @@ template <typename T>
 class QAP_SystemPoint : public QAP<T>
 {
 public:
-    // used for keypair generation: ABCH, IC coefficients, and K
+    // keypair generation: ABCH, IC coefficients, and K
     QAP_SystemPoint(const R1System<T>& constraintSystem,
                     const std::size_t numCircuitInputs,
                     const T& point)
@@ -61,7 +61,7 @@ public:
           m_lagrange_coeffs(QAP<T>::FFT()->lagrange_coeffs(point))
     {}
 
-    // used for proof generation
+    // proof generation
     QAP_SystemPoint(const R1System<T>& constraintSystem,
                     const std::size_t numCircuitInputs)
         : QAP<T>(constraintSystem, numCircuitInputs),
@@ -123,7 +123,7 @@ public:
     std::size_t nonzeroCount() const { return m_nonzeroCount; }
     const std::vector<T>& vec() const { return m_vec; }
 
-    // only used by QAP_IC_coefficients<T>
+    // only used by QAP_QueryIC<T>
     void zeroElement(const std::size_t index) {
         m_vec[index] = T::zero();
     }
@@ -195,23 +195,24 @@ std::size_t g2_exp_count(const QAP_QueryB<T>& Bt) {
 //
 
 template <typename T>
-class QAP_IC_coefficients
+class QAP_QueryIC
 {
 public:
-    QAP_IC_coefficients(const QAP_SystemPoint<T>& qap,
-                        QAP_QueryA<T>& At,
-                        const T& random_A)
+    QAP_QueryIC(const QAP_SystemPoint<T>& qap,
+                QAP_QueryA<T>& At,
+                const T& random_A)
         : m_vec(qap.numCircuitInputs() + 1, T::zero())
     {
-        // zero out IC from At query and place it into IC coefficients
-        // calculation of IC coefficients changes At vector
+        // circuit inputs from At query vector
         for (std::size_t i = 0; i < m_vec.size(); ++i) {
             m_vec[i] = At.vec()[3 + i] * random_A;
+#ifdef USE_ASSERT
             assert(! m_vec[i].isZero());
+#endif
             At.zeroElement(3 + i);
         }
     }
-    
+
     const std::vector<T>& vec() const { return m_vec; }
 
 private:
@@ -306,7 +307,7 @@ template <typename T>
 class QAP_WitnessH
 {
 public:
-    // used for H
+    // regular H
     QAP_WitnessH(const QAP_SystemPoint<T>& qap,
                  const QAP_WitnessA<T>& aA, // before cosetFFT()
                  const QAP_WitnessB<T>& aB, // before cosetFFT()
@@ -322,7 +323,7 @@ public:
         qap.FFT()->add_poly_Z(random_d1 * random_d2, m_vec);
     }
 
-    // use for temporary H
+    // temporary H
     QAP_WitnessH(const QAP_SystemPoint<T>& qap,
                  const QAP_WitnessA<T>& aA, // after cosetFFT()
                  const QAP_WitnessB<T>& aB, // after cosetFFT()
@@ -338,7 +339,9 @@ public:
 
     void addTemporary(const QAP_WitnessH& tmpH) {
         // make sure to add temporary H, not regular H
+#ifdef USE_ASSERT
         assert(tmpH.vec().size() < m_vec.size());
+#endif
 
         for (std::size_t i = 0; i < tmpH.vec().size(); ++i)
             m_vec[i] += tmpH.vec()[i];
