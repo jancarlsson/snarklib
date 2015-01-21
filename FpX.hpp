@@ -552,7 +552,7 @@ cyclotomic_exp(const Field<Field<FpModel<N, MODULUS>, 3>, 2>& base,
         if (found_nonzero) {
             res = cyclotomic_squared(res);
         }
-        
+
         if (0 != NAF[i]) {
             found_nonzero = true;
 
@@ -566,7 +566,7 @@ cyclotomic_exp(const Field<Field<FpModel<N, MODULUS>, 3>, 2>& base,
 
     return res;
 }
-    
+
 ////////////////////////////////////////////////////////////////////////////////
 // F[((p^2)^3)^2]
 //
