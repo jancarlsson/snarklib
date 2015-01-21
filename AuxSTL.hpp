@@ -281,6 +281,9 @@ public:
         return m_value[index - m_startIndex];
     }
 
+    const std::vector<T>& vec() const { return m_value; }
+    std::vector<T>& lvec() { return m_value; }
+
     // in-place accumulation
     BlockVector& operator+= (const BlockVector& other) {
         if (m_space == other.m_space) {
