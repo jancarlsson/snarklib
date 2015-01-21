@@ -30,7 +30,13 @@ LIBRARY_FILES = \
 	LagrangeFFTX.hpp \
 	MultiExp.hpp \
 	Pairing.hpp \
-	PPZK.hpp \
+	PPZK_keypair.hpp \
+	PPZK_keystruct.hpp \
+	PPZK_proof.hpp \
+	PPZK_query.hpp \
+	PPZK_randomness.hpp \
+	PPZK_verify.hpp \
+	PPZK_witness.hpp \
 	ProgressCallback.hpp \
 	QAP.hpp \
 	Rank1DSL.hpp \
@@ -80,7 +86,7 @@ else
 CXXFLAGS_CURVE_ALT_BN128 = \
 	-I$(LIBSNARK_PREFIX)/include \
 	-I$(LIBSNARK_PREFIX)/include/libsnark \
-	-DCURVE_ALT_BN128 -DUSE_ASM -DUSE_ADD_SPECIAL
+	-DCURVE_ALT_BN128 -DUSE_ASM -DUSE_ADD_SPECIAL -DUSE_ASSERT
 
 LDFLAGS_CURVE_ALT_BN128 = \
 	-L$(LIBSNARK_PREFIX)/lib \
@@ -104,7 +110,7 @@ else
 CXXFLAGS_CURVE_EDWARDS = \
 	-I$(LIBSNARK_PREFIX)/include \
 	-I$(LIBSNARK_PREFIX)/include/libsnark \
-	-DCURVE_EDWARDS -DUSE_ASM -DUSE_ADD_SPECIAL
+	-DCURVE_EDWARDS -DUSE_ASM -DUSE_ADD_SPECIAL -DUSE_ASSERT
 
 LDFLAGS_CURVE_EDWARDS = \
 	-L$(LIBSNARK_PREFIX)/lib \
