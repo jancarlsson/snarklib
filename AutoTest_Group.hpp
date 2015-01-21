@@ -262,7 +262,7 @@ public:
     void runTest() {
         const auto a = m_A.dbl();
         const auto b = m_B.dbl();
-        
+
         checkPass(sameData(a, b));
     }
 
