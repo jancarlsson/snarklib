@@ -37,8 +37,10 @@ public:
     // initialize field parameters (MODULUS is both R and Q)
     static void initParams()
     {
+#ifdef USE_ASSERT
         assert(modulusIsValid());
         assert(8 == sizeof(mp_limb_t) || 4 == sizeof(mp_limb_t));
+#endif
 
         if (T::modulus_r() == MODULUS) { T::initModulusR(); }
         if (T::modulus_q() == MODULUS) { T::initModulusQ(); }
