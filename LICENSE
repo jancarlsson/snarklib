@@ -1,10 +1,9 @@
 The MIT License (MIT)
 
-(for x86-64 assembly language code only - https://github.com/scipr-lab/libsnark )
+(libsnark project: https://github.com/scipr-lab/libsnark )
 Copyright (c) 2012-2014 SCIPR Lab and contributors (see AUTHORS file).
 
-(all other code and files which is not x86-64 assembly language)
-Copyright (c) 2014 Jan Carlsson
+Copyright (c) 2014-2015 Jan Carlsson
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +23,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
-(clarification of x86-64 assembly code)
+(clarification of source code copyright provenance)
+
 The x86-64 assembly language code is taken directly from the SCIPR Lab's libsnark
-project. This code appears in files: AsmMacros.hpp, BigInt.hpp, FpModel.tcc . The
-SCIPR Lab has released libsnark under the MIT License. Therefore, all files are
-under the MIT License.
+project. This code appears in files: AsmMacros.hpp, BigInt.hpp, FpModel.tcc . Any
+modifications are insignificant. It is essentially the original code in libsnark
+and not a derived work.
+
+The C++ language code is a derived work. The original work is under copyright of
+the SCIPR Lab. Both original and derived works are under the MIT License which
+permits derivative works so long as the chain of copyright notices is maintained.
