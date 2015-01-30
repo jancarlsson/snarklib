@@ -3,7 +3,12 @@
 
 #include <cassert>
 #include <cstdint>
+#include <fstream>
+#include <sstream>
+#include <string>
 #include <vector>
+#include "AuxSTL.hpp"
+#include "IndexSpace.hpp"
 
 namespace snarklib {
 
@@ -57,6 +62,74 @@ void batch_invert(std::vector<T>& vec) {
         vec[i] = accum_inv * prod[i];
         accum_inv = accum_inv * orig;
     }
+}
+
+// block partition a vector in memory and write out to disk as files
+template <typename T>
+bool write_blockvector(const std::string& filePrefix,
+                       const IndexSpace<1>& space,
+                       const std::vector<T>& a)
+{
+#ifdef USE_ASSERT
+    assert(space.globalID()[0] <= a.size());
+#endif
+
+    bool status = true;
+
+    // consecutively numbered filenames, one per block
+    space.mapLambda(
+        [&status, &filePrefix, &space, &a] (std::size_t global, std::size_t block) {
+            std::stringstream ss;
+            ss << filePrefix << block;
+
+            std::ofstream ofs(ss.str());
+            if (!ofs) {
+                status = false; // failure
+            } else {
+                BlockVector<T> v(space, block, a);
+                v.marshal_out(ofs);
+            }
+        });
+
+    return status;
+}
+
+// write a single block partition to a file
+template <typename T>
+bool write_blockvector(const std::string& filePrefix,
+                       const std::size_t block,
+                       const IndexSpace<1>& space,
+                       const std::vector<T>& a)
+{
+#ifdef USE_ASSERT
+    assert(space.globalID()[0] <= a.size());
+#endif
+
+    std::stringstream ss;
+    ss << filePrefix << block;
+
+    std::ofstream ofs(ss.str());
+    if (!ofs) {
+        return false; // failure
+    } else {
+        BlockVector<T> v(space, block, a);
+        v.marshal_out(ofs);
+    }
+
+    return true;
+}
+
+// read a block vector partition from a file
+template <typename T>
+bool read_blockvector(const std::string& filePrefix,
+                      const std::size_t block,
+                      BlockVector<T>& v)
+{
+    std::stringstream ss;
+    ss << filePrefix << block;
+
+    std::ifstream ifs(ss.str());
+    return !!ifs && v.marshal_in(ifs);
 }
 
 } // namespace snarklib
