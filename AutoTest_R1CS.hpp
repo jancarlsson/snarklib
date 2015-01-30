@@ -5,6 +5,7 @@
 #include <ostream>
 #include <sstream>
 #include <string>
+#include "HugeSystem.hpp"
 #include "Rank1DSL.hpp"
 #include "r1cs/r1cs.hpp"
 
@@ -14,7 +15,7 @@ namespace snarklib {
 // base class for rank-1 constraint system with number of inputs
 //
 
-template <typename T, typename U>
+template <template <typename> class SYS, typename T, typename U>
 class AutoTestR1CS
 {
 public:
@@ -24,37 +25,21 @@ public:
         return ss.str();
     }
 
-    const libsnark::r1cs_constraint_system<U>& systemA() const {
-        return m_csA;
-    }
+    const libsnark::r1cs_constraint_system<U>& systemA() const { return m_csA; }
+    const libsnark::r1cs_variable_assignment<U>& witnessA() const { return m_witnessA; }
+    const libsnark::r1cs_variable_assignment<U>& inputA() const { return m_inputA; }
 
-    const libsnark::r1cs_variable_assignment<U>& witnessA() const {
-        return m_witnessA;
-    }
+    const SYS<T>& systemB() const { return m_csB; }
+    const R1Witness<T>& witnessB() const { return m_witnessB; }
+    const R1Witness<T>& inputB() const { return m_inputB; }
 
-    const libsnark::r1cs_variable_assignment<U>& inputA() const {
-        return m_inputA;
-    }
-
-    const R1System<T>& systemB() const {
-        return m_csB;
-    }
-
-    const R1Witness<T>& witnessB() const {
-        return m_witnessB;
-    }
-
-    const R1Witness<T>& inputB() const {
-        return m_inputB;
-    }
-
-    std::size_t numberInputs() const {
-        return m_numberInputs;
-    }
+    std::size_t numCircuitInputs() const { return m_numCircuitInputs; }
 
 protected:
-    AutoTestR1CS(const std::size_t numberInputs)
-        : m_numberInputs(numberInputs)
+    AutoTestR1CS(const std::size_t numCircuitInputs,
+                 const std::string& filePrefix)
+        : m_numCircuitInputs(numCircuitInputs),
+          m_filePrefix(filePrefix)
     {}
 
     void addBooleanity_A(const std::size_t varIndex) {
@@ -70,17 +55,24 @@ protected:
         m_csB.addConstraint(x * (T::one() - x) == T::zero());
     }
 
+    void clearAppend(R1System<T>& a) {}
+    void finalize(R1System<T>& a) {}
+
+    void clearAppend(HugeSystem<T>& a) { a.clearAppend(m_filePrefix, 1); }
+    void finalize(HugeSystem<T>& a) { a.finalize(numCircuitInputs()); }
+
     libsnark::r1cs_constraint_system<U> m_csA;
     libsnark::r1cs_variable_assignment<U> m_witnessA, m_inputA;
-    R1System<T> m_csB;
+    SYS<T> m_csB;
     R1Witness<T> m_witnessB, m_inputB;
 
 private:
-    const std::size_t m_numberInputs;
+    const std::size_t m_numCircuitInputs;
+    const std::string m_filePrefix;
 };
 
-template <typename T, typename U>
-std::ostream& operator<< (std::ostream& out, const AutoTestR1CS<T, U>& a) {
+template <template <typename> class SYS, typename T, typename U>
+std::ostream& operator<< (std::ostream& out, const AutoTestR1CS<SYS, T, U>& a) {
     return out << a.r1csName();
 }
 
@@ -88,12 +80,12 @@ std::ostream& operator<< (std::ostream& out, const AutoTestR1CS<T, U>& a) {
 // single AND gate
 //
 
-template <typename T, typename U>
-class AutoTestR1CS_AND : public AutoTestR1CS<T, U>
+template <template <typename> class SYS, typename T, typename U>
+class AutoTestR1CS_AND : public AutoTestR1CS<SYS, T, U>
 {
 public:
-    AutoTestR1CS_AND(const bool x_IC, const bool y_IC)
-        : AutoTestR1CS<T, U>(2),
+    AutoTestR1CS_AND(const bool x_IC, const bool y_IC, const std::string& filePrefix)
+        : AutoTestR1CS<SYS, T, U>(2, filePrefix),
           m_booleanityX(x_IC),
           m_booleanityY(y_IC)
     {
@@ -103,7 +95,7 @@ public:
 
 private:
     void initA() {
-        this->m_csA.num_inputs = this->numberInputs();
+        this->m_csA.num_inputs = this->numCircuitInputs();
         this->m_csA.num_vars = 3;
 
         libsnark::linear_combination<U> A, B, C;
@@ -125,6 +117,8 @@ private:
     }
 
     void initB() {
+        this->clearAppend(this->m_csB);
+
         R1Variable<T> x(1), y(2), z(3);
 
         this->m_csB.addConstraint(x * y == z);
@@ -140,6 +134,8 @@ private:
 
         this->m_inputB.assignVar(x, T::one());
         this->m_inputB.assignVar(y, T::one());
+
+        this->finalize(this->m_csB);
     }
 
     const bool m_booleanityX;
@@ -150,12 +146,12 @@ private:
 // single OR gate
 //
 
-template <typename T, typename U>
-class AutoTestR1CS_OR : public AutoTestR1CS<T, U>
+template <template <typename> class SYS, typename T, typename U>
+class AutoTestR1CS_OR : public AutoTestR1CS<SYS, T, U>
 {
 public:
-    AutoTestR1CS_OR(const bool x_IC, const bool y_IC)
-        : AutoTestR1CS<T, U>(2),
+    AutoTestR1CS_OR(const bool x_IC, const bool y_IC, const std::string& filePrefix)
+        : AutoTestR1CS<SYS, T, U>(2, filePrefix),
           m_booleanityX(x_IC),
           m_booleanityY(y_IC)
     {
@@ -165,7 +161,7 @@ public:
 
 private:
     void initA() {
-        this->m_csA.num_inputs = this->numberInputs();
+        this->m_csA.num_inputs = this->numCircuitInputs();
         this->m_csA.num_vars = 3;
 
         libsnark::linear_combination<U> A, B, C;
@@ -189,6 +185,8 @@ private:
     }
 
     void initB() {
+        this->clearAppend(this->m_csB);
+
         R1Variable<T> x(1), y(2), z(3);
 
         this->m_csB.addConstraint(x + y - z == x * y);
@@ -204,6 +202,8 @@ private:
 
         this->m_inputB.assignVar(x, T::one());
         this->m_inputB.assignVar(y, T::one());
+
+        this->finalize(this->m_csB);
     }
 
     const bool m_booleanityX;
@@ -214,12 +214,12 @@ private:
 // single XOR gate
 //
 
-template <typename T, typename U>
-class AutoTestR1CS_XOR : public AutoTestR1CS<T, U>
+template <template <typename> class SYS, typename T, typename U>
+class AutoTestR1CS_XOR : public AutoTestR1CS<SYS, T, U>
 {
 public:
-    AutoTestR1CS_XOR(const bool x_IC, const bool y_IC)
-        : AutoTestR1CS<T, U>(2),
+    AutoTestR1CS_XOR(const bool x_IC, const bool y_IC, const std::string& filePrefix)
+        : AutoTestR1CS<SYS, T, U>(2, filePrefix),
           m_booleanityX(x_IC),
           m_booleanityY(y_IC)
     {
@@ -229,7 +229,7 @@ public:
 
 private:
     void initA() {
-        this->m_csA.num_inputs = this->numberInputs();
+        this->m_csA.num_inputs = this->numCircuitInputs();
         this->m_csA.num_vars = 3;
 
         libsnark::linear_combination<U> A, B, C;
@@ -253,6 +253,8 @@ private:
     }
 
     void initB() {
+        this->clearAppend(this->m_csB);
+
         R1Variable<T> x(1), y(2), z(3);
 
         const auto TWO = T::one() + T::one();
@@ -269,6 +271,8 @@ private:
 
         this->m_inputB.assignVar(x, T::one());
         this->m_inputB.assignVar(y, T::one());
+
+        this->finalize(this->m_csB);
     }
 
     const bool m_booleanityX;
@@ -279,12 +283,12 @@ private:
 // single CMPLMNT gate
 //
 
-template <typename T, typename U>
-class AutoTestR1CS_CMPLMNT : public AutoTestR1CS<T, U>
+template <template <typename> class SYS, typename T, typename U>
+class AutoTestR1CS_CMPLMNT : public AutoTestR1CS<SYS, T, U>
 {
 public:
-    AutoTestR1CS_CMPLMNT(const bool x_IC)
-        : AutoTestR1CS<T, U>(1),
+    AutoTestR1CS_CMPLMNT(const bool x_IC, const std::string& filePrefix)
+        : AutoTestR1CS<SYS, T, U>(1, filePrefix),
           m_booleanityX(x_IC)
     {
         initA();
@@ -293,7 +297,7 @@ public:
 
 private:
     void initA() {
-        this->m_csA.num_inputs = this->numberInputs();
+        this->m_csA.num_inputs = this->numCircuitInputs();
         this->m_csA.num_vars = 2;
 
         libsnark::linear_combination<U> A, B, C;
@@ -313,6 +317,8 @@ private:
     }
 
     void initB() {
+        this->clearAppend(this->m_csB);
+
         R1Variable<T> x(1), y(2);
 
         this->m_csB.addConstraint(x + y == T::one());
@@ -325,6 +331,8 @@ private:
         this->m_witnessB.assignVar(y, T::one());
 
         this->m_inputB.assignVar(x, T::zero());
+
+        this->finalize(this->m_csB);
     }
 
     const bool m_booleanityX;
