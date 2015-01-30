@@ -28,7 +28,7 @@ class PPZK_QueryIC
 public:
     PPZK_QueryIC() = default;
 
-    // only used for roundtrip marshalling tests
+    // only used for roundtrip marshalling and PPZK tests
     PPZK_QueryIC(const G1& base,
                  const std::vector<G1>& encoded_terms)
         : m_base(base),
