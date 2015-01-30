@@ -12,7 +12,7 @@
 #include "PPZK_query.hpp"
 #include "PPZK_randomness.hpp"
 #include "ProgressCallback.hpp"
-#include "QAP.hpp"
+#include "QAP_query.hpp"
 #include "Rank1DSL.hpp"
 #include "WindowExp.hpp"
 
@@ -43,7 +43,8 @@ public:
           m_vk(vk)
     {}
 
-    PPZK_Keypair(const R1System<Fr>& constraintSystem,
+    template <template <typename> class SYS>
+    PPZK_Keypair(const SYS<Fr>& constraintSystem,
                  const std::size_t numCircuitInputs,
                  const PPZK_KeypairRandomness<Fr>& keyRand,
                  ProgressCallback* callback = nullptr)
@@ -64,13 +65,13 @@ public:
             &beta = keyRand.beta(),
             &gamma = keyRand.gamma();
 
-        const QAP_SystemPoint<Fr> qap(constraintSystem, numCircuitInputs, point);
+        const QAP_SystemPoint<SYS, Fr> qap(constraintSystem, numCircuitInputs, point);
 
         // ABCH
-        QAP_QueryA<Fr> At(qap); // changed by QAP_QueryIC side-effect
-        const QAP_QueryB<Fr> Bt(qap);
-        const QAP_QueryC<Fr> Ct(qap);
-        const QAP_QueryH<Fr> Ht(qap);
+        QAP_QueryA<SYS, Fr> At(qap); // changed by QAP_QueryIC side-effect
+        const QAP_QueryB<SYS, Fr> Bt(qap);
+        const QAP_QueryC<SYS, Fr> Ct(qap);
+        const QAP_QueryH<SYS, Fr> Ht(qap);
 
         // step 8 - G1 window table
         dummy->major(true);
@@ -82,7 +83,7 @@ public:
 
         // step 6 - K
         dummy->major(true);
-        const QAP_QueryK<Fr> Kt(qap, At, Bt, Ct, rA, rB, beta);
+        const QAP_QueryK<SYS, Fr> Kt(qap, At, Bt, Ct, rA, rB, beta);
         const BlockVector<Fr> Ktb(BlockVector<Fr>::space(Kt.vec()), 0, Kt.vec());
         PPZK_QueryK<PAIRING> Kp(Ktb);
         Kp.accumTable(g1_table, callback);
@@ -91,7 +92,7 @@ public:
 #endif
 
         // side-effect: this modifies At query vector
-        const QAP_QueryIC<Fr> qapIC(qap, At, rA);
+        const QAP_QueryIC<SYS, Fr> qapIC(qap, At, rA);
 
         // step 5 - A
         dummy->major(true);
