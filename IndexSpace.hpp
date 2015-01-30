@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <iostream>
 #include <istream>
 #include <ostream>
@@ -150,6 +151,13 @@ public:
         }
 
         return true; // ok
+    }
+
+    // map/iterate over the index space with a lambda
+    void mapLambda(std::function<void (std::size_t global, std::size_t block)> func) const {
+        for (std::size_t i = 0; i < N; ++i)
+            for (std::size_t j = 0; j < m_blockID[i]; ++j)
+                func(i, j);
     }
 
 private:
