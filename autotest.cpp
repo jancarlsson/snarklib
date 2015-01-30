@@ -279,47 +279,53 @@ void add_Pairing(AutoTestBattery& ATB)
     }
 }
 
-template <typename T, typename U>
+string autotest_tmpfile(const bool x, const bool y, const string& s) {
+    stringstream ss;
+    ss << "autotest_tmpfile" << x << y << s;
+    return ss.str();
+}
+
+template <template <typename> class SYS, typename T, typename U>
 void add_QAP(AutoTestBattery& ATB)
 {
     for (const auto x_IC : { false, true }) {
-        for (const auto y_IC : { false, true}) {
-            const std::vector<AutoTestR1CS<T, U>> csvec = {
-                AutoTestR1CS_AND<T, U>(x_IC, y_IC),
-                AutoTestR1CS_OR<T, U>(x_IC, y_IC),
-                AutoTestR1CS_XOR<T, U>(x_IC, y_IC),
-                AutoTestR1CS_CMPLMNT<T, U>(x_IC)
+        for (const auto y_IC : { false, true }) {
+            const std::vector<AutoTestR1CS<SYS, T, U>> csvec = {
+                AutoTestR1CS_AND<SYS, T, U>(x_IC, y_IC, autotest_tmpfile(x_IC, y_IC, "QAPAND")),
+                AutoTestR1CS_OR<SYS, T, U>(x_IC, y_IC, autotest_tmpfile(x_IC, y_IC, "QAPOR")),
+                AutoTestR1CS_XOR<SYS, T, U>(x_IC, y_IC, autotest_tmpfile(x_IC, y_IC, "QAPXOR")),
+                AutoTestR1CS_CMPLMNT<SYS, T, U>(x_IC, autotest_tmpfile(x_IC, y_IC, "QAPCMPLMNT"))
             };
 
             for (size_t i = 0; i < 2; ++i) {
                 for (const auto& cs : csvec) {
-                    ATB.addTest(new AutoTest_QAP_ABCH_instance_map<T, U>(cs));
-                    ATB.addTest(new AutoTest_QAP_Witness_map<T, U>(cs));
+                    ATB.addTest(new AutoTest_QAP_ABCH_instance_map<SYS, T, U>(cs));
+                    ATB.addTest(new AutoTest_QAP_Witness_map<SYS, T, U>(cs));
                 }
             }
         }
     }
 }
 
-template <typename PAIRING, typename T, typename U>
+template <template <typename> class SYS, typename PAIRING, typename T, typename U>
 void add_PPZK(AutoTestBattery& ATB)
 {
     for (const auto x_IC : { false, true }) {
         for (const auto y_IC : { false, true}) {
-            const std::vector<AutoTestR1CS<T, U>> csvec = {
-                AutoTestR1CS_AND<T, U>(x_IC, y_IC),
-                AutoTestR1CS_OR<T, U>(x_IC, y_IC),
-                AutoTestR1CS_XOR<T, U>(x_IC, y_IC),
-                AutoTestR1CS_CMPLMNT<T, U>(x_IC)
+            const std::vector<AutoTestR1CS<SYS, T, U>> csvec = {
+                AutoTestR1CS_AND<SYS, T, U>(x_IC, y_IC, autotest_tmpfile(x_IC, y_IC, "PPZKAND")),
+                AutoTestR1CS_OR<SYS, T, U>(x_IC, y_IC, autotest_tmpfile(x_IC, y_IC, "PPZKOR")),
+                AutoTestR1CS_XOR<SYS, T, U>(x_IC, y_IC, autotest_tmpfile(x_IC, y_IC, "PPZKXOR")),
+                AutoTestR1CS_CMPLMNT<SYS, T, U>(x_IC, autotest_tmpfile(x_IC, y_IC, "PPZKCMPLMNT"))
             };
 
             for (size_t i = 0; i < 2; ++i) {
                 for (const auto& cs : csvec) {
                     ATB.addTest(new AutoTest_PPZK_libsnark_only<T, U>(cs));
-                    ATB.addTest(new AutoTest_PPZK_strongVerify<PAIRING, U>(cs));
-                    ATB.addTest(new AutoTest_PPZK_ProofCompare<PAIRING, U>(cs));
-                    ATB.addTest(new AutoTest_PPZK_Proof<PAIRING, U>(cs));
-                    ATB.addTest(new AutoTest_PPZK_full_redesign<PAIRING, U>(cs));
+                    ATB.addTest(new AutoTest_PPZK_strongVerify<SYS, PAIRING, U>(cs));
+                    ATB.addTest(new AutoTest_PPZK_ProofCompare<SYS, PAIRING, U>(cs));
+                    ATB.addTest(new AutoTest_PPZK_Proof<SYS, PAIRING, U>(cs));
+                    ATB.addTest(new AutoTest_PPZK_full_redesign<SYS, PAIRING, U>(cs));
                 }
             }
         }
@@ -435,10 +441,12 @@ int main(int argc, char *argv[])
     add_Pairing<NRQ, G2, G1, Fr, libsnark_G2, libsnark_G1, libsnark_Fr>(ATB);
 
     // quadratic arithmetic program
-    add_QAP<Fr, libsnark_Fr>(ATB);
+    add_QAP<R1System, Fr, libsnark_Fr>(ATB);
+    add_QAP<HugeSystem, Fr, libsnark_Fr>(ATB);
 
     // pre-processed zero knowledge proof
-    add_PPZK<PAIRING, Fr, libsnark_Fr>(ATB);
+    add_PPZK<R1System, PAIRING, Fr, libsnark_Fr>(ATB);
+    add_PPZK<HugeSystem, PAIRING, Fr, libsnark_Fr>(ATB);
 
     // marshalling
     add_Marshalling<G1, G1, 1, Fr, PAIRING>(ATB);
