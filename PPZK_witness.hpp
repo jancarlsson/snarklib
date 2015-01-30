@@ -9,7 +9,7 @@
 #include "MultiExp.hpp"
 #include "Pairing.hpp"
 #include "ProgressCallback.hpp"
-#include "QAP.hpp"
+#include "QAP_system.hpp"
 #include "Rank1DSL.hpp"
 
 namespace snarklib {
@@ -22,7 +22,7 @@ template <typename GA, typename GB, typename FR, std::size_t Z_INDEX>
 class PPZK_WitnessABC
 {
 public:
-    PPZK_WitnessABC(const QAP_SystemPoint<FR>& qap,
+    PPZK_WitnessABC(const QAP<FR>& qap,
                     const R1Witness<FR>& witness,
                     const FR& random_d)
         : m_numVariables(qap.numVariables()),
