@@ -25,6 +25,7 @@ LIBRARY_FILES = \
 	FpModel.tcc \
 	FpX.hpp \
 	Group.hpp \
+	HugeSystem.hpp \
 	IndexSpace.hpp \
 	LagrangeFFT.hpp \
 	LagrangeFFTX.hpp \
@@ -38,7 +39,9 @@ LIBRARY_FILES = \
 	PPZK_verify.hpp \
 	PPZK_witness.hpp \
 	ProgressCallback.hpp \
-	QAP.hpp \
+	QAP_query.hpp \
+	QAP_system.hpp \
+	QAP_witness.hpp \
 	Rank1DSL.hpp \
 	Util.hpp \
 	WindowExp.hpp
@@ -72,7 +75,7 @@ CLEAN_FILES = \
 	README.html
 
 clean :
-	rm -f *.o $(CLEAN_FILES)
+	rm -f *.o autotest_tmpfile* $(CLEAN_FILES)
 
 
 ################################################################################
