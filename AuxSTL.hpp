@@ -1,7 +1,6 @@
 #ifndef _SNARKLIB_AUX_STL_HPP_
 #define _SNARKLIB_AUX_STL_HPP_
 
-#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <iostream>
@@ -305,8 +304,7 @@ public:
         m_space.marshal_out(os);
 
         // block
-        for (const auto& a : m_block)
-            os << a << std::endl;
+        os << m_block[0] << std::endl;
 
         // value
         for (const auto& a : m_value)
