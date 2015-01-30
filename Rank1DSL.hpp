@@ -51,11 +51,22 @@ public:
         return m_index < other.m_index;
     }
 
+    void marshal_out(std::ostream& os) const {
+        // variable index
+        os << m_index << std::endl;
+    }
+
+    bool marshal_in(std::istream& is) {
+        // variable index
+        is >> m_index;
+        return !!is;
+    }
+
 private:
     std::size_t m_index;
 };
 
-// output stream
+// output stream (human readable print format)
 template <typename T>
 std::ostream& operator<< (std::ostream& out, const R1Variable<T>& a) {
     if (0 == a.index()) {
@@ -174,12 +185,9 @@ public:
         if (!is) return false;
 
         // variable assignment vector
-        m_va.clear();
-        m_va.reserve(numberElems);
-        for (std::size_t i = 0; i < numberElems; ++i) {
-            T f;
-            if (!f.marshal_in(is)) return false;
-            m_va.emplace_back(f);
+        m_va.resize(numberElems);
+        for (auto& r : m_va) {
+            if (! r.marshal_in(is)) return false;
         }
 
         // number of unset indices
@@ -266,12 +274,26 @@ public:
         return T::zero() == coeff() && var().zeroIndex();
     }
 
+    void marshal_out(std::ostream& os) const {
+        // variable
+        m_var.marshal_out(os);
+
+        // coefficient
+        os << m_coeff << std::endl;
+    }
+
+    bool marshal_in(std::istream& is) {
+        return
+            m_var.marshal_in(is) && // variable
+            !!(is >> m_coeff);      // coefficient
+    }
+
 private:
     R1Variable<T> m_var;
     T m_coeff;
 };
 
-// output stream
+// output stream (human readable print format)
 template <typename T>
 std::ostream& operator<< (std::ostream& out, const R1Term<T>& a) {
     if (0 == a.index()) {
@@ -346,11 +368,35 @@ public:
         return accum;
     }
 
+    void marshal_out(std::ostream& os) const {
+        // number of terms
+        os << m_terms.size() << std::endl;
+
+        // term vector
+        for (const auto& a : m_terms)
+            a.marshal_out(os);
+    }
+
+    bool marshal_in(std::istream& is) {
+        // number of terms
+        std::size_t len;
+        is >> len;
+        if (!is) return false;
+
+        // term vector
+        m_terms.resize(len);
+        for (auto& r : m_terms) {
+            if (! r.marshal_in(is)) return false;
+        }
+
+        return true; // ok
+    }
+
 private:
     std::vector<R1Term<T>> m_terms;
 };
 
-// output stream
+// output stream (human readable print format)
 template <typename T>
 std::ostream& operator<< (std::ostream& out, const R1Combination<T>& a) {
     bool firstTime = true;
@@ -636,11 +682,24 @@ public:
         std::swap(m_a, m_b);
     }
 
+    void marshal_out(std::ostream& os) const {
+        m_a.marshal_out(os);
+        m_b.marshal_out(os);
+        m_c.marshal_out(os);
+    }
+
+    bool marshal_in(std::istream& is) {
+        return
+            m_a.marshal_in(is) &&
+            m_b.marshal_in(is) &&
+            m_c.marshal_in(is);
+    }
+
 private:
     R1Combination<T> m_a, m_b, m_c;
 };
 
-// output stream
+// output stream (human readable print format)
 template <typename T>
 std::ostream& operator<< (std::ostream& out, const R1Constraint<T>& d) {
     return out << "(" << d.a() << ")*(" << d.b() << ") = " << d.c();
@@ -817,7 +876,8 @@ class R1System
 {
 public:
     R1System()
-        : m_minIndex(-1), m_maxIndex(0)
+        : m_minIndex(-1), // maximum possible number
+          m_maxIndex(0)   // minimum possible number
     {}
 
     void clear() {
@@ -851,6 +911,10 @@ public:
 
     const std::vector<R1Constraint<T>>& constraints() const {
         return m_constraints;
+    }
+
+    std::size_t size() const {
+        return m_constraints.size();
     }
 
     std::size_t minIndex() const {
@@ -901,6 +965,51 @@ public:
         return false;
     }
 
+    void marshal_out(std::ostream& os) const {
+        // number of constraints
+        os << m_constraints.size() << std::endl;
+
+        // constraint vector
+        for (const auto& r : m_constraints) {
+            r.marshal_out(os);
+        }
+
+        // minimum variable index
+        os << m_minIndex << std::endl;
+
+        // maximum variable index
+        os << m_maxIndex << std::endl;
+    }
+
+    bool marshal_in(std::istream& is) {
+        // number of constraints
+        std::size_t len;
+        is >> len;
+        if (!is) return false;
+
+        // constraint vector
+        m_constraints.resize(len);
+        for (auto& r : m_constraints) {
+            if (! r.marshal_in(is)) return false;
+        }
+
+        // minimum variable index
+        is >> m_minIndex;
+        if (!is) return false;
+
+        // maximum variable index
+        is >> m_maxIndex;
+        if (!is) return false;
+
+#ifdef USE_ASSERT
+        if (m_minIndex != -1 || m_maxIndex != 0) {
+            assert(m_minIndex <= m_maxIndex);
+        }
+#endif
+
+        return true; // ok
+    }
+
 private:
     void updateMinMax(const R1Combination<T>& d) {
         for (const auto& t : d.terms()) {
@@ -913,7 +1022,7 @@ private:
     std::size_t m_minIndex, m_maxIndex;
 };
 
-// output stream
+// output stream (human readable print format)
 template <typename T>
 std::ostream& operator<< (std::ostream& out, const R1System<T>& a) {
     bool firstTime = true;
