@@ -27,7 +27,8 @@ class AutoTest_PPZK_libsnark_only : public AutoTest
     typedef typename libsnark::default_pp PPT;
 
 public:
-    AutoTest_PPZK_libsnark_only(const AutoTestR1CS<T, U>& cs)
+    template <template <typename> class SYS>
+    AutoTest_PPZK_libsnark_only(const AutoTestR1CS<SYS, T, U>& cs)
         : AutoTest(cs),
           m_cs(cs.systemA()),
           m_witness(cs.witnessA()),
@@ -67,7 +68,7 @@ private:
 // verification uses redesigned code
 //
 
-template <typename PAIRING, typename U>
+template <template <typename> class SYS, typename PAIRING, typename U>
 class AutoTest_PPZK_strongVerify : public AutoTest
 {
     typedef typename PAIRING::Fr Fr;
@@ -77,7 +78,7 @@ class AutoTest_PPZK_strongVerify : public AutoTest
     typedef typename libsnark::default_pp PPT;
 
 public:
-    AutoTest_PPZK_strongVerify(const AutoTestR1CS<Fr, U>& cs)
+    AutoTest_PPZK_strongVerify(const AutoTestR1CS<SYS, Fr, U>& cs)
         : AutoTest(cs),
           m_constraintSystem(cs)
     {}
@@ -148,14 +149,14 @@ public:
     }
 
 private:
-    const AutoTestR1CS<Fr, U> m_constraintSystem;
+    const AutoTestR1CS<SYS, Fr, U> m_constraintSystem;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 // compare original and redesigned proof output
 //
 
-template <typename PAIRING, typename U>
+template <template <typename> class SYS, typename PAIRING, typename U>
 class AutoTest_PPZK_ProofCompare : public AutoTest
 {
     typedef typename PAIRING::Fr Fr;
@@ -165,7 +166,7 @@ class AutoTest_PPZK_ProofCompare : public AutoTest
     typedef typename libsnark::default_pp PPT;
 
 public:
-    AutoTest_PPZK_ProofCompare(const AutoTestR1CS<Fr, U>& cs)
+    AutoTest_PPZK_ProofCompare(const AutoTestR1CS<SYS, Fr, U>& cs)
         : AutoTest(cs),
           m_constraintSystem(cs)
     {}
@@ -217,7 +218,7 @@ public:
         const auto proofRand = PPZK_Proof<PAIRING>::randomness();
         const PPZK_Proof<PAIRING> proofFromRedesign(
             m_constraintSystem.systemB(),
-            m_constraintSystem.numberInputs(),
+            m_constraintSystem.numCircuitInputs(),
             pkB,
             m_constraintSystem.witnessB(),
             proofRand);
@@ -256,14 +257,14 @@ public:
     }
 
 private:
-    const AutoTestR1CS<Fr, U> m_constraintSystem;
+    const AutoTestR1CS<SYS, Fr, U> m_constraintSystem;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 // verification and proof use redesigned code
 //
 
-template <typename PAIRING, typename U>
+template <template <typename> class SYS, typename PAIRING, typename U>
 class AutoTest_PPZK_Proof : public AutoTest
 {
     typedef typename PAIRING::Fr Fr;
@@ -273,7 +274,7 @@ class AutoTest_PPZK_Proof : public AutoTest
     typedef typename libsnark::default_pp PPT;
 
 public:
-    AutoTest_PPZK_Proof(const AutoTestR1CS<Fr, U>& cs)
+    AutoTest_PPZK_Proof(const AutoTestR1CS<SYS, Fr, U>& cs)
         : AutoTest(cs),
           m_constraintSystem(cs)
     {}
@@ -330,7 +331,7 @@ public:
         // proof
         const auto proofRand = PPZK_Proof<PAIRING>::randomness();
         const PPZK_Proof<PAIRING> proofB(m_constraintSystem.systemB(),
-                                         m_constraintSystem.numberInputs(),
+                                         m_constraintSystem.numCircuitInputs(),
                                          pkB,
                                          m_constraintSystem.witnessB(),
                                          proofRand);
@@ -345,14 +346,14 @@ public:
     }
 
 private:
-    const AutoTestR1CS<Fr, U> m_constraintSystem;
+    const AutoTestR1CS<SYS, Fr, U> m_constraintSystem;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 // end-to-end using snarklib
 //
 
-template <typename PAIRING, typename U>
+template <template <typename> class SYS, typename PAIRING, typename U>
 class AutoTest_PPZK_full_redesign : public AutoTest
 {
     typedef typename PAIRING::Fr Fr;
@@ -362,7 +363,7 @@ class AutoTest_PPZK_full_redesign : public AutoTest
     typedef typename libsnark::default_pp PPT;
 
 public:
-    AutoTest_PPZK_full_redesign(const AutoTestR1CS<Fr, U>& cs)
+    AutoTest_PPZK_full_redesign(const AutoTestR1CS<SYS, Fr, U>& cs)
         : AutoTest(cs),
           m_constraintSystem(cs)
     {}
@@ -370,12 +371,12 @@ public:
     void runTest() {
         const auto keyRand = PPZK_Keypair<PAIRING>::randomness();
         const PPZK_Keypair<PAIRING> keypair(m_constraintSystem.systemB(),
-                                            m_constraintSystem.numberInputs(),
+                                            m_constraintSystem.numCircuitInputs(),
                                             keyRand);
 
         const auto proofRand = PPZK_Proof<PAIRING>::randomness();
         const PPZK_Proof<PAIRING> proofB(m_constraintSystem.systemB(),
-                                         m_constraintSystem.numberInputs(),
+                                         m_constraintSystem.numCircuitInputs(),
                                          keypair.pk(),
                                          m_constraintSystem.witnessB(),
                                          proofRand);
@@ -388,7 +389,7 @@ public:
     }
 
 private:
-    const AutoTestR1CS<Fr, U> m_constraintSystem;
+    const AutoTestR1CS<SYS, Fr, U> m_constraintSystem;
 };
 
 } // namespace snarklib
