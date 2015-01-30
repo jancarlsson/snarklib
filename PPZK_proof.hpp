@@ -11,7 +11,7 @@
 #include "PPZK_randomness.hpp"
 #include "PPZK_witness.hpp"
 #include "ProgressCallback.hpp"
-#include "QAP.hpp"
+#include "QAP_witness.hpp"
 #include "Rank1DSL.hpp"
 
 namespace snarklib {
@@ -47,7 +47,8 @@ public:
           m_K(K)
     {}
 
-    PPZK_Proof(const R1System<Fr>& constraintSystem,
+    template <template <typename> class SYS>
+    PPZK_Proof(const SYS<Fr>& constraintSystem,
                const std::size_t numCircuitInputs,
                const PPZK_ProvingKey<PAIRING>& pk,
                const R1Witness<Fr>& witness,
@@ -65,19 +66,19 @@ public:
             &d2 = proofRand.d2(),
             &d3 = proofRand.d3();
 
-        const QAP_SystemPoint<Fr> qap(constraintSystem, numCircuitInputs);
+        const QAP_SystemPoint<SYS, Fr> qap(constraintSystem, numCircuitInputs);
 
         // ABCH
-        QAP_WitnessA<Fr> aA(qap, witness);
-        QAP_WitnessB<Fr> aB(qap, witness);
-        QAP_WitnessC<Fr> aC(qap, witness);
-        QAP_WitnessH<Fr> aH(qap, aA, aB, d1, d2, d3);
+        QAP_WitnessA<SYS, Fr> aA(qap, witness);
+        QAP_WitnessB<SYS, Fr> aB(qap, witness);
+        QAP_WitnessC<SYS, Fr> aC(qap, witness);
+        QAP_WitnessH<SYS, Fr> aH(qap, aA, aB, d1, d2, d3);
 
         aA.cosetFFT();
         aB.cosetFFT();
         aC.cosetFFT();
 
-        aH.addTemporary(QAP_WitnessH<Fr>(qap, aA, aB, aC));
+        aH.addTemporary(QAP_WitnessH<SYS, Fr>(qap, aA, aB, aC));
 
         const auto& A_query = pk.A_query();
         const auto& B_query = pk.B_query();
@@ -122,7 +123,8 @@ public:
         m_K = Kw.val();
     }
 
-    PPZK_Proof(const R1System<Fr>& constraintSystem,
+    template <template <typename> class SYS>
+    PPZK_Proof(const SYS<Fr>& constraintSystem,
                const std::size_t numCircuitInputs,
                const PPZK_ProvingKey<PAIRING>& pk,
                const R1Witness<Fr>& witness,
