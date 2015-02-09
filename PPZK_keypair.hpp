@@ -68,49 +68,56 @@ public:
         const QAP_SystemPoint<SYS, Fr> qap(constraintSystem, numCircuitInputs, point);
 
         // ABCH
-        QAP_QueryA<SYS, Fr> At(qap); // changed by QAP_QueryIC side-effect
-        const QAP_QueryB<SYS, Fr> Bt(qap);
-        const QAP_QueryC<SYS, Fr> Ct(qap);
+        QAP_QueryABC<SYS, Fr> ABCt(qap); // changed by QAP_QueryIC side-effect
         const QAP_QueryH<SYS, Fr> Ht(qap);
 
         // step 8 - G1 window table
         dummy->major(true);
-        const WindowExp<G1> g1_table(g1_exp_count(qap, At, Bt, Ct, Ht), callback);
+        const WindowExp<G1> g1_table(g1_exp_count(qap, ABCt, Ht), callback);
 
         // step 7 - G2 window table
         dummy->major(true);
-        const WindowExp<G2> g2_table(g2_exp_count(Bt), callback);
+        const WindowExp<G2> g2_table(g2_exp_count(ABCt), callback);
 
         // step 6 - K
         dummy->major(true);
-        const QAP_QueryK<SYS, Fr> Kt(qap, At, Bt, Ct, rA, rB, beta);
+        const QAP_QueryK<SYS, Fr> Kt(qap, ABCt, rA, rB, beta);
         const BlockVector<Fr> Ktb(BlockVector<Fr>::space(Kt.vec()), 0, Kt.vec());
         PPZK_QueryK<PAIRING> Kp(Ktb);
         Kp.accumTable(g1_table, callback);
 #ifdef USE_ADD_SPECIAL
-        batchSpecial(Kp.llvec());
+        Kp.batchSpecial();
 #endif
 
-        // side-effect: this modifies At query vector
-        const QAP_QueryIC<SYS, Fr> qapIC(qap, At, rA);
+        // side-effect: this modifies ABCt query vector A
+        const QAP_QueryIC<SYS, Fr> qapIC(qap, ABCt, rA);
 
         // step 5 - A
         dummy->major(true);
-        const BlockVector<Fr> Atb(BlockVector<Fr>::space(At.vec()), 0, At.vec());
+        const BlockVector<Fr> Atb(BlockVector<Fr>::space(ABCt.vecA()), 0, ABCt.vecA());
         PPZK_QueryA<PAIRING> Ap(Atb, rA, alphaA);
         Ap.accumTable(g1_table, g1_table, callback);
+#ifdef USE_ADD_SPECIAL
+        Ap.batchSpecial();
+#endif
 
         // step 4 - B
         dummy->major(true);
-        const BlockVector<Fr> Btb(BlockVector<Fr>::space(Bt.vec()), 0, Bt.vec());
+        const BlockVector<Fr> Btb(BlockVector<Fr>::space(ABCt.vecB()), 0, ABCt.vecB());
         PPZK_QueryB<PAIRING> Bp(Btb, rB, alphaB);
         Bp.accumTable(g2_table, g1_table, callback);
+#ifdef USE_ADD_SPECIAL
+        Bp.batchSpecial();
+#endif
 
         // step 3 - C
         dummy->major(true);
-        const BlockVector<Fr> Ctb(BlockVector<Fr>::space(Ct.vec()), 0, Ct.vec());
+        const BlockVector<Fr> Ctb(BlockVector<Fr>::space(ABCt.vecC()), 0, ABCt.vecC());
         PPZK_QueryC<PAIRING> Cp(Ctb, rC, alphaC);
         Cp.accumTable(g1_table, g1_table, callback);
+#ifdef USE_ADD_SPECIAL
+        Cp.batchSpecial();
+#endif
 
         // step 2 - H
         dummy->major(true);
