@@ -66,7 +66,7 @@ public:
             m_beta.marshal_in(is) &&
             m_gamma.marshal_in(is);
 
-        m_rC == m_rA * m_rB;
+        m_rC = m_rA * m_rB;
 
         return rc;
     }
