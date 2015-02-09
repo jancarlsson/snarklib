@@ -297,11 +297,14 @@ public:
                                               true,
                                               1);
 
-        const auto sparseVec_B = batchExp(winTable_TG_B,
-                                          winTable_TH_B,
-                                          m_coeffA_B,
-                                          m_coeffB_B,
-                                          m_vecB);
+        auto sparseVec_B = batchExp(winTable_TG_B,
+                                    winTable_TH_B,
+                                    m_coeffA_B,
+                                    m_coeffB_B,
+                                    m_vecB);
+#ifdef USE_ADD_SPECIAL
+        batchSpecial(sparseVec_B);
+#endif
 
         // compare sparse vector output
         if (checkPass(sparseVec_A.values.size() == sparseVec_B.size()) &&
@@ -432,7 +435,10 @@ public:
         const WindowExp<TG> tableG(m_exp_count);
         const WindowExp<TH> tableH(m_exp_count);
 
-        const auto result_A = batchExp(tableG, tableH, m_coeffA, m_coeffB, m_vec);
+        auto result_A = batchExp(tableG, tableH, m_coeffA, m_coeffB, m_vec);
+#ifdef USE_ADD_SPECIAL
+        batchSpecial(result_A);
+#endif
 
         const auto space = WindowExp<TG>::space(m_exp_count);
 
@@ -454,6 +460,10 @@ public:
                 // reducing subsequent blocks
                 batchExp(result_B, partG, partH, m_coeffA, m_coeffB, m_vec);
             }
+
+#ifdef USE_ADD_SPECIAL
+            batchSpecial(result_B);
+#endif
 
             checkPass(result_A == result_B);
         }
@@ -496,7 +506,10 @@ public:
         const WindowExp<TG> tableG(m_exp_count);
         const WindowExp<TH> tableH(m_exp_count);
 
-        const auto result_A = batchExp(tableG, tableH, m_coeffA, m_coeffB, m_vec);
+        auto result_A = batchExp(tableG, tableH, m_coeffA, m_coeffB, m_vec);
+#ifdef USE_ADD_SPECIAL
+        batchSpecial(result_A);
+#endif
 
         const auto winSpace = WindowExp<TG>::space(m_exp_count);
         const auto vecSpace = BlockVector<TF>::space(m_vec);
@@ -532,6 +545,9 @@ public:
                 }
 
                 auto& result_B = result[0];
+#ifdef USE_ADD_SPECIAL
+                batchSpecial(result_B);
+#endif
                 for (std::size_t i = 1; i < numVecBlks; ++i)
                     result_B.concat(result[i]);
 
