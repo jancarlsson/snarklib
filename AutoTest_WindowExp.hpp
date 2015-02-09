@@ -286,6 +286,49 @@ private:
     std::vector<F> m_vec;
 };
 
+////////////////////////////////////////////////////////////////////////////////
+// window exponentiation with index space block partition
+//
+
+template <typename G, typename F>
+class AutoTest_WindowExp_expPartition : public AutoTest
+{
+public:
+    AutoTest_WindowExp_expPartition(const std::size_t exp_count,
+                                    const std::size_t numWindowBlocks)
+        : AutoTest(exp_count, numWindowBlocks),
+          m_exp_count(exp_count),
+          m_numWindowBlocks(numWindowBlocks)
+    {}
+
+    void runTest() {
+        const auto space = WindowExp<G>::space(m_exp_count);
+        const WindowExp<G> gTable(space, 0);
+
+        auto spaceBlk = space;
+        spaceBlk.blockPartition(std::array<std::size_t, 1>{ m_numWindowBlocks });
+
+        auto x = F::zero();
+
+        for (std::size_t i = 0; i < 100; ++i) {
+            const auto a = gTable.exp(x);
+
+            G b = G::zero();
+            for (std::size_t j = 0; j < spaceBlk.blockID()[0]; ++j) {
+                const WindowExp<G> gTableBlk(spaceBlk, j);
+                b = b + gTableBlk.exp(x);
+            }
+
+            checkPass(a == b);
+
+            x = x + F::one();
+        }
+    }
+
+private:
+    const std::size_t m_exp_count, m_numWindowBlocks;
+};
+
 } // namespace snarklib
 
 #endif
