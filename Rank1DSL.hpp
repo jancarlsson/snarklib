@@ -218,6 +218,13 @@ private:
     std::set<std::size_t> m_unsetIdx;
 };
 
+// output stream
+template <typename T>
+std::ostream& operator<< (std::ostream& os, const R1Witness<T>& a) {
+    a.marshal_out(os);
+    return os;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Rank 1 Linear Term
 //
@@ -660,22 +667,6 @@ public:
 
     const R1Combination<T>& c() const {
         return m_c;
-    }
-
-    const R1Combination<T>& combo(const char c) const {
-        switch (c) {
-
-        case ('a') :
-        case ('A') :
-            return m_a;
-
-        case ('b') :
-        case ('B') :
-            return m_b;
-
-        default :
-            return m_c;
-        }
     }
 
     void swapAB() {
