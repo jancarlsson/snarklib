@@ -131,43 +131,39 @@ SparseVector<Pairing<GA, GB>> batchExp(const WindowExp<GA>& tableA,
 
     SparseVector<Pairing<GA, GB>> res(N, Pairing<GA, GB>::zero());
 
-    std::size_t i = 0, index = 0;
+    std::size_t index = 0, idx = 0;
 
     // full blocks
     for (std::size_t j = 0; j < M; ++j) {
         for (std::size_t k = 0; k < N / M; ++k) {
-            if (! vec[i].isZero()) {
+            if (! vec[index].isZero()) {
                 res.setIndexElement(
-                    index++,
-                    i,
-                    Pairing<GA, GB>(tableA.exp(coeffA * vec[i]),
-                                    tableB.exp(coeffB * vec[i])));
+                    idx++,
+                    index,
+                    Pairing<GA, GB>(tableA.exp(coeffA * vec[index]),
+                                    tableB.exp(coeffB * vec[index])));
             }
 
-            ++i;
+            ++index;
         }
 
         callback->minor();
     }
 
     // remaining steps smaller than one block
-    while (i < N) {
-        if (! vec[i].isZero()) {
+    while (index < N) {
+        if (! vec[index].isZero()) {
             res.setIndexElement(
-                index++,
-                i,
-                Pairing<GA, GB>(tableA.exp(coeffA * vec[i]),
-                                tableB.exp(coeffB * vec[i])));
+                idx++,
+                index,
+                Pairing<GA, GB>(tableA.exp(coeffA * vec[index]),
+                                tableB.exp(coeffB * vec[index])));
         }
 
-        ++i;
+        ++index;
     }
 
-    res.resize(index);
-
-#ifdef USE_ADD_SPECIAL
-    batchSpecial(res);
-#endif
+    res.resize(idx);
 
     return res;
 }
@@ -186,43 +182,39 @@ SparseVector<Pairing<GA, GB>> batchExp(const WindowExp<GA>& tableA,
 
     SparseVector<Pairing<GA, GB>> res(vec.size(), Pairing<GA, GB>::zero());
 
-    std::size_t i = vec.startIndex(), index = 0;
+    std::size_t index = vec.startIndex(), idx = 0;
 
     // full blocks
     for (std::size_t j = 0; j < M; ++j) {
         for (std::size_t k = 0; k < N / M; ++k) {
-            if (! vec[i].isZero()) {
+            if (! vec[index].isZero()) {
                 res.setIndexElement(
-                    index++,
-                    i,
-                    Pairing<GA, GB>(tableA.exp(coeffA * vec[i]),
-                                    tableB.exp(coeffB * vec[i])));
+                    idx++,
+                    index,
+                    Pairing<GA, GB>(tableA.exp(coeffA * vec[index]),
+                                    tableB.exp(coeffB * vec[index])));
             }
 
-            ++i;
+            ++index;
         }
 
         callback->minor();
     }
 
     // remaining steps smaller than one block
-    while (i < vec.stopIndex()) {
-        if (! vec[i].isZero()) {
+    while (index < vec.stopIndex()) {
+        if (! vec[index].isZero()) {
             res.setIndexElement(
-                index++,
-                i,
-                Pairing<GA, GB>(tableA.exp(coeffA * vec[i]),
-                                tableB.exp(coeffB * vec[i])));
+                idx++,
+                index,
+                Pairing<GA, GB>(tableA.exp(coeffA * vec[index]),
+                                tableB.exp(coeffB * vec[index])));
         }
 
-        ++i;
+        ++index;
     }
 
-    res.resize(index);
-
-#ifdef USE_ADD_SPECIAL
-    batchSpecial(res);
-#endif
+    res.resize(idx);
 
     return res;
 }
@@ -240,34 +232,36 @@ void batchExp(SparseVector<Pairing<GA, GB>>& res, // returned from batchExp()
     const std::size_t M = callback ? callback->minorSteps() : 0;
     const std::size_t N = res.size(); // iterate over sparse vector directly
 
-    std::size_t index = 0;
+    std::size_t idx = 0;
 
     // full blocks
     for (std::size_t j = 0; j < M; ++j) {
         for (std::size_t k = 0; k < N / M; ++k) {
-            const auto i = res.getIndex(index);
-            const auto elem = res.getElement(index);
+            const auto index = res.getIndex(idx);
+            const auto ga = res.getElement(idx).G();
+            const auto gb = res.getElement(idx).H();
 
             res.setIndexElement(
-                index++,
-                i,
-                elem + Pairing<GA, GB>(tableA.exp(coeffA * vec[i]),
-                                       tableB.exp(coeffB * vec[i])));
+                idx++,
+                index,
+                Pairing<GA, GB>(ga + tableA.exp(coeffA * vec[index]),
+                                gb + tableB.exp(coeffB * vec[index])));
         }
 
         callback->minor();
     }
 
     // remaining steps smaller than one block
-    while (index < N) {
-        const auto i = res.getIndex(index);
-        const auto elem = res.getElement(index);
+    while (idx < N) {
+        const auto index = res.getIndex(idx);
+        const auto ga = res.getElement(idx).G();
+        const auto gb = res.getElement(idx).H();
 
         res.setIndexElement(
-            index++,
-            i,
-            elem + Pairing<GA, GB>(tableA.exp(coeffA * vec[i]),
-                                   tableB.exp(coeffB * vec[i])));
+            idx++,
+            index,
+            Pairing<GA, GB>(ga + tableA.exp(coeffA * vec[index]),
+                            gb + tableB.exp(coeffB * vec[index])));
     }
 }
 
@@ -284,34 +278,36 @@ void batchExp(SparseVector<Pairing<GA, GB>>& res, // returned from batchExp()
     const std::size_t M = callback ? callback->minorSteps() : 0;
     const std::size_t N = res.size(); // iterate over sparse vector directly
 
-    std::size_t index = 0;
+    std::size_t idx = 0;
 
     // full blocks
     for (std::size_t j = 0; j < M; ++j) {
         for (std::size_t k = 0; k < N / M; ++k) {
-            const auto i = res.getIndex(index);
-            const auto elem = res.getElement(index);
+            const auto index = res.getIndex(idx);
+            const auto ga = res.getElement(idx).G();
+            const auto gb = res.getElement(idx).H();
 
             res.setIndexElement(
-                index++,
-                i,
-                elem + Pairing<GA, GB>(tableA.exp(coeffA * vec[i]),
-                                       tableB.exp(coeffB * vec[i])));
+                idx++,
+                index,
+                Pairing<GA, GB>(ga + tableA.exp(coeffA * vec[index]),
+                                gb + tableB.exp(coeffB * vec[index])));
         }
 
         callback->minor();
     }
 
     // remaining steps smaller than one block
-    while (index < N) {
-        const auto i = res.getIndex(index);
-        const auto elem = res.getElement(index);
+    while (idx < N) {
+        const auto index = res.getIndex(idx);
+        const auto ga = res.getElement(idx).G();
+        const auto gb = res.getElement(idx).H();
 
         res.setIndexElement(
-            index++,
-            i,
-            elem + Pairing<GA, GB>(tableA.exp(coeffA * vec[i]),
-                                   tableB.exp(coeffB * vec[i])));
+            idx++,
+            index,
+            Pairing<GA, GB>(ga + tableA.exp(coeffA * vec[index]),
+                            gb + tableB.exp(coeffB * vec[index])));
     }
 }
 
