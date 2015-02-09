@@ -22,30 +22,44 @@ template <typename GA, typename GB, typename FR, std::size_t Z_INDEX>
 class PPZK_WitnessABC
 {
 public:
+    typedef SparseVector<Pairing<GA, GB>> SparseVec;
+    typedef Pairing<GA, GB> Val;
+
+    PPZK_WitnessABC()
+        : m_witness(nullptr),
+          m_random_d(nullptr)
+    {}
+
+    PPZK_WitnessABC(const std::size_t qapNumVariables,
+                    const R1Witness<FR>& witness,
+                    const FR& random_d)
+        : m_numVariables(qapNumVariables),
+          m_witness(std::addressof(*witness)),
+          m_random_d(std::addressof(random_d))
+    {}
+
     PPZK_WitnessABC(const QAP<FR>& qap,
                     const R1Witness<FR>& witness,
                     const FR& random_d)
-        : m_numVariables(qap.numVariables()),
-          m_witness(*witness),
-          m_random_d(random_d)
+        : PPZK_WitnessABC{qap.numVariables(), witness, random_d}
     {}
 
     void accumQuery(const SparseVector<Pairing<GA, GB>>& query,
                     const std::size_t reserveTune,
                     ProgressCallback* callback) {
         m_val = m_val
-            + m_random_d * query.getElementForIndex(Z_INDEX)
+            + (*m_random_d) * query.getElementForIndex(Z_INDEX)
             + query.getElementForIndex(3);
 
         if (0 == reserveTune) {
             m_val = m_val + multiExp01(query,
-                                       m_witness,
+                                       *m_witness,
                                        4,
                                        4 + m_numVariables,
                                        callback);
         } else {
             m_val = m_val + multiExp01(query,
-                                       m_witness,
+                                       *m_witness,
                                        4,
                                        4 + m_numVariables,
                                        m_numVariables / reserveTune,
@@ -61,9 +75,9 @@ public:
     const Pairing<GA, GB>& val() const { return m_val; }
 
 private:
-    const std::size_t m_numVariables;
-    const std::vector<FR>& m_witness;
-    const FR& m_random_d;
+    std::size_t m_numVariables;
+    const std::vector<FR>* m_witness;
+    const FR* m_random_d;
     Pairing<GA, GB> m_val;
 };
 
@@ -120,14 +134,21 @@ class PPZK_WitnessK
     typedef typename PAIRING::G1 G1;
 
 public:
+    PPZK_WitnessK()
+        : m_witness(nullptr),
+          m_random_d1(nullptr),
+          m_random_d2(nullptr),
+          m_random_d3(nullptr)
+    {}
+
     PPZK_WitnessK(const R1Witness<Fr>& witness,
                   const Fr& random_d1,
                   const Fr& random_d2,
                   const Fr& random_d3)
-        : m_witness(*witness),
-          m_random_d1(random_d1),
-          m_random_d2(random_d2),
-          m_random_d3(random_d3)
+        : m_witness(std::addressof(*witness)),
+          m_random_d1(std::addressof(random_d1)),
+          m_random_d2(std::addressof(random_d2)),
+          m_random_d3(std::addressof(random_d3))
     {}
 
     void accumQuery(const BlockVector<G1>& query,
@@ -140,21 +161,21 @@ public:
 #endif
 
             m_val = m_val
-                + m_random_d1 * query[0]
-                + m_random_d2 * query[1]
-                + m_random_d3 * query[2]
+                + (*m_random_d1) * query[0]
+                + (*m_random_d2) * query[1]
+                + (*m_random_d3) * query[2]
                 + query[3];
 
             if (0 == reserveTune) {
                 m_val = m_val + multiExp01(
                     std::vector<G1>(query.vec().begin() + 4, query.vec().end()),
-                    m_witness,
+                    *m_witness,
                     callback);
 
             } else {
                 m_val = m_val + multiExp01(
                     std::vector<G1>(query.vec().begin() + 4, query.vec().end()),
-                    m_witness,
+                    *m_witness,
                     (query.vec().size() - 4) / reserveTune,
                     callback);
             }
@@ -162,11 +183,11 @@ public:
         } else {
             if (0 == reserveTune) {
                 m_val = m_val + multiExp01(query.vec(),
-                                           m_witness,
+                                           *m_witness,
                                            callback);
             } else {
                 m_val = m_val + multiExp01(query.vec(),
-                                           m_witness,
+                                           *m_witness,
                                            query.vec().size() / reserveTune,
                                            callback);
             }
@@ -176,10 +197,10 @@ public:
     const G1& val() const { return m_val; }
 
 private:
-    const std::vector<Fr>& m_witness;
-    const Fr& m_random_d1;
-    const Fr& m_random_d2;
-    const Fr& m_random_d3;
+    const std::vector<Fr>* m_witness;
+    const Fr* m_random_d1;
+    const Fr* m_random_d2;
+    const Fr* m_random_d3;
     G1 m_val;
 };
 
