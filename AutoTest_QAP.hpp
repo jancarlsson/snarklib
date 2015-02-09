@@ -63,19 +63,17 @@ public:
 private:
     template <typename A>
     bool resultsMatch(const A& qapA, const QAP_SystemPoint<SYS, T>& qapB) {
-        const QAP_QueryA<SYS, T> At(qapB);
-        const QAP_QueryB<SYS, T> Bt(qapB);
-        const QAP_QueryC<SYS, T> Ct(qapB);
+        const QAP_QueryABC<SYS, T> ABCt(qapB);
         const QAP_QueryH<SYS, T> Ht(qapB);
 
         return
-            sameData(qapA.At, At.vec()) &&
-            sameData(qapA.Bt, Bt.vec()) &&
-            sameData(qapA.Ct, Ct.vec()) &&
+            sameData(qapA.At, ABCt.vecA()) &&
+            sameData(qapA.Bt, ABCt.vecB()) &&
+            sameData(qapA.Ct, ABCt.vecC()) &&
             sameData(qapA.Ht, Ht.vec()) &&
-            (qapA.non_zero_At == At.nonzeroCount()) &&
-            (qapA.non_zero_Bt == Bt.nonzeroCount()) &&
-            (qapA.non_zero_Ct == Ct.nonzeroCount()) &&
+            (qapA.non_zero_At == ABCt.nonzeroA()) &&
+            (qapA.non_zero_Bt == ABCt.nonzeroB()) &&
+            (qapA.non_zero_Ct == ABCt.nonzeroC()) &&
             (qapA.non_zero_Ht == Ht.nonzeroCount());
     }
 
@@ -145,18 +143,13 @@ public:
 
 private:
     std::vector<T> witnessH(const QAP_SystemPoint<SYS, T>& qap) const {
-        QAP_WitnessA<SYS, T> aA(qap, m_constraintSystem.witnessB());
-        QAP_WitnessB<SYS, T> aB(qap, m_constraintSystem.witnessB());
-        QAP_WitnessC<SYS, T> aC(qap, m_constraintSystem.witnessB());
-        QAP_WitnessH<SYS, T> aH(qap, aA, aB, m_d1B, m_d2B, m_d3B);
+        const QAP_WitnessABCH<SYS, T> ABCH(qap,
+                                           m_constraintSystem.witnessB(),
+                                           m_d1B,
+                                           m_d2B,
+                                           m_d3B);
 
-        aA.cosetFFT();
-        aB.cosetFFT();
-        aC.cosetFFT();
-
-        aH.addTemporary(QAP_WitnessH<SYS, T>(qap, aA, aB, aC));
-
-        return aH.vec();
+        return ABCH.vec();
     }
 
     AutoTestR1CS<SYS, T, U> m_constraintSystem;
