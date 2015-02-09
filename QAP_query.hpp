@@ -16,49 +16,165 @@ namespace snarklib {
 // query vectors A, B, C
 //
 
-template <template <typename> class SYS, typename T, char R1C, std::size_t Z_INDEX>
+template <template <typename> class SYS, typename T>
 class QAP_QueryABC
 {
 public:
-    QAP_QueryABC(const QAP_SystemPoint<SYS, T>& qap)
-        : m_nonzeroCount(0),
-          m_vec(3 + qap.numVariables() + 1, T::zero()),
+    enum VecSelect { A = 0x001, B = 0x010, C = 0x100 };
+
+    // all vectors A, B, C
+    QAP_QueryABC(const QAP_SystemPoint<SYS, T>& qap,
+                 const unsigned int mask = A | B | C)
+        : m_A(mask & A),
+          m_B(mask & B),
+          m_C(mask & C),
+          m_nonzeroA(0),
+          m_nonzeroB(0),
+          m_nonzeroC(0),
+          m_vecA(m_A ? 3 + qap.numVariables() + 1 : 0, T::zero()),
+          m_vecB(m_B ? 3 + qap.numVariables() + 1 : 0, T::zero()),
+          m_vecC(m_C ? 3 + qap.numVariables() + 1 : 0, T::zero()),
           m_uit(qap.lagrange_coeffs().begin()),
           m_error(false)
     {
-        m_vec[Z_INDEX] = qap.compute_Z();
+        if (m_A) m_vecA[0] = qap.compute_Z();
+        if (m_B) m_vecB[1] = qap.compute_Z();
+        if (m_C) m_vecC[2] = qap.compute_Z();
 
-        // input consistency
-        switch (R1C) {
-        case ('a') :
-        case ('A') : 
+        // input consistency (for A only)
+        if (m_A) {
             for (std::size_t i = 0; i <= qap.numCircuitInputs(); ++i)
-                m_vec[3 + i] = (*m_uit) * T(i + 1);
+                m_vecA[3 + i] = (*m_uit) * T(i + 1);
         }
 
         constraintLoop(qap.constraintSystem());
 
-        for (const auto& v : m_vec)
-            if (! v.isZero()) ++m_nonzeroCount;
+        if (m_A) {
+            m_nonzeroA = std::count_if(m_vecA.begin(),
+                                       m_vecA.end(),
+                                       [] (const T& v) -> bool {
+                                           return ! v.isZero();
+                                       });
+        }
+
+        if (m_B) {
+            m_nonzeroB = std::count_if(m_vecB.begin(),
+                                       m_vecB.end(),
+                                       [] (const T& v) -> bool {
+                                           return ! v.isZero();
+                                       });
+        }
+
+        if (m_C) {
+            m_nonzeroC = std::count_if(m_vecC.begin(),
+                                       m_vecC.end(),
+                                       [] (const T& v) -> bool {
+                                           return ! v.isZero();
+                                       });
+        }
     }
 
-    std::size_t nonzeroCount() const { return m_nonzeroCount; }
-    const std::vector<T>& vec() const { return m_vec; }
+    std::size_t nonzeroA() const { return m_nonzeroA; }
+    std::size_t nonzeroB() const { return m_nonzeroB; }
+    std::size_t nonzeroC() const { return m_nonzeroC; }
+
+    std::size_t nonzeroCount() const {
+        std::size_t count = 0;
+
+        if (m_A) return count += nonzeroA();
+        if (m_B) return count += nonzeroB();
+        if (m_C) return count += nonzeroC();
+
+        return count;
+    }
+
+    const std::vector<T>& vecA() const { return m_vecA; }
+    const std::vector<T>& vecB() const { return m_vecB; }
+    const std::vector<T>& vecC() const { return m_vecC; }
+
+    const std::vector<T>& vec() const {
+        if (m_A)
+            return vecA();
+        else if (m_B)
+            return vecB();
+        else
+            return vecC();
+    }
 
     bool operator! () const { return m_error; }
 
     // only used by QAP_QueryIC<T>
-    void zeroElement(const std::size_t index) {
-        m_vec[index] = T::zero();
+    void zeroElementA(const std::size_t index) {
+        m_vecA[index] = T::zero();
     }
 
 private:
-    void constraintLoop(const R1System<T>& S) {
-        for (const auto& constraint : S.constraints()) {
-            ++m_uit;
+    void constraintLoop(const R1System<T>& S)
+    {
+        if (m_A && !m_B && !m_C) {
+            // only A
+            for (const auto& c : S.constraints()) {
+                ++m_uit;
+                const auto& u = *m_uit;
+                for (const auto& t : c.a().terms())
+                    m_vecA[3 + t.index()] += u * t.coeff();
+            }
 
-            for (const auto& term : constraint.combo(R1C).terms())
-                m_vec[3 + term.index()] += (*m_uit) * term.coeff();
+        } else if (m_B && !m_A && !m_C) {
+            // only B
+            for (const auto& c : S.constraints()) {
+                ++m_uit;
+                const auto& u = *m_uit;
+                for (const auto& t : c.b().terms())
+                    m_vecB[3 + t.index()] += u * t.coeff();
+            }
+
+        } else if (m_C && !m_A && !m_C) {
+            // only C
+            for (const auto& c : S.constraints()) {
+                ++m_uit;
+                const auto& u = *m_uit;
+                for (const auto& t : c.c().terms())
+                    m_vecC[3 + t.index()] += u * t.coeff();
+            }
+
+        } else if (m_A && m_B && m_C) {
+            // all query vectors
+            for (const auto& c : S.constraints()) {
+                ++m_uit;
+                const auto& u = *m_uit;
+
+                for (const auto& t : c.a().terms())
+                    m_vecA[3 + t.index()] += u * t.coeff();
+
+                for (const auto& t : c.b().terms())
+                    m_vecB[3 + t.index()] += u * t.coeff();
+
+                for (const auto& t : c.c().terms())
+                    m_vecC[3 + t.index()] += u * t.coeff();
+            }
+
+        } else {
+            // subset of query vectors
+            for (const auto& c : S.constraints()) {
+                ++m_uit;
+                const auto& u = *m_uit;
+
+                if (m_A) {
+                    for (const auto& t : c.a().terms())
+                        m_vecA[3 + t.index()] += u * t.coeff();
+                }
+
+                if (m_B) {
+                    for (const auto& t : c.b().terms())
+                        m_vecB[3 + t.index()] += u * t.coeff();
+                }
+
+                if (m_C) {
+                    for (const auto& t : c.c().terms())
+                        m_vecC[3 + t.index()] += u * t.coeff();
+                }
+            }
         }
     }
 
@@ -70,20 +186,39 @@ private:
             });
     }
 
-    std::size_t m_nonzeroCount;
-    std::vector<T> m_vec;
+    const bool m_A, m_B, m_C;
+    std::size_t m_nonzeroA, m_nonzeroB, m_nonzeroC;
+    std::vector<T> m_vecA, m_vecB, m_vecC;
     typename std::vector<T>::const_iterator m_uit;
     bool m_error;
 };
 
-template <template <typename> class SYS, typename T> using
-QAP_QueryA = QAP_QueryABC<SYS, T, 'A', 0>;
+template <template <typename> class SYS, typename T>
+class QAP_QueryA : public QAP_QueryABC<SYS, T>
+{
+public:
+    QAP_QueryA(const QAP_SystemPoint<SYS, T>& qap)
+        : QAP_QueryABC<SYS, T>{qap, QAP_QueryABC<SYS, T>::VecSelect::A}
+    {}
+};
 
-template <template <typename> class SYS, typename T> using
-QAP_QueryB = QAP_QueryABC<SYS, T, 'B', 1>;
+template <template <typename> class SYS, typename T>
+class QAP_QueryB : public QAP_QueryABC<SYS, T>
+{
+public:
+    QAP_QueryB(const QAP_SystemPoint<SYS, T>& qap)
+        : QAP_QueryABC<SYS, T>{qap, QAP_QueryABC<SYS, T>::VecSelect::B}
+    {}
+};
 
-template <template <typename> class SYS, typename T> using
-QAP_QueryC = QAP_QueryABC<SYS, T, 'C', 2>;
+template <template <typename> class SYS, typename T>
+class QAP_QueryC : public QAP_QueryABC<SYS, T>
+{
+public:
+    QAP_QueryC(const QAP_SystemPoint<SYS, T>& qap)
+        : QAP_QueryABC<SYS, T>{qap, QAP_QueryABC<SYS, T>::VecSelect::C}
+    {}
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 // query vector H
@@ -101,9 +236,7 @@ public:
 
         for (auto& r : m_vec) {
             r = ti;
-
             if (! r.isZero()) ++m_nonzeroCount;
-
             ti *= qap.point();
         }
     }
@@ -136,15 +269,13 @@ T g1_exp_count(const T qap_numVariables,
 
 template <template <typename> class SYS, typename T>
 std::size_t g1_exp_count(const QAP_SystemPoint<SYS, T>& qap,
-                         const QAP_QueryA<SYS, T>& At,
-                         const QAP_QueryB<SYS, T>& Bt,
-                         const QAP_QueryC<SYS, T>& Ct,
+                         const QAP_QueryABC<SYS, T>& ABCt,
                          const QAP_QueryH<SYS, T>& Ht) {
     return g1_exp_count(qap.numVariables(),
                         qap.numCircuitInputs(),
-                        At.nonzeroCount(),
-                        Bt.nonzeroCount(),
-                        Ct.nonzeroCount(),
+                        ABCt.nonzeroA(),
+                        ABCt.nonzeroB(),
+                        ABCt.nonzeroC(),
                         Ht.nonzeroCount());
 }
 
@@ -154,8 +285,8 @@ T g2_exp_count(const T Bt_nonzeroCount) {
 }
 
 template <template <typename> class SYS, typename T>
-std::size_t g2_exp_count(const QAP_QueryB<SYS, T>& Bt) {
-    return g2_exp_count(Bt.nonzeroCount());
+std::size_t g2_exp_count(const QAP_QueryABC<SYS, T>& ABCt) {
+    return g2_exp_count(ABCt.nonzeroB());
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -167,18 +298,18 @@ class QAP_QueryIC
 {
 public:
     QAP_QueryIC(const QAP<T>& qap,
-                QAP_QueryA<SYS, T>& At,
+                QAP_QueryABC<SYS, T>& ABCt,
                 const T& random_A)
         : m_vec(qap.numCircuitInputs() + 1, T::zero()),
           m_random_A(random_A)
     {
         // circuit inputs from At query vector
         for (std::size_t i = 0; i < m_vec.size(); ++i) {
-            m_vec[i] = At.vec()[3 + i] * random_A;
+            m_vec[i] = ABCt.vecA()[3 + i] * random_A;
 #ifdef USE_ASSERT
             assert(! m_vec[i].isZero());
 #endif
-            At.zeroElement(3 + i);
+            ABCt.zeroElementA(3 + i);
         }
     }
 
@@ -225,9 +356,7 @@ class QAP_QueryK
 {
 public:
     QAP_QueryK(const QAP<T>& qap,
-               const QAP_QueryA<SYS, T>& At,
-               const QAP_QueryB<SYS, T>& Bt,
-               const QAP_QueryC<SYS, T>& Ct,
+               const QAP_QueryABC<SYS, T>& ABCt,
                const T& random_A,
                const T& random_B,
                const T& random_beta)
@@ -238,9 +367,10 @@ public:
           m_random_beta(random_beta)
     {
         for (std::size_t i = 0; i < m_vec.size(); ++i) {
-            m_vec[i] = random_beta * (random_A * At.vec()[i]
-                                      + random_B * Bt.vec()[i]
-                                      + m_random_C * Ct.vec()[i]);
+            m_vec[i] = random_beta *
+                (random_A * ABCt.vecA()[i] +
+                 random_B * ABCt.vecB()[i] +
+                 m_random_C * ABCt.vecC()[i]);
         }
     }
 
@@ -268,9 +398,10 @@ public:
 #endif
 
         for (std::size_t i = At.startIndex(); i < At.stopIndex(); ++i) {
-            m_vec[i] = m_random_beta * (m_random_A * At[i]
-                                        + m_random_B * Bt[i]
-                                        + m_random_C * Ct[i]);
+            m_vec[i] = m_random_beta *
+                (m_random_A * At[i] +
+                 m_random_B * Bt[i] +
+                 m_random_C * Ct[i]);
         }
     }
 
