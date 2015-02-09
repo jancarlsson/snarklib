@@ -167,6 +167,10 @@ public:
         }
     }
 
+    void batchSpecial() {
+        snarklib::batchSpecial(m_vec);
+    }
+
     const SparseVector<Pairing<GA, GB>>& vec() const { return m_vec; }
 
 private:
@@ -208,8 +212,14 @@ public:
                           callback);
     }
 
+    void batchSpecial() {
+        snarklib::batchSpecial(m_vec.lvec());
+    }
+
     const BlockVector<G1>& vec() const { return m_vec; }
     const std::vector<G1>& vvec() const { return m_vec.vec(); }
+
+    // FIXME - remove after snarkfront update (only needed for batchSpecial)
     BlockVector<G1>& lvec() { return m_vec; }
     std::vector<G1>& llvec() { return m_vec.lvec(); }
 
