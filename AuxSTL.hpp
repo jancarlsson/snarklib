@@ -308,7 +308,7 @@ public:
 
         // value
         for (const auto& a : m_value)
-            os << a << std::endl;
+            a.marshal_out(os);
     }
 
     bool marshal_in(std::istream& is) {
@@ -326,7 +326,7 @@ public:
         const std::size_t len = m_stopIndex - m_startIndex;
         m_value.resize(len);
         for (std::size_t i = 0; i < len; ++i) {
-            if (!(is >> m_value[i])) return false;
+            if (! m_value[i].marshal_in(is)) return false;
         }
 
         return true; // ok
