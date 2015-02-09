@@ -235,6 +235,10 @@ void add_WindowExp(AutoTestBattery& ATB)
         ATB.addTest(new AutoTest_WindowExp_batchExpMapReduce2<T, F>(
                         1 + rd() % 100,
                         1 + rd() % 10));
+        ATB.addTest(new AutoTest_WindowExp_expPartition<T, F>(100, 2));
+        ATB.addTest(new AutoTest_WindowExp_expPartition<T, F>(100, 3));
+        ATB.addTest(new AutoTest_WindowExp_expPartition<T, F>(100, 4));
+        ATB.addTest(new AutoTest_WindowExp_expPartition<T, F>(100, 5));
     }
 }
 
