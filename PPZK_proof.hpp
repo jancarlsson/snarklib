@@ -34,7 +34,7 @@ public:
 
     PPZK_Proof() = default;
 
-    // only used for marshalling and libsnark proof tests
+    // used for libsnark proof tests and marshalling
     PPZK_Proof(const Pairing<G1, G1>& A,
                const Pairing<G2, G1>& B,
                const Pairing<G1, G1>& C,
@@ -69,16 +69,7 @@ public:
         const QAP_SystemPoint<SYS, Fr> qap(constraintSystem, numCircuitInputs);
 
         // ABCH
-        QAP_WitnessA<SYS, Fr> aA(qap, witness);
-        QAP_WitnessB<SYS, Fr> aB(qap, witness);
-        QAP_WitnessC<SYS, Fr> aC(qap, witness);
-        QAP_WitnessH<SYS, Fr> aH(qap, aA, aB, d1, d2, d3);
-
-        aA.cosetFFT();
-        aB.cosetFFT();
-        aC.cosetFFT();
-
-        aH.addTemporary(QAP_WitnessH<SYS, Fr>(qap, aA, aB, aC));
+        const QAP_WitnessABCH<SYS, Fr> ABCH(qap, witness, d1, d2, d3);
 
         const auto& A_query = pk.A_query();
         const auto& B_query = pk.B_query();
@@ -109,7 +100,7 @@ public:
         PPZK_WitnessH<PAIRING> Hw;
         Hw.accumQuery(
             BlockVector<G1>(BlockVector<G1>::space(H_query), 0, H_query),
-            BlockVector<Fr>(BlockVector<Fr>::space(aH.vec()), 0, aH.vec()),
+            BlockVector<Fr>(BlockVector<Fr>::space(ABCH.vec()), 0, ABCH.vec()),
             callback);
         m_H = Hw.val();
 
