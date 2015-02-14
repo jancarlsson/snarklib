@@ -238,8 +238,8 @@ void batchExp(SparseVector<Pairing<GA, GB>>& res, // returned from batchExp()
     for (std::size_t j = 0; j < M; ++j) {
         for (std::size_t k = 0; k < N / M; ++k) {
             const auto index = res.getIndex(idx);
-            const auto ga = res.getElement(idx).G();
-            const auto gb = res.getElement(idx).H();
+            const auto& ga = res.getElement(idx).G();
+            const auto& gb = res.getElement(idx).H();
 
             res.setIndexElement(
                 idx++,
@@ -254,8 +254,8 @@ void batchExp(SparseVector<Pairing<GA, GB>>& res, // returned from batchExp()
     // remaining steps smaller than one block
     while (idx < N) {
         const auto index = res.getIndex(idx);
-        const auto ga = res.getElement(idx).G();
-        const auto gb = res.getElement(idx).H();
+        const auto& ga = res.getElement(idx).G();
+        const auto& gb = res.getElement(idx).H();
 
         res.setIndexElement(
             idx++,
@@ -284,8 +284,8 @@ void batchExp(SparseVector<Pairing<GA, GB>>& res, // returned from batchExp()
     for (std::size_t j = 0; j < M; ++j) {
         for (std::size_t k = 0; k < N / M; ++k) {
             const auto index = res.getIndex(idx);
-            const auto ga = res.getElement(idx).G();
-            const auto gb = res.getElement(idx).H();
+            const auto& ga = res.getElement(idx).G();
+            const auto& gb = res.getElement(idx).H();
 
             res.setIndexElement(
                 idx++,
@@ -300,8 +300,8 @@ void batchExp(SparseVector<Pairing<GA, GB>>& res, // returned from batchExp()
     // remaining steps smaller than one block
     while (idx < N) {
         const auto index = res.getIndex(idx);
-        const auto ga = res.getElement(idx).G();
-        const auto gb = res.getElement(idx).H();
+        const auto& ga = res.getElement(idx).G();
+        const auto& gb = res.getElement(idx).H();
 
         res.setIndexElement(
             idx++,
@@ -339,7 +339,7 @@ Pairing<GA, GB> multiExp01(const SparseVector<Pairing<GA, GB>>& base,
             break;
 
         } else if (idx >= minIndex) {
-            const auto a = scalar[idx - minIndex];
+            const auto& a = scalar[idx - minIndex];
 
             if (ZERO == a) {
                 continue;
