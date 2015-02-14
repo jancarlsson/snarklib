@@ -48,6 +48,14 @@ public:
     const IndexSpace<1>& space() const { return m_space; }
     const std::array<std::size_t, 1>& block() const { return m_block; }
 
+    // null window
+    WindowExp()
+        : m_space(),
+          m_windowBits(0),
+          m_block{0},
+          m_powers_of_g()
+    {}
+
     // map-reduce version
     WindowExp(const IndexSpace<1>& space,
               const std::array<std::size_t, 1>& block)
