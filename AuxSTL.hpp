@@ -339,6 +339,14 @@ private:
     std::vector<T> m_value;
 };
 
+// std::vector iteration indices
+template <typename T> std::size_t vector_start(const std::vector<T>& a) { return 0; }
+template <typename T> std::size_t vector_stop(const std::vector<T>& a) { return a.size(); }
+
+// BlockVector iteration indices
+template <typename T> std::size_t vector_start(const BlockVector<T>& a) { return a.startIndex(); }
+template <typename T> std::size_t vector_stop(const BlockVector<T>& a) { return a.stopIndex(); }
+
 } // namespace snarklib
 
 #endif
