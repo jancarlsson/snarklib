@@ -131,11 +131,11 @@ T multiExp(const std::vector<T>& base,
         auto a = scalarPQ.top();
         scalarPQ.pop();
 
+        const auto& b = scalarPQ.top();
+
         bool reweight = false;
 
         if (! scalarPQ.empty()) {
-            const auto& b = scalarPQ.top();
-
             const std::size_t
                 abits = a.key.numBits(),
                 bbits = b.key.numBits();
@@ -143,9 +143,9 @@ T multiExp(const std::vector<T>& base,
             reweight = (bbits >= (1u << std::min(20ul, abits - bbits)));
         }
 
+        // reweighting is both optimization and avoids overflow, the
+        // reduction is likely to fail without it
         if (reweight) {
-            auto& b = scalarPQ.top();
-
             // xA + yB = xA - yA + yB + yA = (x - y)A + y(B + A)
             mpn_sub_n(a.key.data(), a.key.data(), b.key.data(), N);
             baseVec[b.value] = baseVec[b.value] + baseVec[a.value];
@@ -174,8 +174,10 @@ T multiExp(const std::vector<T>& base,
 }
 
 // sum of multi-exponentiation when scalar vector has many zeros and ones
-template <typename T, typename F>
-T multiExp01(const std::vector<T>& base,
+template <template <typename> class VEC, typename T, typename F>
+T multiExp01(const VEC<T>& base,
+             const std::size_t startOffset,
+             const std::size_t indexShift,
              const std::vector<F>& scalar,
              const std::size_t reserveCount, // for performance tuning
              ProgressCallback* callback)
@@ -193,8 +195,8 @@ T multiExp01(const std::vector<T>& base,
 
     auto accum = T::zero();
 
-    for (std::size_t i = 0; i < base.size(); ++i) {
-        const auto a = scalar[i];
+    for (std::size_t i = vector_start(base) + startOffset; i < vector_stop(base); ++i) {
+        const auto& a = scalar[i - indexShift];
 
         if (ZERO == a) {
             continue;
@@ -213,15 +215,6 @@ T multiExp01(const std::vector<T>& base,
     }
 
     return accum + multiExp(base2, scalar2, callback);
-}
-
-// sum of multi-exponentiation when scalar vector has many zeros and ones
-template <typename T, typename F>
-T multiExp01(const std::vector<T>& base,
-             const std::vector<F>& scalar,
-             ProgressCallback* callback = nullptr)
-{
-    return multiExp01(base, scalar, 0, callback);
 }
 
 } // namespace snarklib
