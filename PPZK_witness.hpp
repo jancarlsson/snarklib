@@ -49,22 +49,13 @@ public:
                     ProgressCallback* callback) {
         m_val = m_val
             + (*m_random_d) * query.getElementForIndex(Z_INDEX)
-            + query.getElementForIndex(3);
-
-        if (0 == reserveTune) {
-            m_val = m_val + multiExp01(query,
-                                       *m_witness,
-                                       4,
-                                       4 + m_numVariables,
-                                       callback);
-        } else {
-            m_val = m_val + multiExp01(query,
-                                       *m_witness,
-                                       4,
-                                       4 + m_numVariables,
-                                       m_numVariables / reserveTune,
-                                       callback);
-        }
+            + query.getElementForIndex(3)
+            + multiExp01(query,
+                         *m_witness,
+                         4,
+                         4 + m_numVariables,
+                         0 == reserveTune ? reserveTune : m_numVariables / reserveTune,
+                         callback);
     }
 
     void accumQuery(const SparseVector<Pairing<GA, GB>>& query,
@@ -155,6 +146,8 @@ public:
                     const std::size_t reserveTune,
                     ProgressCallback* callback = nullptr)
     {
+        std::size_t startOffset = 0;
+
         if (0 == query.block()[0]) {
 #ifdef USE_ASSERT
             assert(query.size() >= 4);
@@ -166,32 +159,16 @@ public:
                 + (*m_random_d3) * query[2]
                 + query[3];
 
-            if (0 == reserveTune) {
-                m_val = m_val + multiExp01(
-                    std::vector<G1>(query.vec().begin() + 4, query.vec().end()),
-                    *m_witness,
-                    callback);
-
-            } else {
-                m_val = m_val + multiExp01(
-                    std::vector<G1>(query.vec().begin() + 4, query.vec().end()),
-                    *m_witness,
-                    (query.vec().size() - 4) / reserveTune,
-                    callback);
-            }
-
-        } else {
-            if (0 == reserveTune) {
-                m_val = m_val + multiExp01(query.vec(),
-                                           *m_witness,
-                                           callback);
-            } else {
-                m_val = m_val + multiExp01(query.vec(),
-                                           *m_witness,
-                                           query.vec().size() / reserveTune,
-                                           callback);
-            }
+            startOffset = 4;
         }
+
+        m_val = m_val + multiExp01(
+            query,
+            startOffset,
+            4,
+            *m_witness,
+            0 == reserveTune ? reserveTune : (query.size() - startOffset) / reserveTune,
+            callback);
     }
 
     const G1& val() const { return m_val; }
