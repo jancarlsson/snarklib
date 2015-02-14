@@ -2,6 +2,7 @@
 #define _SNARKLIB_INDEX_SPACE_HPP_
 
 #include <array>
+#include <cassert>
 #include <cstdint>
 #include <functional>
 #include <iostream>
@@ -18,13 +19,14 @@ template <std::size_t N>
 class IndexSpace
 {
 public:
-    // for marshalling support
+    // for marshalling support and null index spaces
     IndexSpace()
         : m_globalID{0},
           m_blockID{0},
           m_blockSize{0}
     {}
 
+    // general N dimensional case
     IndexSpace(const std::array<std::size_t, N>& globalID)
         : m_globalID(globalID),
           m_blockID{0},
@@ -36,6 +38,7 @@ public:
         blockPartition(a);
     }
 
+    // one dimensional case is most common
     IndexSpace(const std::size_t x)
         : IndexSpace{std::array<std::size_t, 1>{x}}
     {}
@@ -62,6 +65,13 @@ public:
     }
 
     void blockPartition(const std::array<std::size_t, N>& blockID) {
+#ifdef USE_ASSERT
+        for (std::size_t i = 0; i < N; ++i) {
+            assert(0 != blockID[i]);
+            assert(blockID[i] <= m_globalID[i]);
+        }
+#endif
+
         m_blockID = blockID;
 
         for (std::size_t i = 0; i < N; ++i)
@@ -162,11 +172,16 @@ public:
 
 private:
     bool evenPartition(const std::size_t i) const {
-        return 0 == m_globalID[i] % m_blockID[i];
+        return
+            0 == m_blockID[i] ||               // null index space
+            0 == m_globalID[i] % m_blockID[i];
     }
 
     void calculateSize(const std::size_t i) {
-        if (evenPartition(i)) {
+        if (0 == m_blockID[i]) {
+            // null index space
+            m_blockSize[0] = 0;
+        } else if (evenPartition(i)) {
             // global IDs evenly partition into blocks
             m_blockSize[i] = m_globalID[i] / m_blockID[i];
         } else {
