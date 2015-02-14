@@ -246,12 +246,12 @@ public:
     GROUP addOp(const T& aX, const T& aY, const T& aZ,
                 const T& bX, const T& bY, const T& bZ,
                 const GROUP& dummy) {
-        if (isZero(aX, aY, aZ)) {
-            return GROUP(bX, bY, bZ);
-        }
-
         if (isZero(bX, bY, bZ)) {
             return GROUP(aX, aY, aZ);
+        }
+
+        if (isZero(aX, aY, aZ)) {
+            return GROUP(bX, bY, bZ);
         }
 
         const auto A = aZ * bZ;
