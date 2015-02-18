@@ -94,6 +94,15 @@ class PPZK_WitnessH
 public:
     PPZK_WitnessH() = default;
 
+    void accumQuery(const std::vector<G1>& query,
+                    const std::vector<Fr>& scalar,
+                    ProgressCallback* callback = nullptr)
+    {
+        m_val = m_val + multiExp(query,
+                                 scalar,
+                                 callback);
+    }
+
     void accumQuery(const BlockVector<G1>& query,
                     const BlockVector<Fr>& scalar,
                     ProgressCallback* callback = nullptr)
@@ -103,9 +112,9 @@ public:
                query.block() == scalar.block());
 #endif
 
-        m_val = m_val + multiExp(query.vec(),
-                                 scalar.vec(),
-                                 callback);
+        accumQuery(query.vec(),
+                   scalar.vec(),
+                   callback);
     }
 
     const G1& val() const { return m_val; }
@@ -141,6 +150,30 @@ public:
           m_random_d2(std::addressof(random_d2)),
           m_random_d3(std::addressof(random_d3))
     {}
+
+    void accumQuery(const std::vector<G1>& query,
+                    const std::size_t reserveTune,
+                    ProgressCallback* callback = nullptr)
+    {
+        const std::size_t startOffset = 4;
+
+#ifdef USE_ASSERT
+        assert(query.size() >= 4);
+#endif
+
+        m_val = m_val
+            + (*m_random_d1) * query[0]
+            + (*m_random_d2) * query[1]
+            + (*m_random_d3) * query[2]
+            + query[3]
+            + multiExp01(
+                query,
+                startOffset,
+                4,
+                *m_witness,
+                0 == reserveTune ? reserveTune : (query.size() - startOffset) / reserveTune,
+                callback);
+    }
 
     void accumQuery(const BlockVector<G1>& query,
                     const std::size_t reserveTune,
