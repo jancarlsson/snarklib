@@ -3,6 +3,7 @@
 
 #include <istream>
 #include <ostream>
+#include <utility>
 #include <vector>
 #include "AuxSTL.hpp"
 #include "Group.hpp"
@@ -24,6 +25,7 @@ class PPZK_ProvingKey
 public:
     PPZK_ProvingKey() = default;
 
+    // copy semantics
     PPZK_ProvingKey(const SparseVector<Pairing<G1, G1>>& A_query,
                     const SparseVector<Pairing<G2, G1>>& B_query,
                     const SparseVector<Pairing<G1, G1>>& C_query,
@@ -34,6 +36,19 @@ public:
           m_C_query(C_query),
           m_H_query(H_query),
           m_K_query(K_query)
+    {}
+
+    // move semantics
+    PPZK_ProvingKey(SparseVector<Pairing<G1, G1>>&& A_query,
+                    SparseVector<Pairing<G2, G1>>&& B_query,
+                    SparseVector<Pairing<G1, G1>>&& C_query,
+                    std::vector<G1>&& H_query,
+                    std::vector<G1>&& K_query)
+        : m_A_query(std::move(A_query)),
+          m_B_query(std::move(B_query)),
+          m_C_query(std::move(C_query)),
+          m_H_query(std::move(H_query)),
+          m_K_query(std::move(K_query))
     {}
 
     const SparseVector<Pairing<G1, G1>>& A_query() const { return m_A_query; }
@@ -111,6 +126,7 @@ class PPZK_VerificationKey
 public:
     PPZK_VerificationKey() = default;
 
+    // copy semantics
     PPZK_VerificationKey(const G2& alphaA_g2,
                          const G1& alphaB_g1,
                          const G2& alphaC_g2,
@@ -127,6 +143,25 @@ public:
           m_gamma_beta_g2(gamma_beta_g2),
           m_rC_Z_g2(rC_Z_g2),
           m_encoded_IC_query(encoded_IC_query)
+    {}
+
+    // move semantics
+    PPZK_VerificationKey(const G2& alphaA_g2,
+                         const G1& alphaB_g1,
+                         const G2& alphaC_g2,
+                         const G2& gamma_g2,
+                         const G1& gamma_beta_g1,
+                         const G2& gamma_beta_g2,
+                         const G2& rC_Z_g2,
+                         PPZK_QueryIC<PAIRING>&& encoded_IC_query)
+        : m_alphaA_g2(alphaA_g2),
+          m_alphaB_g1(alphaB_g1),
+          m_alphaC_g2(alphaC_g2),
+          m_gamma_g2(gamma_g2),
+          m_gamma_beta_g1(gamma_beta_g1),
+          m_gamma_beta_g2(gamma_beta_g2),
+          m_rC_Z_g2(rC_Z_g2),
+          m_encoded_IC_query(std::move(encoded_IC_query))
     {}
 
     const G2& alphaA_g2() const { return m_alphaA_g2; }
