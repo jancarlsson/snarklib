@@ -81,60 +81,46 @@ public:
 
         // step 6 - K
         dummy->major(true);
-        const QAP_QueryK<SYS, Fr> Kt(qap, ABCt, rA, rB, beta);
-        const BlockVector<Fr> Ktb(BlockVector<Fr>::space(Kt.vec()), 0, Kt.vec());
-        PPZK_QueryK<PAIRING> Kp(Ktb);
-        Kp.accumTable(g1_table, callback);
+        auto K = ppzk_query_HK<PAIRING>(qap_query_K(qap, ABCt, rA, rB, beta), g1_table, callback);
 #ifdef USE_ADD_SPECIAL
-        Kp.batchSpecial();
+        batchSpecial(K);
 #endif
 
-        // side-effect: this modifies ABCt query vector A
-        const QAP_QueryIC<SYS, Fr> qapIC(qap, ABCt, rA);
-
-        // step 5 - A
+        // step 5 - input consistency (side-effect: modifies ABCt query vector A)
         dummy->major(true);
-        const BlockVector<Fr> Atb(BlockVector<Fr>::space(ABCt.vecA()), 0, ABCt.vecA());
-        PPZK_QueryA<PAIRING> Ap(Atb, rA, alphaA);
-        Ap.accumTable(g1_table, g1_table, callback);
-#ifdef USE_ADD_SPECIAL
-        Ap.batchSpecial();
-#endif
-
-        // step 4 - B
-        dummy->major(true);
-        const BlockVector<Fr> Btb(BlockVector<Fr>::space(ABCt.vecB()), 0, ABCt.vecB());
-        PPZK_QueryB<PAIRING> Bp(Btb, rB, alphaB);
-        Bp.accumTable(g2_table, g1_table, callback);
-#ifdef USE_ADD_SPECIAL
-        Bp.batchSpecial();
-#endif
-
-        // step 3 - C
-        dummy->major(true);
-        const BlockVector<Fr> Ctb(BlockVector<Fr>::space(ABCt.vecC()), 0, ABCt.vecC());
-        PPZK_QueryC<PAIRING> Cp(Ctb, rC, alphaC);
-        Cp.accumTable(g1_table, g1_table, callback);
-#ifdef USE_ADD_SPECIAL
-        Cp.batchSpecial();
-#endif
-
-        // step 2 - H
-        dummy->major(true);
-        const BlockVector<Fr> Htb(BlockVector<Fr>::space(Ht.vec()), 0, Ht.vec());
-        PPZK_QueryH<PAIRING> Hp(Htb);
-        Hp.accumTable(g1_table, callback);
-
-        m_pk = PPZK_ProvingKey<PAIRING>(Ap.vec(),
-                                        Bp.vec(),
-                                        Cp.vec(),
-                                        Hp.vvec(),
-                                        Kp.vvec());
-
-        // step 1 - input consistency
-        dummy->major(true);
-        PPZK_QueryIC<PAIRING> ppzkIC(qapIC.vec());
+        PPZK_QueryIC<PAIRING> ppzkIC(qap_query_IC(qap, ABCt, rA));
         ppzkIC.accumTable(g1_table, callback);
+
+        // step 4 - A
+        dummy->major(true);
+        auto A = ppzk_query_ABC(ABCt.vecA(), rA, alphaA, g1_table, g1_table, callback);
+#ifdef USE_ADD_SPECIAL
+        batchSpecial(A);
+#endif
+
+        // step 3 - B
+        dummy->major(true);
+        auto B = ppzk_query_ABC(ABCt.vecB(), rB, alphaB, g2_table, g1_table, callback);
+#ifdef USE_ADD_SPECIAL
+        batchSpecial(B);
+#endif
+
+        // step 2 - C
+        dummy->major(true);
+        auto C = ppzk_query_ABC(ABCt.vecC(), rC, alphaC, g1_table, g1_table, callback);
+#ifdef USE_ADD_SPECIAL
+        batchSpecial(C);
+#endif
+
+        // step 1 - H
+        dummy->major(true);
+        auto H = ppzk_query_HK<PAIRING>(Ht.vec(), g1_table, callback);
+
+        m_pk = PPZK_ProvingKey<PAIRING>(std::move(A),
+                                        std::move(B),
+                                        std::move(C),
+                                        std::move(H),
+                                        std::move(K));
 
         m_vk = PPZK_VerificationKey<PAIRING>(alphaA * G2::one(),
                                              alphaB * G1::one(),
@@ -143,7 +129,7 @@ public:
                                              (gamma * beta) * G1::one(),
                                              (gamma * beta) * G2::one(),
                                              (rC * qap.compute_Z()) * G2::one(),
-                                             ppzkIC);
+                                             std::move(ppzkIC));
     }
 
     const PPZK_ProvingKey<PAIRING>& pk() const { return m_pk; }
