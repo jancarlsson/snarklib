@@ -217,6 +217,51 @@ T multiExp01(const VEC<T>& base,
     return accum + multiExp(base2, scalar2, callback);
 }
 
+// sum of multi-exponentiation when scalar vector has many zeros and ones
+// (g++ 4.8.3 template argument deduction/substitution fails for VEC)
+template <typename T, typename F>
+T multiExp01(const std::vector<T>& base,     // VEC is std::vector
+             const std::size_t startOffset,
+             const std::size_t indexShift,
+             const std::vector<F>& scalar,
+             const std::size_t reserveCount, // for performance tuning
+             ProgressCallback* callback)
+{
+    const auto
+        ZERO = F::zero(),
+        ONE = F::one();
+
+    std::vector<T> base2;
+    std::vector<F> scalar2;
+    if (reserveCount) {
+        base2.reserve(reserveCount);
+        scalar2.reserve(reserveCount);
+    }
+
+    auto accum = T::zero();
+
+    for (std::size_t i = vector_start(base) + startOffset; i < vector_stop(base); ++i) {
+        const auto& a = scalar[i - indexShift];
+
+        if (ZERO == a) {
+            continue;
+
+        } else if (ONE == a) {
+#ifdef USE_ADD_SPECIAL
+            accum = fastAddSpecial(accum, base[i]);
+#else
+            accum = accum + base[i];
+#endif
+
+        } else {
+            base2.emplace_back(base[i]);
+            scalar2.emplace_back(a);
+        }
+    }
+
+    return accum + multiExp(base2, scalar2, callback);
+}
+
 } // namespace snarklib
 
 #endif
