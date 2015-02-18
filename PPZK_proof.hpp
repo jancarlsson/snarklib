@@ -58,7 +58,7 @@ public:
     {
         ProgressCallback_NOP<PAIRING> dummyNOP;
         ProgressCallback* dummy = callback ? callback : std::addressof(dummyNOP);
-        dummy->majorSteps(5);
+        dummy->majorSteps(6);
 
         // randomness
         const auto
@@ -68,49 +68,38 @@ public:
 
         const QAP_SystemPoint<SYS, Fr> qap(constraintSystem, numCircuitInputs);
 
-        // ABCH
-        const QAP_WitnessABCH<SYS, Fr> ABCH(qap, witness, d1, d2, d3);
-
-        const auto& A_query = pk.A_query();
-        const auto& B_query = pk.B_query();
-        const auto& C_query = pk.C_query();
-        const auto& H_query = pk.H_query();
-        const auto& K_query = pk.K_query();
-
-        // step 5 - A
+        // step 6 - A
         dummy->major(true);
         PPZK_WitnessA<PAIRING> Aw(qap, witness, d1);
-        Aw.accumQuery(A_query, reserveTune, callback);
+        Aw.accumQuery(pk.A_query(), reserveTune, callback);
         m_A = Aw.val();
 
-        // step 4 - B
+        // step 5 - B
         dummy->major(true);
         PPZK_WitnessB<PAIRING> Bw(qap, witness, d2);
-        Bw.accumQuery(B_query, reserveTune, callback);
+        Bw.accumQuery(pk.B_query(), reserveTune, callback);
         m_B = Bw.val();
 
-        // step 3 - C
+        // step 4 - C
         dummy->major(true);
         PPZK_WitnessC<PAIRING> Cw(qap, witness, d3);
-        Cw.accumQuery(C_query, reserveTune, callback);
+        Cw.accumQuery(pk.C_query(), reserveTune, callback);
         m_C = Cw.val();
+
+        // step 3 - ABCH
+        dummy->major(true);
+        const QAP_WitnessABCH<SYS, Fr> ABCH(qap, witness, d1, d2, d3, callback);
 
         // step 2 - H
         dummy->major(true);
         PPZK_WitnessH<PAIRING> Hw;
-        Hw.accumQuery(
-            BlockVector<G1>(BlockVector<G1>::space(H_query), 0, H_query),
-            BlockVector<Fr>(BlockVector<Fr>::space(ABCH.vec()), 0, ABCH.vec()),
-            callback);
+        Hw.accumQuery(pk.H_query(), ABCH.vec(), callback);
         m_H = Hw.val();
 
         // step 1 - K
         dummy->major(true);
         PPZK_WitnessK<PAIRING> Kw(witness, d1, d2, d3);
-        Kw.accumQuery(
-            BlockVector<G1>(BlockVector<G1>::space(K_query), 0, K_query),
-            reserveTune,
-            callback);
+        Kw.accumQuery(pk.K_query(), reserveTune, callback);
         m_K = Kw.val();
     }
 
