@@ -42,6 +42,35 @@ public:
           m_encoded_terms(qap_query.size() - 1, G1::zero())
     {}
 
+    // copy semantics
+    PPZK_QueryIC(const PPZK_QueryIC& other)
+        : m_base(other.m_base),
+          m_coeffs(other.m_coeffs),
+          m_encoded_terms(other.m_encoded_terms)
+    {}
+
+    // move semantics
+    PPZK_QueryIC(PPZK_QueryIC&& other)
+        : m_base(other.m_base),
+          m_coeffs(std::move(other.m_coeffs)),
+          m_encoded_terms(std::move(other.m_encoded_terms))
+    {}
+
+    // copy semantics
+    PPZK_QueryIC& operator= (const PPZK_QueryIC& rhs) {
+        m_base = rhs.m_base;
+        m_coeffs = rhs.m_coeffs;
+        m_encoded_terms = rhs.m_encoded_terms;
+        return *this;
+    }
+
+    // move semantics
+    PPZK_QueryIC& operator= (PPZK_QueryIC&& rhs) {
+        m_base = rhs.m_base;
+        m_coeffs = std::move(rhs.m_coeffs);
+        m_encoded_terms = std::move(rhs.m_encoded_terms);
+    }
+
     void accumTable(const WindowExp<G1>& g1_table,
                     ProgressCallback* callback = nullptr) {
         g1_table.batchExp(m_encoded_terms,
@@ -135,6 +164,22 @@ private:
 //
 
 template <typename GA, typename GB, typename FR>
+SparseVector<Pairing<GA, GB>> ppzk_query_ABC(const std::vector<FR>& qap_query,
+                                             const FR& random_v,
+                                             const FR& random_alpha,
+                                             const WindowExp<GA>& ga_table,
+                                             const WindowExp<GB>& gb_table,
+                                             ProgressCallback* callback = nullptr)
+{
+    return batchExp(ga_table,
+                    gb_table,
+                    random_v,
+                    random_v * random_alpha,
+                    qap_query,
+                    callback);
+}
+
+template <typename GA, typename GB, typename FR>
 class PPZK_QueryABC
 {
 public:
@@ -143,7 +188,7 @@ public:
                   const FR& random_alpha)
         : m_qap_query(qap_query),
           m_random_v(random_v),
-          m_random_prod(random_v * random_alpha)
+          m_random_alpha(random_alpha)
     {}
 
     void accumTable(const WindowExp<GA>& ga_table,
@@ -153,7 +198,7 @@ public:
             m_vec = batchExp(ga_table,
                              gb_table,
                              m_random_v,
-                             m_random_prod,
+                             m_random_v * m_random_alpha,
                              m_qap_query,
                              callback);
         } else {
@@ -161,7 +206,7 @@ public:
                      ga_table,
                      gb_table,
                      m_random_v,
-                     m_random_prod,
+                     m_random_v * m_random_alpha,
                      m_qap_query,
                      callback);
         }
@@ -176,7 +221,7 @@ public:
 private:
     const BlockVector<FR>& m_qap_query;
     const FR& m_random_v;
-    const FR m_random_prod;
+    const FR& m_random_alpha;
     SparseVector<Pairing<GA, GB>> m_vec;
 };
 
@@ -192,6 +237,22 @@ template <typename PAIRING> using PPZK_QueryC =
 ////////////////////////////////////////////////////////////////////////////////
 // query vectors H, K
 //
+
+template <typename PAIRING>
+std::vector<typename PAIRING::G1>
+ppzk_query_HK(const std::vector<typename PAIRING::Fr>& qap_query,
+              const WindowExp<typename PAIRING::G1>& g1_table,
+              ProgressCallback* callback = nullptr)
+{
+    std::vector<typename PAIRING::G1> vec(qap_query.size(),
+                                          PAIRING::G1::zero());
+
+    g1_table.batchExp(vec,
+                      qap_query,
+                      callback);
+
+    return vec;
+}
 
 template <typename PAIRING>
 class PPZK_QueryHK
@@ -218,10 +279,6 @@ public:
 
     const BlockVector<G1>& vec() const { return m_vec; }
     const std::vector<G1>& vvec() const { return m_vec.vec(); }
-
-    // FIXME - remove after snarkfront update (only needed for batchSpecial)
-    BlockVector<G1>& lvec() { return m_vec; }
-    std::vector<G1>& llvec() { return m_vec.lvec(); }
 
 private:
     const BlockVector<Fr>& m_qap_query;
