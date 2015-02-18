@@ -294,25 +294,28 @@ std::size_t g2_exp_count(const QAP_QueryABC<SYS, T>& ABCt) {
 //
 
 template <template <typename> class SYS, typename T>
+std::vector<T> qap_query_IC(const QAP<T>& qap,
+                            QAP_QueryABC<SYS, T>& ABCt,
+                            const T& random_A)
+{
+    std::vector<T> vec(qap.numCircuitInputs() + 1, T::zero());
+
+    // circuit inputs from At query vector
+    for (std::size_t i = 0; i < vec.size(); ++i) {
+        vec[i] = ABCt.vecA()[3 + i] * random_A;
+#ifdef USE_ASSERT
+        assert(! vec[i].isZero());
+#endif
+        ABCt.zeroElementA(3 + i);
+    }
+
+    return vec;
+}
+
+template <template <typename> class SYS, typename T>
 class QAP_QueryIC
 {
 public:
-    QAP_QueryIC(const QAP<T>& qap,
-                QAP_QueryABC<SYS, T>& ABCt,
-                const T& random_A)
-        : m_vec(qap.numCircuitInputs() + 1, T::zero()),
-          m_random_A(random_A)
-    {
-        // circuit inputs from At query vector
-        for (std::size_t i = 0; i < m_vec.size(); ++i) {
-            m_vec[i] = ABCt.vecA()[3 + i] * random_A;
-#ifdef USE_ASSERT
-            assert(! m_vec[i].isZero());
-#endif
-            ABCt.zeroElementA(3 + i);
-        }
-    }
-
     // use with accumVector() to avoid having all vectors in memory
     QAP_QueryIC(const QAP<T>& qap,
                 const T& random_A)
@@ -352,28 +355,30 @@ private:
 //
 
 template <template <typename> class SYS, typename T>
+std::vector<T> qap_query_K(const QAP<T>& qap,
+                           const QAP_QueryABC<SYS, T>& ABCt,
+                           const T& random_A,
+                           const T& random_B,
+                           const T& random_beta)
+{
+    const T random_C = random_A * random_B;
+
+    std::vector<T> vec(3 + qap.numVariables() + 1, T::zero());
+
+    for (std::size_t i = 0; i < vec.size(); ++i) {
+        vec[i] = random_beta *
+            (random_A * ABCt.vecA()[i] +
+             random_B * ABCt.vecB()[i] +
+             random_C * ABCt.vecC()[i]);
+    }
+
+    return vec;
+}
+
+template <template <typename> class SYS, typename T>
 class QAP_QueryK
 {
 public:
-    QAP_QueryK(const QAP<T>& qap,
-               const QAP_QueryABC<SYS, T>& ABCt,
-               const T& random_A,
-               const T& random_B,
-               const T& random_beta)
-        : m_vec(3 + qap.numVariables() + 1, T::zero()),
-          m_random_A(random_A),
-          m_random_B(random_B),
-          m_random_C(random_A * random_B),
-          m_random_beta(random_beta)
-    {
-        for (std::size_t i = 0; i < m_vec.size(); ++i) {
-            m_vec[i] = random_beta *
-                (random_A * ABCt.vecA()[i] +
-                 random_B * ABCt.vecB()[i] +
-                 m_random_C * ABCt.vecC()[i]);
-        }
-    }
-
     // use with accumVector() to avoid having all vectors in memory
     QAP_QueryK(const QAP<T>& qap,
                const T& random_A,
