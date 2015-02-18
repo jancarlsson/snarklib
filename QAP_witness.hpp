@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <vector>
 #include "HugeSystem.hpp"
+#include "ProgressCallback.hpp"
 #include "QAP_system.hpp"
 #include "Rank1DSL.hpp"
 
@@ -92,15 +93,36 @@ public:
                     const R1Witness<T>& witness,
                     const T& random_d1,
                     const T& random_d2,
-                    const T& random_d3)
+                    const T& random_d3,
+                    ProgressCallback* callback = nullptr)
         : m_vec(qap.degree() + 1, T::zero())
     {
+        const std::size_t N = qap.degree();
+        const std::size_t M = callback ? callback->minorSteps() : 0;
+
         QAP_WitnessABC<SYS, T> ABC(qap, witness);
 
-        for (std::size_t i = 0; i < qap.degree(); ++i)
+        std::size_t i = 0;
+
+        // for full blocks
+        for (std::size_t j = 0; j < M / 2; ++j) {
+            for (std::size_t k = 0; k < N / (M / 2); ++k) {
+                m_vec[i] =
+                    random_d2 * ABC.vecA()[i] +
+                    random_d1 * ABC.vecB()[i];
+                ++i;
+            }
+
+            callback->minor();
+        }
+
+        // remaining steps smaller than one block
+        while (i < N) {
             m_vec[i] =
                 random_d2 * ABC.vecA()[i] +
                 random_d1 * ABC.vecB()[i];
+            ++i;
+        }
 
         m_vec[0] -= random_d3;
 
@@ -110,7 +132,8 @@ public:
         ABC.cosetFFT();
 
         addTemporary(
-            QAP_WitnessABCH<SYS, T>(qap, ABC));
+            QAP_WitnessABCH<SYS, T>(qap, ABC),
+            callback);
     }
 
     const std::vector<T>& vec() const { return m_vec; }
@@ -133,14 +156,34 @@ private:
     }
 
     // add regular and temporary H together
-    void addTemporary(const QAP_WitnessABCH& tmpH) {
+    void addTemporary(const QAP_WitnessABCH& tmpH,
+                      ProgressCallback* callback = nullptr)
+    {
+        const std::size_t N = tmpH.vec().size();
+        const std::size_t M = callback ? callback->minorSteps() : 0;
+
 #ifdef USE_ASSERT
         // make sure to add temporary H, not regular H
-        assert(tmpH.vec().size() < m_vec.size());
+        assert(N < m_vec.size());
 #endif
 
-        for (std::size_t i = 0; i < tmpH.vec().size(); ++i)
+        std::size_t i = 0;
+
+        // for full blocks
+        for (std::size_t j = 0; j < M; ++j) {
+            for (std::size_t k = 0; k < N / M; ++k) {
+                m_vec[i] += tmpH.vec()[i];
+                ++i;
+            }
+
+            callback->minor();
+        }
+
+        // remaining steps smaller than one block
+        while (i < N) {
             m_vec[i] += tmpH.vec()[i];
+            ++i;
+        }
     }
 
     std::vector<T> m_vec;
