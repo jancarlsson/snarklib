@@ -7,6 +7,7 @@
 #include <istream>
 #include <ostream>
 #include <queue>
+#include <utility>
 #include <vector>
 #include "IndexSpace.hpp"
 
@@ -78,6 +79,32 @@ public:
         : m_index(n),
           m_value(n, obj)
     {}
+
+    // copy semantics
+    SparseVector(const SparseVector& other)
+        : m_index(other.m_index),
+          m_value(other.m_value)
+    {}
+
+    // move semantics
+    SparseVector(SparseVector&& other)
+        : m_index(std::move(other.m_index)),
+          m_value(std::move(other.m_value))
+    {}
+
+    // copy semantics
+    SparseVector& operator= (const SparseVector& rhs) {
+        m_index = rhs.m_index;
+        m_value = rhs.m_value;
+        return *this;
+    }
+
+    // move semantics
+    SparseVector& operator= (SparseVector&& rhs) {
+        m_index = std::move(rhs.m_index);
+        m_value = std::move(rhs.m_value);
+        return *this;
+    }
 
     void clear() {
         m_index.clear();
@@ -261,6 +288,24 @@ public:
                 const std::size_t block,
                 const std::vector<T>& a)
         : BlockVector{space, std::array<std::size_t, 1>{block}, a}
+    {}
+
+    // copy semantics
+    BlockVector(const std::vector<T>& a)
+        : m_space(IndexSpace<1>(a.size())),
+          m_block{0},
+          m_startIndex(0),
+          m_stopIndex(a.size()),
+          m_value(a)
+    {}
+
+    // move semantics
+    BlockVector(std::vector<T>&& a)
+        : m_space(IndexSpace<1>(a.size())),
+          m_block{0},
+          m_startIndex(0),
+          m_stopIndex(a.size()),
+          m_value(std::move(a))
     {}
 
     const IndexSpace<1>& space() const { return m_space; }
