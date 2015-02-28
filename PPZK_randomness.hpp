@@ -1,74 +1,94 @@
 #ifndef _SNARKLIB_PPZK_RANDOMNESS_HPP_
 #define _SNARKLIB_PPZK_RANDOMNESS_HPP_
 
+#include <cassert>
+#include <cstdint>
 #include <istream>
+#include <iostream>
 #include <ostream>
 
 namespace snarklib {
 
 ////////////////////////////////////////////////////////////////////////////////
 // proving and verification keypair randomness
-// (SECURITY CAUTION: destroy after keypair generation)
+// (SECURITY CAUTION: destroy unblinded entropy after keypair generation)
 //
 
-template <typename FR>
+// If BLIND = FR, then randomness is exposed in the clear (dangerous).
+// If BLIND = Pairing<PAIRING::G1, PAIRING::G2>, then randomness is blinded (safe).
+template <typename FR, typename BLIND>
 class PPZK_KeypairRandomness
 {
 public:
     PPZK_KeypairRandomness() = default;
 
-    PPZK_KeypairRandomness(const int dummy)
-        : m_point(FR::random()),
-          m_alphaA(FR::random()),
-          m_alphaB(FR::random()),
-          m_alphaC(FR::random()),
-          m_rA(FR::random()),
-          m_rB(FR::random()),
-          m_rC(m_rA * m_rB),
-          m_beta(FR::random()),
-          m_gamma(FR::random())
-    {}
+    PPZK_KeypairRandomness(const std::size_t degree)
+        : m_point(degree + 1, BLIND::zero()),
+          m_alphaA(FR::random() * BLIND::one()),
+          m_alphaB(FR::random() * BLIND::one()),
+          m_alphaC(FR::random() * BLIND::one()),
+          m_beta(FR::random() * BLIND::one()),
+          m_gamma(FR::random() * BLIND::one())
+    {
+#ifdef USE_ASSERT
+        assert(degree > 0);
+#endif
 
-    const FR& point() const { return m_point; }
+        // point powers from 0 to degree inclusive
+        const auto point = FR::random();
+        auto t = FR::one();
+        for (auto& u : m_point) {
+            u = t * BLIND::one();
+            t *= point;
+        }
 
-    const FR& alphaA() const { return m_alphaA; }
-    const FR& alphaB() const { return m_alphaB; }
-    const FR& alphaC() const { return m_alphaC; }
+        // rC = rA * rB
+        const auto a = FR::random();
+        m_rA = a * BLIND::one();
+        m_rB = FR::random() * BLIND::one();
+        m_rC = a * m_rB;
+    }
 
-    const FR& rA() const { return m_rA; }
-    const FR& rB() const { return m_rB; }
-    const FR& rC() const { return m_rC; }
+    std::size_t degree() const { return m_point.size() - 1; }
+    const std::vector<BLIND>& pointvec() const { return m_point; }
+    const BLIND& point() const { return pointvec()[1]; }
 
-    const FR& beta() const { return m_beta; }
-    const FR& gamma() const { return m_gamma; }
+    const BLIND& alphaA() const { return m_alphaA; }
+    const BLIND& alphaB() const { return m_alphaB; }
+    const BLIND& alphaC() const { return m_alphaC; }
+
+    const BLIND& rA() const { return m_rA; }
+    const BLIND& rB() const { return m_rB; }
+    const BLIND& rC() const { return m_rC; }
+
+    const BLIND& beta() const { return m_beta; }
+    const BLIND& gamma() const { return m_gamma; }
 
     // SECURITY CAUTION: destination of stream is trusted
     void marshal_out(std::ostream& os) const {
-        point().marshal_out(os);
+        snarklib::marshal_out(os, pointvec());
         alphaA().marshal_out(os);
         alphaB().marshal_out(os);
         alphaC().marshal_out(os);
         rA().marshal_out(os);
         rB().marshal_out(os);
+        rC().marshal_out(os);
         beta().marshal_out(os);
         gamma().marshal_out(os);
     }
 
     // SECURITY CAUTION: source of stream is trusted
     bool marshal_in(std::istream& is) {
-        const bool rc =
-            m_point.marshal_in(is) &&
+        return
+            snarklib::marshal_in(is, m_point) &&
             m_alphaA.marshal_in(is) &&
             m_alphaB.marshal_in(is) &&
             m_alphaC.marshal_in(is) &&
             m_rA.marshal_in(is) &&
             m_rB.marshal_in(is) &&
+            m_rC.marshal_in(is) &&
             m_beta.marshal_in(is) &&
             m_gamma.marshal_in(is);
-
-        m_rC = m_rA * m_rB;
-
-        return rc;
     }
 
     void clear() {
@@ -85,7 +105,7 @@ public:
 
     bool empty() const {
         return
-            m_point.isZero() ||
+            m_point.empty() ||
             m_alphaA.isZero() ||
             m_alphaB.isZero() ||
             m_alphaC.isZero() ||
@@ -97,22 +117,22 @@ public:
     }
 
 private:
-    FR m_point;
-    FR m_alphaA, m_alphaB, m_alphaC;
-    FR m_rA;
-    FR m_rB;
-    FR m_rC;
-    FR m_beta, m_gamma;
+    std::vector<BLIND> m_point;
+    BLIND m_alphaA, m_alphaB, m_alphaC;
+    BLIND m_rA, m_rB, m_rC;
+    BLIND m_beta, m_gamma;
 };
 
-template <typename FR>
-std::ostream& operator<< (std::ostream& os, const PPZK_KeypairRandomness<FR>& a) {
+template <typename FR, typename BLIND>
+std::ostream& operator<< (std::ostream& os,
+                          const PPZK_KeypairRandomness<FR, BLIND>& a) {
     a.marshal_out(os);
     return os;
 }
 
-template <typename FR>
-std::istream& operator>> (std::istream& is, PPZK_KeypairRandomness<FR>& a) {
+template <typename FR, typename BLIND>
+std::istream& operator>> (std::istream& is,
+                          PPZK_KeypairRandomness<FR, BLIND>& a) {
     if (! a.marshal_in(is)) a.clear();
     return is;
 }
