@@ -30,8 +30,8 @@ class PPZK_Keypair
     typedef typename PAIRING::G2 G2;
 
 public:
-    static PPZK_KeypairRandomness<Fr> randomness() {
-        return PPZK_KeypairRandomness<Fr>(0);
+    static PPZK_KeypairRandomness<Fr, Fr> randomness() {
+        return PPZK_KeypairRandomness<Fr, Fr>(1);
     }
 
     PPZK_Keypair() = default;
@@ -46,7 +46,7 @@ public:
     template <template <typename> class SYS>
     PPZK_Keypair(const SYS<Fr>& constraintSystem,
                  const std::size_t numCircuitInputs,
-                 const PPZK_KeypairRandomness<Fr>& keyRand,
+                 const PPZK_KeypairRandomness<Fr, Fr>& keyRand,
                  ProgressCallback* callback = nullptr)
     {
         ProgressCallback_NOP<PAIRING> dummyNOP;
