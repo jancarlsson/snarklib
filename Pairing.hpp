@@ -48,6 +48,10 @@ public:
         return Pairing<GA, GB>(GA::zero(), GB::zero());
     }
 
+    static Pairing one() {
+        return Pairing<GA, GB>(GA::one(), GB::one());
+    }
+
     void marshal_out(std::ostream& os) const {
         G().marshal_out(os);
         H().marshal_out(os);
