@@ -16,10 +16,10 @@ namespace snarklib {
 // Evaluate Lagrange polynomials
 //
 
-template <typename T>
+template <typename FR, typename BLIND>
 void* get_evaluation_domain(const std::size_t min_size);
 
-template <typename T>
+template <typename FR, typename BLIND>
 class LagrangeFFT
 {
 public:
@@ -28,77 +28,89 @@ public:
     public:
         virtual ~Base() = default;
 
-        void FFT(std::vector<T>& a) const {
+        void FFT(std::vector<FR>& a) const {
 #ifdef USE_ASSERT
             assert(a.size() == min_size());
 #endif
             m_FFT(a);
         }
 
-        void iFFT(std::vector<T>& a) const {
+        void iFFT(std::vector<FR>& a) const {
 #ifdef USE_ASSERT
             assert(a.size() == min_size());
 #endif
             m_iFFT(a);
         }
 
-        void cosetFFT(std::vector<T>& a, const T& g) const {
+        void cosetFFT(std::vector<FR>& a, const FR& g) const {
             multiply_by_coset(a, g);
             FFT(a);
         }
 
-        void icosetFFT(std::vector<T>& a, const T& g) const {
+        void icosetFFT(std::vector<FR>& a, const FR& g) const {
             iFFT(a);
             multiply_by_coset(a, inverse(g));
         }
 
-        virtual std::vector<T> lagrange_coeffs(const T& t) const = 0;
+        virtual std::vector<BLIND> lagrange_coeffs(const std::vector<BLIND>& t) const = 0;
 
-        virtual T get_element(const std::size_t idx) const = 0;
-        virtual T compute_Z(const T& t) const = 0;
+        std::vector<BLIND> lagrange_coeffs(const FR& t) const {
+            std::vector<FR> pt(2, FR::one());
+            pt[1] = t;
+            return lagrange_coeffs(pt);
+        }
 
-        void add_poly_Z(const T& coeff, std::vector<T>& H) const {
+        virtual FR get_element(const std::size_t idx) const = 0;
+        virtual BLIND compute_Z(const std::vector<BLIND>& t) const = 0;
+
+        FR compute_Z(const FR& t) const {
+            std::vector<FR> pt(2, FR::one());
+            pt[1] = t;
+            return compute_Z(pt);
+        }
+
+        void add_poly_Z(const FR& coeff, std::vector<FR>& H) const {
 #ifdef USE_ASSERT
             assert(H.size() == min_size() + 1);
 #endif
             m_add_poly_Z(coeff, H);
         }
 
-        virtual void divide_by_Z_on_coset(std::vector<T>& P) const = 0;
+        virtual void divide_by_Z_on_coset(std::vector<FR>& P) const = 0;
 
         std::size_t min_size() const {
             return m_min_size;
         }
 
     protected:
-        virtual void m_FFT(std::vector<T>& a) const = 0;
-        virtual void m_iFFT(std::vector<T>& a) const = 0;
-        virtual void m_add_poly_Z(const T& coeff, std::vector<T>& H) const = 0;
+        virtual void m_FFT(std::vector<FR>& a) const = 0;
+        virtual void m_iFFT(std::vector<FR>& a) const = 0;
+        virtual void m_add_poly_Z(const FR& coeff, std::vector<FR>& H) const = 0;
 
         Base(const std::size_t min_size)
             : m_min_size(min_size)
         {}
 
-        T get_root_of_unity(const std::size_t n) const {
+        FR get_root_of_unity(const std::size_t n) const {
             const std::size_t logn = ceil_log2(n);
 #ifdef USE_ASSERT
             assert(n == (1u << logn));
-            assert(logn <= T::params.s());
+            assert(logn <= FR::params.s());
 #endif
 
-            T omega = T::params.root_of_unity();
-            for (std::size_t i = T::params.s(); i > logn; --i) {
+            FR omega = FR::params.root_of_unity();
+            for (std::size_t i = FR::params.s(); i > logn; --i) {
                 omega *= omega;
             }
 
             return omega;
         }
 
-        T coset_shift() const {
-            return squared(T::params.multiplicative_generator());
+        FR coset_shift() const {
+            return squared(FR::params.multiplicative_generator());
         }
 
-        void basic_radix2_FFT(std::vector<T>& a, const T& omega) const {
+        void basic_radix2_FFT(std::vector<FR>& a, const FR& omega) const {
             const std::size_t n = a.size();
             const std::size_t logn = ceil_log2(n);
 #ifdef USE_ASSERT
@@ -113,12 +125,12 @@ public:
 
             std::size_t m = 1;
             for (std::size_t s = 1; s <= logn; ++s) {
-                const T w_m = omega ^ (n / (2 * m));
+                const FR w_m = omega ^ (n / (2 * m));
 
                 for (std::size_t k = 0; k < n; k += 2*m) {
-                    T w = T::one();
+                    FR w = FR::one();
                     for (std::size_t j = 0; j < m; ++j) {
-                        const T t = w * a[k + j + m];
+                        const FR t = w * a[k + j + m];
                         a[k + j + m] = a[k + j] - t;
                         a[k + j] += t;
                         w *= w_m;
@@ -129,8 +141,8 @@ public:
             }
         }
 
-        void multiply_by_coset(std::vector<T>& a, const T& g) const {
-            T u = g;
+        void multiply_by_coset(std::vector<FR>& a, const FR& g) const {
+            FR u = g;
 
             for (std::size_t i = 1; i < a.size(); ++i) {
                 a[i] *= u;
@@ -138,25 +150,27 @@ public:
             }
         }
 
-        std::vector<T> basic_radix2_lagrange_coeffs(const std::size_t m, const T& t) const {
+        // BLIND = FR so random point t is exposed (not blinded)
+        std::vector<FR> basic_radix2_lagrange_coeffs(const std::size_t m,
+                                                     const FR& t) const {
             if (1 == m) {
-                return std::vector<T>(1, T::one());
+                return std::vector<FR>(1, FR::one());
             }
 
 #ifdef USE_ASSERT
             assert(m == (1u << ceil_log2(m)));
 #endif
 
-            const T omega = get_root_of_unity(m);
+            const FR omega = get_root_of_unity(m);
 
-            std::vector<T> u(m, T::zero());
+            std::vector<FR> u(m, FR::zero());
 
-            if (T::one() == (t ^ m)) {
-                T omega_i = T::one();
+            if (FR::one() == (t ^ m)) {
+                FR omega_i = FR::one();
 
                 for (std::size_t i = 0; i < m; ++i) {
                     if (omega_i == t) {
-                        u[i] = T::one();
+                        u[i] = FR::one();
                         return u;
                     }
 
@@ -164,9 +178,9 @@ public:
                 }
             }
 
-            const T Z = (t ^ m) - T::one();
-            T l = Z * inverse(T(m));
-            T r = T::one();
+            const FR Z = (t ^ m) - FR::one();
+            FR l = Z * inverse(FR(m));
+            FR r = FR::one();
 
             for (std::size_t i = 0; i < m; ++i) {
                 u[i] = l * inverse(t - r);
@@ -183,8 +197,8 @@ public:
 
     LagrangeFFT(const std::size_t min_size)
         : m_domain(
-            static_cast<LagrangeFFT<T>::Base*>(
-                get_evaluation_domain<T>(min_size)))
+            static_cast<LagrangeFFT<FR, BLIND>::Base*>(
+                get_evaluation_domain<FR, BLIND>(min_size)))
     {}
 
     ~LagrangeFFT() {
@@ -206,7 +220,7 @@ public:
 #endif
         const std::size_t log_min_size = ceil_log2(min_size);
 #ifdef USE_ASSERT
-        assert(log_min_size <= (T::params.s() + 1));
+        assert(log_min_size <= (FR::params.s() + 1));
 #endif
 
         if (min_size == (1u << log_min_size)) {
