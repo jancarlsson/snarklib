@@ -228,6 +228,38 @@ typename T::BaseType::template Params<Field<T, N>> Field<T, N>::params;
 //     Field<T, N> sqrt(const Field<T, N>& a)
 //
 
+template <typename T, std::size_t N>
+void marshal_out(std::ostream& os,
+                 const std::vector<Field<T, N>>& a) {
+    // size
+    os << a.size() << std::endl;
+
+    // field vector
+    for (const auto& f : a) {
+        f.marshal_out(os);
+    }
+}
+
+template <typename T, std::size_t N>
+bool marshal_in(std::istream& is,
+                std::vector<Field<T, N>>& a) {
+    // size
+    std::size_t numberElems;
+    is >> numberElems;
+    if (!is) return false;
+
+    // field vector
+    a.clear();
+    a.reserve(numberElems);
+    for (std::size_t i = 0; i < numberElems; ++i) {
+        Field<T, N> f;
+        if (!f.marshal_in(is)) return false;
+        a.emplace_back(f);
+    }
+
+    return true; // ok
+}
+
 // printing to stream
 template <typename T, std::size_t N>
 std::ostream& operator<< (std::ostream& out, const Field<T, N>& a)
