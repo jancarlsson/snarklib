@@ -125,6 +125,12 @@ public:
         return CURVE::isZero(m_X, m_Y, m_Z);
     }
 
+    void clear() {
+        m_X.clear();
+        m_Y.clear();
+        m_Z.clear();
+    }
+
     bool operator== (const Group& other) const {
         return CURVE::equalOp(
             m_X, m_Y, m_Z,
