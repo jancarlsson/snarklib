@@ -215,13 +215,12 @@ public:
                                            K_query);
 
         // proof from redesigned code
-        const auto proofRand = PPZK_Proof<PAIRING>::randomness();
         const PPZK_Proof<PAIRING> proofFromRedesign(
             m_constraintSystem.systemB(),
             m_constraintSystem.numCircuitInputs(),
             pkB,
             m_constraintSystem.witnessB(),
-            proofRand);
+            PPZK_ProofRandomness<typename PAIRING::Fr>(0));
 
         // compare proofs (expect different results because of random numbers)
         if (! checkPass(proofFromOriginal.A() != proofFromRedesign.A())) {
@@ -329,12 +328,11 @@ public:
                                                 icqB);
 
         // proof
-        const auto proofRand = PPZK_Proof<PAIRING>::randomness();
         const PPZK_Proof<PAIRING> proofB(m_constraintSystem.systemB(),
                                          m_constraintSystem.numCircuitInputs(),
                                          pkB,
                                          m_constraintSystem.witnessB(),
-                                         proofRand);
+                                         PPZK_ProofRandomness<typename PAIRING::Fr>(0));
 
         const auto ans
             = strongVerify(
@@ -369,17 +367,16 @@ public:
     {}
 
     void runTest() {
-        const auto keyRand = PPZK_Keypair<PAIRING>::randomness();
         const PPZK_Keypair<PAIRING> keypair(m_constraintSystem.systemB(),
                                             m_constraintSystem.numCircuitInputs(),
-                                            keyRand);
+                                            PPZK_LagrangePoint<Fr>(0),
+                                            PPZK_BlindGreeks<Fr, Fr>(0));
 
-        const auto proofRand = PPZK_Proof<PAIRING>::randomness();
         const PPZK_Proof<PAIRING> proofB(m_constraintSystem.systemB(),
                                          m_constraintSystem.numCircuitInputs(),
                                          keypair.pk(),
                                          m_constraintSystem.witnessB(),
-                                         proofRand);
+                                         PPZK_ProofRandomness<typename PAIRING::Fr>(0));
 
         const auto ans = strongVerify(keypair.vk(),
                                       m_constraintSystem.inputB(),
