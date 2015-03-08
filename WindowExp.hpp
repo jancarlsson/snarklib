@@ -58,14 +58,15 @@ public:
 
     // map-reduce version
     WindowExp(const IndexSpace<1>& space,
-              const std::array<std::size_t, 1>& block)
+              const std::array<std::size_t, 1>& block,
+              const GROUP generator = GROUP::one())
         : m_space(space),
           m_windowBits(space.param()[0]),
           m_block(block),
           m_powers_of_g(space.indexSize(m_block)[0],
                         std::vector<GROUP>(windowSize(), GROUP::zero()))
     {
-        GROUP outerG = GROUP::one();
+        GROUP outerG = generator;
         const std::size_t startLen = startRow() * m_windowBits;
         for (std::size_t i = 0; i < startLen; ++i)
             outerG = outerG + outerG;
@@ -97,13 +98,15 @@ public:
     }
 
     WindowExp(const IndexSpace<1>& space,
-              const std::size_t block)
-        : WindowExp{space, std::array<std::size_t, 1>{block}}
+              const std::size_t block,
+              const GROUP generator = GROUP::one())
+        : WindowExp{space, std::array<std::size_t, 1>{block}, generator}
     {}
 
     // monolithic version with progress bar
     WindowExp(const std::size_t expCount,
-              ProgressCallback* callback = nullptr)
+              ProgressCallback* callback = nullptr,
+              const GROUP generator = GROUP::one())
         : m_space(space(expCount)),
           m_windowBits(m_space.param()[0]),
           m_block{0},
@@ -113,7 +116,7 @@ public:
         const std::size_t N = m_powers_of_g.size();
         const std::size_t M = callback ? callback->minorSteps() : 0;
 
-        GROUP outerG = GROUP::one();
+        GROUP outerG = generator;
 
         std::size_t outer = 0;
 
