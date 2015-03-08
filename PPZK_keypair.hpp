@@ -30,10 +30,6 @@ class PPZK_Keypair
     typedef typename PAIRING::G2 G2;
 
 public:
-    static PPZK_KeypairRandomness<Fr, Fr> randomness() {
-        return PPZK_KeypairRandomness<Fr, Fr>(1);
-    }
-
     PPZK_Keypair() = default;
 
     // only used for roundtrip marshalling tests
@@ -46,7 +42,8 @@ public:
     template <template <typename> class SYS>
     PPZK_Keypair(const SYS<Fr>& constraintSystem,
                  const std::size_t numCircuitInputs,
-                 const PPZK_KeypairRandomness<Fr, Fr>& keyRand,
+                 const PPZK_LagrangePoint<Fr>& lagrangeRand,
+                 const PPZK_BlindGreeks<Fr, Fr>& blindRand,
                  ProgressCallback* callback = nullptr)
     {
         ProgressCallback_NOP<PAIRING> dummyNOP;
@@ -55,15 +52,15 @@ public:
 
         // randomness
         const auto
-            &point = keyRand.point(),
-            &alphaA = keyRand.alphaA(),
-            &alphaB = keyRand.alphaB(),
-            &alphaC = keyRand.alphaC(),
-            &rA = keyRand.rA(),
-            &rB = keyRand.rB(),
-            &rC = keyRand.rC(),
-            &beta = keyRand.beta(),
-            &gamma = keyRand.gamma();
+            &point = lagrangeRand.point(),
+            &alphaA = blindRand.alphaA(),
+            &alphaB = blindRand.alphaB(),
+            &alphaC = blindRand.alphaC(),
+            &rA = blindRand.rA(),
+            &rB = blindRand.rB(),
+            &rC = blindRand.rC(),
+            &beta = blindRand.beta(),
+            &gamma = blindRand.gamma();
 
         const QAP_SystemPoint<SYS, Fr> qap(constraintSystem, numCircuitInputs, point);
 
