@@ -28,10 +28,6 @@ class PPZK_Proof
     typedef typename PAIRING::G2 G2;
 
 public:
-    static PPZK_ProofRandomness<Fr> randomness() {
-        return PPZK_ProofRandomness<Fr>(0);
-    }
-
     PPZK_Proof() = default;
 
     // used for libsnark proof tests and marshalling
