@@ -40,8 +40,12 @@ public:
         return ! (*this == other);
     }
 
+    Pairing operator- () const {
+        return Pairing<GA, GB>(G(), -H());
+    }
+
     bool isZero() const {
-        return *this == zero();
+        return G().isZero() && H().isZero();
     }
 
     static Pairing zero() {
@@ -76,6 +80,12 @@ template <typename GA, typename GB>
 Pairing<GA, GB> operator+ (const Pairing<GA, GB>& a, const Pairing<GA, GB>& b) {
     return Pairing<GA, GB>(a.G() + b.G(),
                            a.H() + b.H());
+}
+
+template <typename GA, typename GB>
+Pairing<GA, GB> operator- (const Pairing<GA, GB>& a, const Pairing<GA, GB>& b) {
+    return Pairing<GA, GB>(a.G() - b.G(),
+                           a.H() - b.H());
 }
 
 template <typename T, typename GA, typename GB>
