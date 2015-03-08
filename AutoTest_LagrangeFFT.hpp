@@ -47,7 +47,7 @@ public:
 
 private:
     const std::size_t m_min_size;
-    LagrangeFFT<T, T> m_FFT;
+    LagrangeFFT<T> m_FFT;
     const std::size_t m_FFT_min_size;
     std::vector<U> m_A;
     std::vector<T> m_B;
@@ -90,7 +90,7 @@ public:
 
 private:
     const std::size_t m_min_size;
-    LagrangeFFT<T, T> m_FFT;
+    LagrangeFFT<T> m_FFT;
     const std::size_t m_FFT_min_size;
     std::vector<U> m_A;
     std::vector<T> m_B;
@@ -136,7 +136,7 @@ public:
 
 private:
     const std::size_t m_min_size;
-    LagrangeFFT<T, T> m_FFT;
+    LagrangeFFT<T> m_FFT;
     const std::size_t m_FFT_min_size;
     std::vector<U> m_A;
     std::vector<T> m_B;
@@ -184,7 +184,7 @@ public:
 
 private:
     const std::size_t m_min_size;
-    LagrangeFFT<T, T> m_FFT;
+    LagrangeFFT<T> m_FFT;
     const std::size_t m_FFT_min_size;
     std::vector<U> m_A;
     std::vector<T> m_B;
@@ -229,7 +229,7 @@ public:
 
 private:
     const std::size_t m_min_size;
-    LagrangeFFT<T, T> m_FFT;
+    LagrangeFFT<T> m_FFT;
     U m_A;
     const T m_B;
 };
@@ -261,7 +261,7 @@ public:
 
 private:
     const std::size_t m_min_size;
-    LagrangeFFT<T, T> m_FFT;
+    LagrangeFFT<T> m_FFT;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -297,7 +297,7 @@ public:
 
 private:
     const std::size_t m_min_size;
-    LagrangeFFT<T, T> m_FFT;
+    LagrangeFFT<T> m_FFT;
     U m_A;
     const T m_B;
 };
@@ -347,7 +347,7 @@ public:
 
 private:
     const std::size_t m_min_size;
-    LagrangeFFT<T, T> m_FFT;
+    LagrangeFFT<T> m_FFT;
     const std::size_t m_FFT_min_size;
     U m_A;
     const T m_B;
@@ -392,7 +392,7 @@ public:
 
 private:
     const std::size_t m_min_size;
-    LagrangeFFT<T, T> m_FFT;
+    LagrangeFFT<T> m_FFT;
     const std::size_t m_FFT_min_size;
     std::vector<U> m_PA;
     std::vector<T> m_PB;
