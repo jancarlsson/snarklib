@@ -273,6 +273,15 @@ public:
                           callback);
     }
 
+    // blinded greek products are windowed exponentiation table generators
+    void accumTable(const WindowExp<G1>& g1_table,
+                    const BlockVector<Fr>& qap_query, // QAP query A, B, C
+                    ProgressCallback* callback = nullptr) {
+        g1_table.batchExp(m_vec,
+                          qap_query,
+                          callback);
+    }
+
     void batchSpecial() {
         snarklib::batchSpecial(m_vec.lvec());
     }
