@@ -312,7 +312,7 @@ std::vector<T> qap_query_IC(const QAP<T>& qap,
     return vec;
 }
 
-template <template <typename> class SYS, typename T>
+template <typename T>
 class QAP_QueryIC
 {
 public:
@@ -321,6 +321,11 @@ public:
                 const T& random_A)
         : m_vec(qap.numCircuitInputs() + 1, T::zero()),
           m_random_A(random_A)
+    {}
+
+    // blinded random_A is windowed exponentiation table generator
+    QAP_QueryIC(const QAP<T>& qap)
+        : QAP_QueryIC{qap, T::one()}
     {}
 
     // only need to accumulate blocks within number of circuit inputs
@@ -375,7 +380,7 @@ std::vector<T> qap_query_K(const QAP<T>& qap,
     return vec;
 }
 
-template <template <typename> class SYS, typename T>
+template <typename T>
 class QAP_QueryK
 {
 public:
