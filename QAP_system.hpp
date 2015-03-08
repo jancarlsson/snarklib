@@ -24,12 +24,12 @@ public:
     std::size_t numVariables() const { return m_numVariables; }
     std::size_t numCircuitInputs() const { return m_numCircuitInputs; }
 
-    const LagrangeFFT<T, T>& FFT() const { return m_FFT; }
+    const LagrangeFFT<T>& FFT() const { return m_FFT; }
 
 protected:
     QAP(const R1System<T>& constraintSystem,
         const std::size_t numCircuitInputs)
-        : m_degree(LagrangeFFT<T, T>::getDegree(constraintSystem.constraints().size() + 1)),
+        : m_degree(LagrangeFFT<T>::getDegree(constraintSystem.constraints().size() + 1)),
           m_numVariables(constraintSystem.maxIndex()),
           m_numCircuitInputs(numCircuitInputs),
           m_FFT(m_degree)
@@ -37,7 +37,7 @@ protected:
 
     QAP(const HugeSystem<T>& hugeSystem,
         const std::size_t numCircuitInputs)
-        : m_degree(LagrangeFFT<T, T>::getDegree(hugeSystem.totalConstraints() + 1)),
+        : m_degree(LagrangeFFT<T>::getDegree(hugeSystem.totalConstraints() + 1)),
           m_numVariables(hugeSystem.maxIndex()),
           m_numCircuitInputs(numCircuitInputs),
           m_FFT(m_degree)
@@ -45,7 +45,7 @@ protected:
 
 private:
     std::size_t m_degree, m_numVariables, m_numCircuitInputs;
-    LagrangeFFT<T, T> m_FFT;
+    LagrangeFFT<T> m_FFT;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
