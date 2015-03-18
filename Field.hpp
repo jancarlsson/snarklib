@@ -6,6 +6,7 @@
 #include <istream>
 #include <ostream>
 #include <string>
+#include <vector>
 
 namespace snarklib {
 
@@ -183,6 +184,16 @@ public:
         std::array<T, N> a;
         for (auto& r : a) {
             r = T::random();
+        }
+
+        return a;
+    }
+
+    template <typename UINT>
+    static Field<T, N> random(std::vector<UINT>& v) {
+        std::array<T, N> a;
+        for (auto& r : a) {
+            r = T::random(v);
         }
 
         return a;
