@@ -36,8 +36,17 @@ public:
           m_encoded_terms(encoded_terms)
     {}
 
+    // clear
     PPZK_QueryIC(const std::vector<Fr>& qap_query) // QAP query IC
         : m_base(qap_query[0] * G1::one()),
+          m_coeffs(qap_query.begin() + 1, qap_query.end()),
+          m_encoded_terms(qap_query.size() - 1, G1::zero())
+    {}
+
+    // blinded
+    PPZK_QueryIC(const std::vector<Fr>& qap_query, // QAP query IC
+                 const G1& random_rA)
+        : m_base(qap_query[0] * random_rA),
           m_coeffs(qap_query.begin() + 1, qap_query.end()),
           m_encoded_terms(qap_query.size() - 1, G1::zero())
     {}
@@ -165,16 +174,16 @@ private:
 
 template <typename GA, typename GB, typename FR>
 SparseVector<Pairing<GA, GB>> ppzk_query_ABC(const std::vector<FR>& qap_query,
-                                             const FR& random_v,
-                                             const FR& random_alpha,
+                                             const FR& random_rX,
+                                             const FR& random_alphaX_rX,
                                              const WindowExp<GA>& ga_table,
                                              const WindowExp<GB>& gb_table,
                                              ProgressCallback* callback = nullptr)
 {
     return batchExp(ga_table,
                     gb_table,
-                    random_v,
-                    random_v * random_alpha,
+                    random_rX,
+                    random_alphaX_rX,
                     qap_query,
                     callback);
 }
@@ -184,11 +193,16 @@ class PPZK_QueryABC
 {
 public:
     PPZK_QueryABC(const BlockVector<FR>& qap_query, // QAP query A, B, C
-                  const FR& random_v,
-                  const FR& random_alpha)
+                  const FR& random_rX,
+                  const FR& random_alphaX_rX)
         : m_qap_query(qap_query),
-          m_random_v(random_v),
-          m_random_alpha(random_alpha)
+          m_random_rX(random_rX),
+          m_random_alphaX_rX(random_alphaX_rX)
+    {}
+
+    // blinded random parameters appear as windowed exponentiation generators
+    PPZK_QueryABC(const BlockVector<FR>& qap_query) // QAP query A, B, C
+        : PPZK_QueryABC{qap_query, FR::one(), FR::one()}
     {}
 
     void accumTable(const WindowExp<GA>& ga_table,
@@ -197,16 +211,16 @@ public:
         if (m_vec.empty()) {
             m_vec = batchExp(ga_table,
                              gb_table,
-                             m_random_v,
-                             m_random_v * m_random_alpha,
+                             m_random_rX,
+                             m_random_alphaX_rX,
                              m_qap_query,
                              callback);
         } else {
             batchExp(m_vec,
                      ga_table,
                      gb_table,
-                     m_random_v,
-                     m_random_v * m_random_alpha,
+                     m_random_rX,
+                     m_random_alphaX_rX,
                      m_qap_query,
                      callback);
         }
@@ -220,8 +234,7 @@ public:
 
 private:
     const BlockVector<FR>& m_qap_query;
-    const FR& m_random_v;
-    const FR& m_random_alpha;
+    const FR m_random_rX, m_random_alphaX_rX;
     SparseVector<Pairing<GA, GB>> m_vec;
 };
 
@@ -261,21 +274,17 @@ class PPZK_QueryHK
     typedef typename PAIRING::G1 G1;
 
 public:
-    PPZK_QueryHK(const BlockVector<Fr>& qap_query) // QAP query H, K
-        : m_qap_query(qap_query),
-          m_vec(qap_query.space(), qap_query.block())
+    PPZK_QueryHK(const IndexSpace<1>& space, const std::size_t block)
+        : m_vec(space, block)
     {}
 
-    void accumTable(const WindowExp<G1>& g1_table,
-                    ProgressCallback* callback = nullptr) {
-        g1_table.batchExp(m_vec,
-                          m_qap_query,
-                          callback);
-    }
+    PPZK_QueryHK(const BlockVector<Fr>& qap_query)
+        : PPZK_QueryHK{qap_query.space(), qap_query.block()[0]}
+    {}
 
     // blinded greek products are windowed exponentiation table generators
     void accumTable(const WindowExp<G1>& g1_table,
-                    const BlockVector<Fr>& qap_query, // QAP query A, B, C
+                    const BlockVector<Fr>& qap_query,
                     ProgressCallback* callback = nullptr) {
         g1_table.batchExp(m_vec,
                           qap_query,
@@ -286,16 +295,14 @@ public:
         snarklib::batchSpecial(m_vec.lvec());
     }
 
+    bool empty() const { return m_vec.empty(); }
+
     const BlockVector<G1>& vec() const { return m_vec; }
     const std::vector<G1>& vvec() const { return m_vec.vec(); }
 
 private:
-    const BlockVector<Fr>& m_qap_query;
     BlockVector<G1> m_vec;
 };
-
-template <typename PAIRING> using PPZK_QueryH = PPZK_QueryHK<PAIRING>;
-template <typename PAIRING> using PPZK_QueryK = PPZK_QueryHK<PAIRING>;
 
 } // namespace snarklib
 
