@@ -5,11 +5,13 @@
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
+#include <functional>
 #include <gmp.h>
 #include <istream>
 #include <memory>
 #include <ostream>
 #include <string>
+#include <vector>
 #include "BigInt.hpp"
 #include "Field.hpp"
 
@@ -406,11 +408,35 @@ public:
     }
 
     static FpModel random() {
+        return random(
+            [] (BigInt<N>& b) {
+                b.randomize();
+            });
+    }
+
+    template <typename UINT>
+    static FpModel random(std::vector<UINT>& v) {
+        return random(
+            [&v] (BigInt<N>& b) {
+                b.randomize(v);
+            });
+    }
+
+    void marshal_out(std::ostream& os) const {
+        m_monty.marshal_out(os);
+    }
+
+    bool marshal_in(std::istream& is) {
+        return m_monty.marshal_in(is);
+    }
+
+private:
+    static FpModel random(std::function<void (BigInt<N>&)> func) {
         FpModel a;
 
         do
         {
-            a.m_monty.randomize();
+            func(a.m_monty);
 
             std::size_t bitno = BigInt<N>::maxBits();
 
@@ -425,15 +451,6 @@ public:
         return a;
     }
 
-    void marshal_out(std::ostream& os) const {
-        m_monty.marshal_out(os);
-    }
-
-    bool marshal_in(std::istream& is) {
-        return m_monty.marshal_in(is);
-    }
-
-private:
     void mulReduce(const BigInt<N>& other); // asm
 
     BigInt<N> m_monty;
