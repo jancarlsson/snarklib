@@ -103,11 +103,6 @@ public:
 
     bool operator! () const { return m_error; }
 
-    // only used by QAP_QueryIC<T>
-    void zeroElementA(const std::size_t index) {
-        m_vecA[index] = T::zero();
-    }
-
 private:
     void constraintLoop(const R1System<T>& S)
     {
@@ -295,18 +290,32 @@ std::size_t g2_exp_count(const QAP_QueryABC<SYS, T>& ABCt) {
 
 template <template <typename> class SYS, typename T>
 std::vector<T> qap_query_IC(const QAP<T>& qap,
-                            QAP_QueryABC<SYS, T>& ABCt,
-                            const T& random_A)
+                            const QAP_QueryABC<SYS, T>& ABCt,
+                            const T& random_rA)
 {
     std::vector<T> vec(qap.numCircuitInputs() + 1, T::zero());
 
     // circuit inputs from At query vector
     for (std::size_t i = 0; i < vec.size(); ++i) {
-        vec[i] = ABCt.vecA()[3 + i] * random_A;
+        vec[i] = ABCt.vecA()[3 + i] * random_rA;
+
 #ifdef USE_ASSERT
         assert(! vec[i].isZero());
 #endif
-        ABCt.zeroElementA(3 + i);
+    }
+
+    return vec;
+}
+
+template <template <typename> class SYS, typename T>
+std::vector<T> qap_query_IC(const QAP<T>& qap,
+                            const QAP_QueryABC<SYS, T>& ABCt)
+{
+    auto vec = ABCt.vecA();
+
+    // zero out the circuit inputs
+    for (std::size_t i = 0; i < qap.numCircuitInputs() + 1; ++i) {
+        vec[3 + i] = T::zero();
     }
 
     return vec;
@@ -318,9 +327,9 @@ class QAP_QueryIC
 public:
     // use with accumVector() to avoid having all vectors in memory
     QAP_QueryIC(const QAP<T>& qap,
-                const T& random_A)
+                const T& random_rA)
         : m_vec(qap.numCircuitInputs() + 1, T::zero()),
-          m_random_A(random_A)
+          m_random_rA(random_rA)
     {}
 
     // blinded random_A is windowed exponentiation table generator
@@ -337,7 +346,7 @@ public:
 
         } else {
             for (std::size_t i = At.startIndex(); i < limit; ++i) {
-                m_vec[i] = At[3 + i] * m_random_A;
+                m_vec[i] = At[3 + i] * m_random_rA;
 #ifdef USE_ASSERT
                 assert(! m_vec[i].isZero());
 #endif
@@ -352,7 +361,7 @@ public:
 
 private:
     std::vector<T> m_vec;
-    const T& m_random_A;
+    const T m_random_rA;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -362,19 +371,17 @@ private:
 template <template <typename> class SYS, typename T>
 std::vector<T> qap_query_K(const QAP<T>& qap,
                            const QAP_QueryABC<SYS, T>& ABCt,
-                           const T& random_A,
-                           const T& random_B,
-                           const T& random_beta)
+                           const T& random_beta_rA,
+                           const T& random_beta_rB,
+                           const T& random_beta_rC)
 {
-    const T random_C = random_A * random_B;
-
     std::vector<T> vec(3 + qap.numVariables() + 1, T::zero());
 
     for (std::size_t i = 0; i < vec.size(); ++i) {
-        vec[i] = random_beta *
-            (random_A * ABCt.vecA()[i] +
-             random_B * ABCt.vecB()[i] +
-             random_C * ABCt.vecC()[i]);
+        vec[i] =
+            random_beta_rA * ABCt.vecA()[i] +
+            random_beta_rB * ABCt.vecB()[i] +
+            random_beta_rC * ABCt.vecC()[i];
     }
 
     return vec;
@@ -386,14 +393,13 @@ class QAP_QueryK
 public:
     // use with accumVector() to avoid having all vectors in memory
     QAP_QueryK(const QAP<T>& qap,
-               const T& random_A,
-               const T& random_B,
-               const T& random_beta)
+               const T& random_beta_rA,
+               const T& random_beta_rB,
+               const T& random_beta_rC)
         : m_vec(3 + qap.numVariables() + 1, T::zero()),
-          m_random_A(random_A),
-          m_random_B(random_B),
-          m_random_C(random_A * random_B),
-          m_random_beta(random_beta)
+          m_random_beta_rA(random_beta_rA),
+          m_random_beta_rB(random_beta_rB),
+          m_random_beta_rC(random_beta_rC)
     {}
 
     // must accumulate all blocks
@@ -408,10 +414,10 @@ public:
 #endif
 
         for (std::size_t i = At.startIndex(); i < At.stopIndex(); ++i) {
-            m_vec[i] = m_random_beta *
-                (m_random_A * At[i] +
-                 m_random_B * Bt[i] +
-                 m_random_C * Ct[i]);
+            m_vec[i] =
+                m_random_beta_rA * At[i] +
+                m_random_beta_rB * Bt[i] +
+                m_random_beta_rC * Ct[i];
         }
     }
 
@@ -419,10 +425,9 @@ public:
 
 private:
     std::vector<T> m_vec;
-    const T& m_random_A;
-    const T& m_random_B;
-    const T m_random_C;
-    const T& m_random_beta;
+    const T& m_random_beta_rA;
+    const T& m_random_beta_rB;
+    const T& m_random_beta_rC;
 };
 
 } // namespace snarklib
