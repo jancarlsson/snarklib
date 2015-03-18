@@ -70,44 +70,66 @@ class PPZK_BlindGreeks
 public:
     PPZK_BlindGreeks() = default;
 
+    PPZK_BlindGreeks(const PPZK_BlindGreeks<FR, FR>& other)
+        : m_rA(other.rA() * BLIND::one()),
+          m_rB(other.rB() * BLIND::one()),
+          m_rC(other.rC() * BLIND::one()),
+          m_alphaA(other.alphaA() * BLIND::one()),
+          m_alphaB(other.alphaB() * BLIND::one()),
+          m_alphaC(other.alphaC() * BLIND::one()),
+          m_beta(other.beta() * BLIND::one()),
+          m_gamma(other.gamma() * BLIND::one()),
+          m_alphaA_rA(other.alphaA_rA() * BLIND::one()),
+          m_alphaB_rB(other.alphaB_rB() * BLIND::one()),
+          m_alphaC_rC(other.alphaC_rC() * BLIND::one()),
+          m_beta_rA(other.beta_rA() * BLIND::one()),
+          m_beta_rB(other.beta_rB() * BLIND::one()),
+          m_beta_rC(other.beta_rC() * BLIND::one()),
+          m_beta_gamma(other.beta_gamma() * BLIND::one())
+    {}
+
     PPZK_BlindGreeks(const int dummy)
-        : m_rB(FR::random() * BLIND::one()),
-          m_gamma(FR::random() * BLIND::one())
     {
         const auto
+            rA = FR::random(),
+            rB = FR::random(),
             alphaA = FR::random(),
             alphaB = FR::random(),
             alphaC = FR::random(),
-            rA = FR::random(),
-            beta = FR::random();
+            beta = FR::random(),
+            gamma = FR::random();
+
+        const auto rC = rA * rB;
+
+        m_rA = rA * BLIND::one();
+        m_rB = rB * BLIND::one();
+        m_rC = rC * BLIND::one();
 
         m_alphaA = alphaA * BLIND::one();
         m_alphaB = alphaB * BLIND::one();
         m_alphaC = alphaC * BLIND::one();
 
-        m_rA = rA * BLIND::one();
-        m_rC = rA * m_rB;
-
         m_beta = beta * BLIND::one();
+        m_gamma = gamma * BLIND::one();
 
-        m_alphaA_rA = alphaA * m_rA;
-        m_alphaB_rB = alphaB * m_rB;
-        m_alphaC_rC = alphaC * m_rC;
+        m_alphaA_rA = (alphaA * rA) * BLIND::one();
+        m_alphaB_rB = (alphaB * rB) * BLIND::one();
+        m_alphaC_rC = (alphaC * rC) * BLIND::one();
 
-        m_beta_rA = beta * m_rA;
-        m_beta_rB = beta * m_rB;
-        m_beta_rC = beta * m_rC;
+        m_beta_rA = (beta * rA) * BLIND::one();
+        m_beta_rB = (beta * rB) * BLIND::one();
+        m_beta_rC = (beta * rC) * BLIND::one();
 
-        m_beta_gamma = beta * m_gamma;
+        m_beta_gamma = (beta * gamma) * BLIND::one();
     }
-
-    const BLIND& alphaA() const { return m_alphaA; }
-    const BLIND& alphaB() const { return m_alphaB; }
-    const BLIND& alphaC() const { return m_alphaC; }
 
     const BLIND& rA() const { return m_rA; }
     const BLIND& rB() const { return m_rB; }
     const BLIND& rC() const { return m_rC; }
+
+    const BLIND& alphaA() const { return m_alphaA; }
+    const BLIND& alphaB() const { return m_alphaB; }
+    const BLIND& alphaC() const { return m_alphaC; }
 
     const BLIND& beta() const { return m_beta; }
     const BLIND& gamma() const { return m_gamma; }
@@ -123,13 +145,13 @@ public:
     const BLIND& beta_gamma() const { return m_beta_gamma; }
 
     void marshal_out(std::ostream& os) const {
-        alphaA().marshal_out(os);
-        alphaB().marshal_out(os);
-        alphaC().marshal_out(os);
-
         rA().marshal_out(os);
         rB().marshal_out(os);
         rC().marshal_out(os);
+
+        alphaA().marshal_out(os);
+        alphaB().marshal_out(os);
+        alphaC().marshal_out(os);
 
         beta().marshal_out(os);
         gamma().marshal_out(os);
@@ -147,13 +169,13 @@ public:
 
     bool marshal_in(std::istream& is) {
         return
-            m_alphaA.marshal_in(is) &&
-            m_alphaB.marshal_in(is) &&
-            m_alphaC.marshal_in(is) &&
-
             m_rA.marshal_in(is) &&
             m_rB.marshal_in(is) &&
             m_rC.marshal_in(is) &&
+
+            m_alphaA.marshal_in(is) &&
+            m_alphaB.marshal_in(is) &&
+            m_alphaC.marshal_in(is) &&
 
             m_beta.marshal_in(is) &&
             m_gamma.marshal_in(is) &&
@@ -170,13 +192,13 @@ public:
     }
 
     void clear() {
-        m_alphaA.clear();
-        m_alphaB.clear();
-        m_alphaC.clear();
-
         m_rA.clear();
         m_rB.clear();
         m_rC.clear();
+
+        m_alphaA.clear();
+        m_alphaB.clear();
+        m_alphaC.clear();
 
         m_beta.clear();
         m_gamma.clear();
@@ -194,13 +216,13 @@ public:
 
     bool empty() const {
         return
-            alphaA().isZero() ||
-            alphaB().isZero() ||
-            alphaC().isZero() ||
-
             rA().isZero() ||
             rB().isZero() ||
             rC().isZero() ||
+
+            alphaA().isZero() ||
+            alphaB().isZero() ||
+            alphaC().isZero() ||
 
             beta().isZero() ||
             gamma().isZero() ||
@@ -218,8 +240,8 @@ public:
 
 private:
     // random parameters
-    BLIND m_alphaA, m_alphaB, m_alphaC;
     BLIND m_rA, m_rB, m_rC;
+    BLIND m_alphaA, m_alphaB, m_alphaC;
     BLIND m_beta, m_gamma;
 
     // products of random parameters
