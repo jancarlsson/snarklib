@@ -6,6 +6,7 @@
 #include <climits>
 #include <cstdint>
 #include <cctype>
+#include <functional>
 #include <gmp.h>
 #include <iostream>
 #include <istream>
@@ -260,21 +261,31 @@ public:
     }
 
     BigInt<N>& randomize() {
+        std::random_device rd; // uses /dev/urandom
+
+        return randomize<unsigned int>(
+            [&rd] () {
+                return rd();
+            });
+    }
+
+    template <typename UINT>
+    BigInt<N>& randomize(std::vector<UINT>& v) {
 #ifdef USE_ASSERT
-        assert(GMP_NUMB_BITS == sizeof(mp_limb_t) * CHAR_BIT);
+        assert(sizeof(UINT) <= sizeof(mp_limb_t));
 #endif
 
-        std::random_device rd; // uses /dev/urandom
-        const std::size_t n = sizeof(mp_limb_t) / sizeof(unsigned int);
+        return randomize<UINT>(
+            [&v] () {
+                if (v.empty()) {
+                    return UINT(0);
 
-        for (auto& r : m_data) {
-            for (std::size_t i = 0; i < n; ++i) {
-                r <<= sizeof(unsigned int) * CHAR_BIT;
-                r |= rd();
-            }
-        }
-
-        return *this;
+                } else {
+                    const UINT r = v.back();
+                    v.resize(v.size() - 1);
+                    return r;
+                }
+            });
     }
 
     static BigInt<N> zero() {
@@ -288,6 +299,12 @@ public:
     static BigInt<N> random() {
         BigInt<N> a;
         return a.randomize();
+    }
+
+    template <typename T>
+    static BigInt<N> random(std::vector<T>& v) {
+        BigInt<N> a;
+        return a.randomize(v);
     }
 
     mp_limb_t* data() {
@@ -320,6 +337,24 @@ public:
     }
 
 private:
+    template <typename T>
+    BigInt<N>& randomize(std::function<T ()> func) {
+#ifdef USE_ASSERT
+        assert(GMP_NUMB_BITS == sizeof(mp_limb_t) * CHAR_BIT);
+#endif
+
+        const std::size_t n = sizeof(mp_limb_t) / sizeof(T);
+
+        for (auto& r : m_data) {
+            for (std::size_t i = 0; i < n; ++i) {
+                r <<= n * CHAR_BIT;
+                r |= func();
+            }
+        }
+
+        return *this;
+    }
+
     std::array<mp_limb_t, N> m_data;
 };
 
