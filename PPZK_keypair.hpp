@@ -53,65 +53,81 @@ public:
         // randomness
         const auto
             &point = lagrangeRand.point(),
-            &alphaA = blindRand.alphaA(),
-            &alphaB = blindRand.alphaB(),
-            &alphaC = blindRand.alphaC(),
             &rA = blindRand.rA(),
             &rB = blindRand.rB(),
             &rC = blindRand.rC(),
-            &beta = blindRand.beta(),
-            &gamma = blindRand.gamma();
+            &alphaA = blindRand.alphaA(),
+            &alphaB = blindRand.alphaB(),
+            &alphaC = blindRand.alphaC(),
+            &gamma = blindRand.gamma(),
+            &alphaA_rA = blindRand.alphaA_rA(),
+            &alphaB_rB = blindRand.alphaB_rB(),
+            &alphaC_rC = blindRand.alphaC_rC(),
+            &beta_rA = blindRand.beta_rA(),
+            &beta_rB = blindRand.beta_rB(),
+            &beta_rC = blindRand.beta_rC(),
+            &beta_gamma = blindRand.beta_gamma();
 
         const QAP_SystemPoint<SYS, Fr> qap(constraintSystem, numCircuitInputs, point);
 
         // ABCH
-        QAP_QueryABC<SYS, Fr> ABCt(qap); // changed by QAP_QueryIC side-effect
+        const QAP_QueryABC<SYS, Fr> ABCt(qap);
         const QAP_QueryH<SYS, Fr> Ht(qap);
 
         // step 8 - G1 window table
         dummy->major(true);
-        const WindowExp<G1> g1_table(g1_exp_count(qap, ABCt, Ht), callback);
+        const WindowExp<G1> g1_table(g1_exp_count(qap, ABCt, Ht), dummy);
 
         // step 7 - G2 window table
         dummy->major(true);
-        const WindowExp<G2> g2_table(g2_exp_count(ABCt), callback);
+        const WindowExp<G2> g2_table(g2_exp_count(ABCt), dummy);
 
-        // step 6 - K
-        dummy->major(true);
-        auto K = ppzk_query_HK<PAIRING>(qap_query_K(qap, ABCt, rA, rB, beta), g1_table, callback);
-#ifdef USE_ADD_SPECIAL
-        batchSpecial(K);
-#endif
-
-        // step 5 - input consistency (side-effect: modifies ABCt query vector A)
+        // step 6 - input consistency
         dummy->major(true);
         PPZK_QueryIC<PAIRING> ppzkIC(qap_query_IC(qap, ABCt, rA));
-        ppzkIC.accumTable(g1_table, callback);
+        ppzkIC.accumTable(g1_table, dummy);
 
-        // step 4 - A
+        // step 5 - A
         dummy->major(true);
-        auto A = ppzk_query_ABC(ABCt.vecA(), rA, alphaA, g1_table, g1_table, callback);
+        auto A = ppzk_query_ABC(qap_query_IC(qap, ABCt), rA, alphaA_rA,
+                                g1_table, g1_table,
+                                dummy);
 #ifdef USE_ADD_SPECIAL
         batchSpecial(A);
 #endif
 
-        // step 3 - B
+        // step 4 - B
         dummy->major(true);
-        auto B = ppzk_query_ABC(ABCt.vecB(), rB, alphaB, g2_table, g1_table, callback);
+        auto B = ppzk_query_ABC(ABCt.vecB(), rB, alphaB_rB,
+                                g2_table, g1_table,
+                                dummy);
 #ifdef USE_ADD_SPECIAL
         batchSpecial(B);
 #endif
 
-        // step 2 - C
+        // step 3 - C
         dummy->major(true);
-        auto C = ppzk_query_ABC(ABCt.vecC(), rC, alphaC, g1_table, g1_table, callback);
+        auto C = ppzk_query_ABC(ABCt.vecC(), rC, alphaC_rC,
+                                g1_table, g1_table,
+                                dummy);
 #ifdef USE_ADD_SPECIAL
         batchSpecial(C);
 #endif
 
-        // step 1 - H
+        // step 2 - H
         dummy->major(true);
-        auto H = ppzk_query_HK<PAIRING>(Ht.vec(), g1_table, callback);
+        auto H = ppzk_query_HK<PAIRING>(Ht.vec(),
+                                        g1_table,
+                                        dummy);
+
+        // step 1 - K
+        dummy->major(true);
+        auto K = ppzk_query_HK<PAIRING>(qap_query_K(qap, ABCt, beta_rA, beta_rB, beta_rC),
+                                        g1_table,
+                                        dummy);
+#ifdef USE_ADD_SPECIAL
+        batchSpecial(K);
+#endif
 
         m_pk = PPZK_ProvingKey<PAIRING>(std::move(A),
                                         std::move(B),
@@ -123,9 +139,9 @@ public:
                                              alphaB * G1::one(),
                                              alphaC * G2::one(),
                                              gamma * G2::one(),
-                                             (gamma * beta) * G1::one(),
-                                             (gamma * beta) * G2::one(),
-                                             (rC * qap.compute_Z()) * G2::one(),
+                                             beta_gamma * G1::one(),
+                                             beta_gamma * G2::one(),
+                                             qap.compute_Z() * (rC * G2::one()),
                                              std::move(ppzkIC));
     }
 
