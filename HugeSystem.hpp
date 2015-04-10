@@ -130,6 +130,12 @@ public:
             : readIndexFile(ifs);
     }
 
+    bool loadIndex(std::istream& is) {
+        return (!is)
+            ? !(m_error = true) // failure
+            : readIndexFile(is);
+    }
+
     void swap_AB() {
         mapLambda(
             [] (R1System<T>& S) -> bool {
@@ -172,6 +178,19 @@ public:
         return passThroughMode()
             ? func(m_r1system), true // ok
             : mapLambdaFiles(func);
+    }
+
+    // exposed public for hodur key pair index file
+    void writeIndexFile(std::ostream& os) const {
+        os << T::BaseType::numberLimbs() << std::endl
+           << T::BaseType::modulus() << std::endl
+           << filePrefix() << std::endl
+           << fileCount() << std::endl
+           << m_constraintsPerFile << std::endl
+           << m_totalConstraints << std::endl
+           << minIndex() << std::endl
+           << maxIndex() << std::endl
+           << numCircuitInputs() << std::endl;
     }
 
 private:
@@ -232,18 +251,15 @@ private:
         }
     }
 
-    void writeIndexFile(std::ostream& os) const {
-        os << filePrefix() << std::endl
-           << fileCount() << std::endl
-           << m_constraintsPerFile << std::endl
-           << m_totalConstraints << std::endl
-           << minIndex() << std::endl
-           << maxIndex() << std::endl
-           << numCircuitInputs() << std::endl;
-    }
-
     bool readIndexFile(std::istream& is) {
-        return (!(is >> m_filePrefix) ||
+        std::stringstream ssN, ssMOD;
+        ssN << T::BaseType::numberLimbs();
+        ssMOD << T::BaseType::modulus();
+        std::string N, MOD;
+
+        return (!(is >> N) || (ssN.str() != N) ||
+                !(is >> MOD) || (ssMOD.str() != MOD) ||
+                !(is >> m_filePrefix) ||
                 !(is >> m_fileCount) ||
                 !(is >> m_constraintsPerFile) ||
                 !(is >> m_totalConstraints) ||
