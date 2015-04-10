@@ -9,6 +9,8 @@
 #include <istream>
 #include <ostream>
 #include <set>
+#include <sstream>
+#include <string>
 #include <vector>
 
 namespace snarklib {
@@ -165,6 +167,10 @@ public:
     }
 
     void marshal_out(std::ostream& os) const {
+        // finite field signature
+        os << T::BaseType::numberLimbs() << std::endl
+           << T::BaseType::modulus() << std::endl;
+
         // variable assignment vector
         os << m_va.size() << std::endl;
         for (const auto& a : m_va) {
@@ -179,6 +185,14 @@ public:
     }
 
     bool marshal_in(std::istream& is) {
+        // finite field signature
+        std::stringstream ssN, ssMOD;
+        ssN << T::BaseType::numberLimbs();
+        ssMOD << T::BaseType::modulus();
+        std::string N, MOD;
+        if (!(is >> N) || (ssN.str() != N) ||
+            !(is >> MOD) || (ssMOD.str() != MOD)) return false;
+
         // number of variable assignments
         std::size_t numberElems;
         is >> numberElems;
@@ -957,6 +971,10 @@ public:
     }
 
     void marshal_out(std::ostream& os) const {
+        // finite field signature
+        os << T::BaseType::numberLimbs() << std::endl
+           << T::BaseType::modulus() << std::endl;
+
         // number of constraints
         os << m_constraints.size() << std::endl;
 
@@ -973,6 +991,14 @@ public:
     }
 
     bool marshal_in(std::istream& is) {
+        // finite field signature
+        std::stringstream ssN, ssMOD;
+        ssN << T::BaseType::numberLimbs();
+        ssMOD << T::BaseType::modulus();
+        std::string N, MOD;
+        if (!(is >> N) || (ssN.str() != N) ||
+            !(is >> MOD) || (ssMOD.str() != MOD)) return false;
+
         // number of constraints
         std::size_t len;
         is >> len;
