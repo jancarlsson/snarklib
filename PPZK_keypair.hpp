@@ -92,27 +92,18 @@ public:
         auto A = ppzk_query_ABC(qap_query_IC(qap, ABCt), rA, alphaA_rA,
                                 g1_table, g1_table,
                                 dummy);
-#ifdef USE_ADD_SPECIAL
-        batchSpecial(A);
-#endif
 
         // step 4 - B
         dummy->major(true);
         auto B = ppzk_query_ABC(ABCt.vecB(), rB, alphaB_rB,
                                 g2_table, g1_table,
                                 dummy);
-#ifdef USE_ADD_SPECIAL
-        batchSpecial(B);
-#endif
 
         // step 3 - C
         dummy->major(true);
         auto C = ppzk_query_ABC(ABCt.vecC(), rC, alphaC_rC,
                                 g1_table, g1_table,
                                 dummy);
-#ifdef USE_ADD_SPECIAL
-        batchSpecial(C);
-#endif
 
         // step 2 - H
         dummy->major(true);
@@ -125,9 +116,6 @@ public:
         auto K = ppzk_query_HK<PAIRING>(qap_query_K(qap, ABCt, beta_rA, beta_rB, beta_rC),
                                         g1_table,
                                         dummy);
-#ifdef USE_ADD_SPECIAL
-        batchSpecial(K);
-#endif
 
         m_pk = PPZK_ProvingKey<PAIRING>(std::move(A),
                                         std::move(B),
@@ -159,14 +147,14 @@ public:
     }
 
     void marshal_out(std::ostream& os) const {
-        pk().marshal_out(os);
-        vk().marshal_out(os);
+        pk().marshal_out_rawspecial(os);
+        vk().marshal_out_raw(os);
     }
 
     bool marshal_in(std::istream& is) {
         return
-            m_pk.marshal_in(is) &&
-            m_vk.marshal_in(is);
+            m_pk.marshal_in_rawspecial(is) &&
+            m_vk.marshal_in_raw(is);
     }
 
     void clear() {
