@@ -341,14 +341,31 @@ void add_Marshalling(AutoTestBattery& ATB)
 {
     for (size_t i = 0; i < 2; ++i) {
         ATB.addTest(new AutoTest_Marshal_SparseVectorPairing<GA, GB>(rd() % 100, rd() % 10));
+        ATB.addTest(new AutoTest_Marshal_SparseVectorPairing_raw<GA, GB>(rd() % 100, rd() % 10));
+        ATB.addTest(new AutoTest_Marshal_SparseVectorPairing_special<GA, GB>(rd() % 100, rd() % 10));
+        ATB.addTest(new AutoTest_Marshal_SparseVectorPairing_rawspecial<GA, GB>(rd() % 100, rd() % 10));
         ATB.addTest(new AutoTest_Marshal_BFG<BigInt<N>>);
         ATB.addTest(new AutoTest_Marshal_BFG<F>);
         ATB.addTest(new AutoTest_Marshal_BFG<GA>);
         ATB.addTest(new AutoTest_Marshal_BFG<GB>);
+        ATB.addTest(new AutoTest_Marshal_BFG_raw<BigInt<N>>);
+        ATB.addTest(new AutoTest_Marshal_BFG_raw<F>);
+        ATB.addTest(new AutoTest_Marshal_BFG_raw<GA>);
+        ATB.addTest(new AutoTest_Marshal_BFG_raw<GB>);
+        ATB.addTest(new AutoTest_Marshal_vectorG<GA>(rd() % 100));
+        ATB.addTest(new AutoTest_Marshal_vectorG<GB>(rd() % 100));
+        ATB.addTest(new AutoTest_Marshal_vectorG_raw<GA>(rd() % 100));
+        ATB.addTest(new AutoTest_Marshal_vectorG_raw<GB>(rd() % 100));
         ATB.addTest(new AutoTest_Marshal_Pairing<GA, GB>);
+        ATB.addTest(new AutoTest_Marshal_Pairing_raw<GA, GB>);
+        ATB.addTest(new AutoTest_Marshal_Pairing_special<GA, GB>);
+        ATB.addTest(new AutoTest_Marshal_Pairing_rawspecial<GA, GB>);
         ATB.addTest(new AutoTest_Marshal_ProvingKey<PAIRING>(rd() % 100, rd() % 10));
+        ATB.addTest(new AutoTest_Marshal_ProvingKey_raw<PAIRING>(rd() % 100, rd() % 10));
         ATB.addTest(new AutoTest_Marshal_QueryIC<PAIRING>(rd() % 100));
+        ATB.addTest(new AutoTest_Marshal_QueryIC_raw<PAIRING>(rd() % 100));
         ATB.addTest(new AutoTest_Marshal_VerificationKey<PAIRING>(rd() % 100));
+        ATB.addTest(new AutoTest_Marshal_VerificationKey_raw<PAIRING>(rd() % 100));
         ATB.addTest(new AutoTest_Marshal_Keypair<PAIRING>(rd() % 100, rd() % 10));
         ATB.addTest(new AutoTest_Marshal_Proof<PAIRING>);
         ATB.addTest(new AutoTest_Marshal_R1Witness<F>(rd() % 100));
