@@ -44,6 +44,15 @@ public:
         return Pairing<GA, GB>(G(), -H());
     }
 
+    void toSpecial() {
+        m_G.toSpecial();
+        m_H.toSpecial();
+    }
+
+    bool isSpecial() const {
+        return G().isSpecial() && H().isSpecial();
+    }
+
     bool isZero() const {
         return G().isZero() && H().isZero();
     }
@@ -65,6 +74,43 @@ public:
         return
             m_G.marshal_in(is) &&
             m_H.marshal_in(is);
+    }
+
+    void marshal_out_raw(std::ostream& os) const {
+        G().marshal_out_raw(os);
+        H().marshal_out_raw(os);
+    }
+
+    bool marshal_in_raw(std::istream& is) {
+        return
+            m_G.marshal_in_raw(is) &&
+            m_H.marshal_in_raw(is);
+    }
+
+    // affine representation
+    void marshal_out_special(std::ostream& os) const {
+        G().marshal_out_special(os);
+        H().marshal_out_special(os);
+    }
+
+    // affine representation
+    bool marshal_in_special(std::istream& is) {
+        return
+            m_G.marshal_in_special(is) &&
+            m_H.marshal_in_special(is);
+    }
+
+    // affine representation with raw data
+    void marshal_out_rawspecial(std::ostream& os) const {
+        G().marshal_out_rawspecial(os);
+        H().marshal_out_rawspecial(os);
+    }
+
+    // affine representation with raw data
+    bool marshal_in_rawspecial(std::istream& is) {
+        return
+            m_G.marshal_in_rawspecial(is) &&
+            m_H.marshal_in_rawspecial(is);
     }
 
 private:
