@@ -192,6 +192,61 @@ public:
             m_Z.marshal_in(is);
     }
 
+    void marshal_out_raw(std::ostream& os) const {
+        x().marshal_out_raw(os);
+        y().marshal_out_raw(os);
+        z().marshal_out_raw(os);
+    }
+
+    bool marshal_in_raw(std::istream& is) {
+        return
+            m_X.marshal_in_raw(is) &&
+            m_Y.marshal_in_raw(is) &&
+            m_Z.marshal_in_raw(is);
+    }
+
+    // affine representation
+    void marshal_out_special(std::ostream& os) const {
+        x().marshal_out(os);
+        y().marshal_out(os);
+
+        os << z().isZero() << std::endl;
+    }
+
+    // affine representation
+    bool marshal_in_special(std::istream& is) {
+        bool z_is_zero;
+        if (!m_X.marshal_in(is) ||
+            !m_Y.marshal_in(is) ||
+            !(is >> z_is_zero))
+            return false;
+
+        m_Z = z_is_zero ? BASE::zero() : BASE::one();
+
+        return true;
+    }
+
+    // affine representation with raw data
+    void marshal_out_rawspecial(std::ostream& os) const {
+        x().marshal_out_raw(os);
+        y().marshal_out_raw(os);
+
+        os.put(z().isZero() ? '0' : '1');
+    }
+
+    // affine representation with raw data
+    bool marshal_in_rawspecial(std::istream& is) {
+        char z_is_zero;
+        if (!m_X.marshal_in_raw(is) ||
+            !m_Y.marshal_in_raw(is) ||
+            !is.get(z_is_zero))
+            return false;
+
+        m_Z = ('0' == z_is_zero) ? BASE::zero() : BASE::one();
+
+        return true;
+    }
+
 private:
     BASE m_X, m_Y, m_Z;
 };
@@ -242,6 +297,120 @@ bool marshal_in(std::istream& is,
     for (std::size_t i = 0; i < numberElems; ++i) {
         Group<BASE, SCALAR, CURVE> g;
         if (!g.marshal_in(is)) return false;
+        a.emplace_back(g);
+    }
+
+    return true; // ok
+}
+
+template <typename BASE, typename SCALAR, typename CURVE>
+void marshal_out_raw(std::ostream& os,
+                     const std::vector<Group<BASE, SCALAR, CURVE>>& a) {
+    // size
+    os << a.size();
+
+    // space
+    os.put(' ');
+
+    // group vector
+    for (const auto& g : a) {
+        g.marshal_out_raw(os);
+    }
+}
+
+template <typename BASE, typename SCALAR, typename CURVE>
+bool marshal_in_raw(std::istream& is,
+                    std::vector<Group<BASE, SCALAR, CURVE>>& a) {
+    // size
+    std::size_t numberElems;
+    if (!(is >> numberElems)) return false;
+
+    // space
+    char c;
+    if (!is.get(c) || (' ' != c)) return false;
+
+    // group vector
+    a.clear();
+    a.reserve(numberElems);
+    for (std::size_t i = 0; i < numberElems; ++i) {
+        Group<BASE, SCALAR, CURVE> g;
+        if (!g.marshal_in_raw(is)) return false;
+        a.emplace_back(g);
+    }
+
+    return true; // ok
+}
+
+template <typename BASE, typename SCALAR, typename CURVE>
+void marshal_out_special(std::ostream& os,
+                         const std::vector<Group<BASE, SCALAR, CURVE>>& a) {
+    // size
+    os << a.size();
+
+    // space
+    os.put(' ');
+
+    // group vector
+    for (const auto& g : a) {
+        g.marshal_out_special(os);
+    }
+}
+
+template <typename BASE, typename SCALAR, typename CURVE>
+bool marshal_in_special(std::istream& is,
+                        std::vector<Group<BASE, SCALAR, CURVE>>& a) {
+    // size
+    std::size_t numberElems;
+    if (!(is >> numberElems)) return false;
+
+    // space
+    char c;
+    if (!is.get(c) || (' ' != c)) return false;
+
+    // group vector
+    a.clear();
+    a.reserve(numberElems);
+    for (std::size_t i = 0; i < numberElems; ++i) {
+        Group<BASE, SCALAR, CURVE> g;
+        if (!g.marshal_in_special(is)) return false;
+        a.emplace_back(g);
+    }
+
+    return true; // ok
+}
+
+template <typename BASE, typename SCALAR, typename CURVE>
+void marshal_out_rawspecial(std::ostream& os,
+                            const std::vector<Group<BASE, SCALAR, CURVE>>& a) {
+    // size
+    os << a.size();
+
+    // space
+    os.put(' ');
+
+    // group vector
+    for (const auto& g : a) {
+        g.marshal_out_rawspecial(os);
+    }
+}
+
+template <typename BASE, typename SCALAR, typename CURVE>
+bool marshal_in_rawspecial(std::istream& is,
+                           std::vector<Group<BASE, SCALAR, CURVE>>& a) {
+    // size
+    std::size_t numberElems;
+    if (!(is >> numberElems)) return false;
+
+    // space
+    char c;
+    if (!is.get(c) || (' ' != c)) return false;
+
+    // group vector
+    a.clear();
+    a.reserve(numberElems);
+    for (std::size_t i = 0; i < numberElems; ++i) {
+        Group<BASE, SCALAR, CURVE> g;
+        if (!g.marshal_in_rawspecial(is)) return false;
         a.emplace_back(g);
     }
 
