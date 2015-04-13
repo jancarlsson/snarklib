@@ -55,13 +55,19 @@ public:
 
     void marshal_out(std::ostream& os) const {
         // variable index
-        os << m_index << std::endl;
+        os << m_index;
+
+        // space
+        os.put(' ');
     }
 
     bool marshal_in(std::istream& is) {
         // variable index
-        is >> m_index;
-        return !!is;
+        if (!(is >> m_index)) return false;
+
+        // space
+        char c;
+        return !!is.get(c) && (' ' == c);
     }
 
 private:
@@ -172,15 +178,17 @@ public:
            << T::BaseType::modulus() << std::endl;
 
         // variable assignment vector
-        os << m_va.size() << std::endl;
-        for (const auto& a : m_va) {
-            os << a << std::endl;
+        os << m_va.size(); // size
+        os.put(' '); // space
+        for (const auto& r : m_va) {
+            r.marshal_out_raw(os);
         }
+        os << std::endl;
 
         // unset indices set
         os << m_unsetIdx.size() << std::endl;
-        for (const auto& a : m_unsetIdx) {
-            os << a << std::endl;
+        for (const auto& r : m_unsetIdx) {
+            os << r << std::endl;
         }
     }
 
@@ -195,26 +203,27 @@ public:
 
         // number of variable assignments
         std::size_t numberElems;
-        is >> numberElems;
-        if (!is) return false;
+        if (!(is >> numberElems)) return false;
+
+        // space
+        char c;
+        if (!is.get(c) || (' ' != c)) return false;
 
         // variable assignment vector
         m_va.resize(numberElems);
         for (auto& r : m_va) {
-            if (! r.marshal_in(is)) return false;
+            if (! r.marshal_in_raw(is)) return false;
         }
 
         // number of unset indices
         std::size_t numberIdx;
-        is >> numberIdx;
-        if (!is) return false;
+        if (!(is >> numberIdx)) return false;
 
         // unset indices set
         m_unsetIdx.clear();
         for (std::size_t i = 0; i < numberIdx; ++i) {
             std::size_t idx;
-            is >> idx;
-            if (!is) return false;
+            if (!(is >> idx)) return false;
             m_unsetIdx.insert(idx);
         }
 
@@ -300,13 +309,22 @@ public:
         m_var.marshal_out(os);
 
         // coefficient
-        os << m_coeff << std::endl;
+        m_coeff.marshal_out_raw(os);
+
+        // space
+        os.put(' ');
     }
 
     bool marshal_in(std::istream& is) {
-        return
-            m_var.marshal_in(is) && // variable
-            !!(is >> m_coeff);      // coefficient
+        // variable
+        if (! m_var.marshal_in(is)) return false;
+
+        // coefficient
+        if (! m_coeff.marshal_in_raw(is)) return false;
+
+        // space
+        char c;
+        return !!is.get(c) && (' ' == c);
     }
 
 private:
@@ -394,15 +412,14 @@ public:
         os << m_terms.size() << std::endl;
 
         // term vector
-        for (const auto& a : m_terms)
-            a.marshal_out(os);
+        for (const auto& r : m_terms)
+            r.marshal_out(os);
     }
 
     bool marshal_in(std::istream& is) {
         // number of terms
         std::size_t len;
-        is >> len;
-        if (!is) return false;
+        if (!(is >> len)) return false;
 
         // term vector
         m_terms.resize(len);
