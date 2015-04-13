@@ -151,6 +151,17 @@ public:
             snarklib::marshal_in(is, m_encoded_terms);
     }
 
+    void marshal_out_raw(std::ostream& os) const {
+        base().marshal_out_raw(os);
+        snarklib::marshal_out_raw(os, encoded_terms());
+    }
+
+    bool marshal_in_raw(std::istream& is) {
+        return
+            m_base.marshal_in_raw(is) &&
+            snarklib::marshal_in_raw(is, m_encoded_terms);
+    }
+
     void clear() {
         m_base = G1::zero();
         m_encoded_terms.clear();
@@ -192,6 +203,9 @@ template <typename GA, typename GB, typename FR>
 class PPZK_QueryABC
 {
 public:
+    typedef SparseVector<Pairing<GA, GB>> SparseVec;
+    typedef Pairing<GA, GB> Val;
+
     PPZK_QueryABC(const BlockVector<FR>& qap_query, // QAP query A, B, C
                   const FR& random_rX,
                   const FR& random_alphaX_rX)
