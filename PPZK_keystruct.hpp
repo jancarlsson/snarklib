@@ -1,6 +1,7 @@
 #ifndef _SNARKLIB_PPZK_KEYSTRUCT_HPP_
 #define _SNARKLIB_PPZK_KEYSTRUCT_HPP_
 
+#include <functional>
 #include <istream>
 #include <ostream>
 #include <utility>
@@ -36,7 +37,15 @@ public:
           m_C_query(C_query),
           m_H_query(H_query),
           m_K_query(K_query)
-    {}
+    {
+#ifdef USE_ADD_SPECIAL
+        batchSpecial(m_A_query);
+        batchSpecial(m_B_query);
+        batchSpecial(m_C_query);
+        batchSpecial(m_H_query);
+        batchSpecial(m_K_query);
+#endif
+    }
 
     // move semantics
     PPZK_ProvingKey(SparseVector<Pairing<G1, G1>>&& A_query,
@@ -49,7 +58,15 @@ public:
           m_C_query(std::move(C_query)),
           m_H_query(std::move(H_query)),
           m_K_query(std::move(K_query))
-    {}
+    {
+#ifdef USE_ADD_SPECIAL
+        batchSpecial(m_A_query);
+        batchSpecial(m_B_query);
+        batchSpecial(m_C_query);
+        batchSpecial(m_H_query);
+        batchSpecial(m_K_query);
+#endif
+    }
 
     const SparseVector<Pairing<G1, G1>>& A_query() const { return m_A_query; }
     const SparseVector<Pairing<G2, G1>>& B_query() const { return m_B_query; }
@@ -86,6 +103,155 @@ public:
             snarklib::marshal_in(is, m_H_query) &&
             snarklib::marshal_in(is, m_K_query);
     }
+
+    void marshal_out_raw(std::ostream& os) const {
+        A_query().marshal_out(
+            os,
+            [] (std::ostream& o, const Pairing<G1, G1>& a) {
+                a.marshal_out_raw(o);
+            });
+        
+        B_query().marshal_out(
+            os,
+            [] (std::ostream& o, const Pairing<G2, G1>& a) {
+                a.marshal_out_raw(o);
+            });
+
+        C_query().marshal_out(
+            os,
+            [] (std::ostream& o, const Pairing<G1, G1>& a) {
+                a.marshal_out_raw(o);
+            });
+
+        snarklib::marshal_out_raw(os, m_H_query);
+
+        snarklib::marshal_out_raw(os, m_K_query);
+    }
+
+    bool marshal_in_raw(std::istream& is) {
+        return
+            m_A_query.marshal_in(
+                is,
+                [] (std::istream& i, Pairing<G1, G1>& a) {
+                    return a.marshal_in_raw(i);
+                })
+            &&
+            m_B_query.marshal_in(
+                is,
+                [] (std::istream& i, Pairing<G2, G1>& a) {
+                    return a.marshal_in_raw(i);
+                })
+            &&
+            m_C_query.marshal_in(
+                is,
+                [] (std::istream& i, Pairing<G1, G1>& a) {
+                    return a.marshal_in_raw(i);
+                })
+            &&
+            snarklib::marshal_in_raw(is, m_H_query)
+            &&
+            snarklib::marshal_in_raw(is, m_K_query);
+    }
+
+#ifdef USE_ADD_SPECIAL
+    void marshal_out_special(std::ostream& os) const {
+        A_query().marshal_out(
+            os,
+            [] (std::ostream& o, const Pairing<G1, G1>& a) {
+                a.marshal_out_special(o);
+            });
+        
+        B_query().marshal_out(
+            os,
+            [] (std::ostream& o, const Pairing<G2, G1>& a) {
+                a.marshal_out_special(o);
+            });
+
+        C_query().marshal_out(
+            os,
+            [] (std::ostream& o, const Pairing<G1, G1>& a) {
+                a.marshal_out_special(o);
+            });
+
+        snarklib::marshal_out_special(os, m_H_query);
+
+        snarklib::marshal_out_special(os, m_K_query);
+    }
+
+    bool marshal_in_special(std::istream& is) {
+        return
+            m_A_query.marshal_in(
+                is,
+                [] (std::istream& i, Pairing<G1, G1>& a) {
+                    return a.marshal_in_special(i);
+                })
+            &&
+            m_B_query.marshal_in(
+                is,
+                [] (std::istream& i, Pairing<G2, G1>& a) {
+                    return a.marshal_in_special(i);
+                })
+            &&
+            m_C_query.marshal_in(
+                is,
+                [] (std::istream& i, Pairing<G1, G1>& a) {
+                    return a.marshal_in_special(i);
+                })
+            &&
+            snarklib::marshal_in_special(is, m_H_query)
+            &&
+            snarklib::marshal_in_special(is, m_K_query);
+    }
+
+    void marshal_out_rawspecial(std::ostream& os) const {
+        A_query().marshal_out(
+            os,
+            [] (std::ostream& o, const Pairing<G1, G1>& a) {
+                a.marshal_out_rawspecial(o);
+            });
+        
+        B_query().marshal_out(
+            os,
+            [] (std::ostream& o, const Pairing<G2, G1>& a) {
+                a.marshal_out_rawspecial(o);
+            });
+
+        C_query().marshal_out(
+            os,
+            [] (std::ostream& o, const Pairing<G1, G1>& a) {
+                a.marshal_out_rawspecial(o);
+            });
+
+        snarklib::marshal_out_rawspecial(os, m_H_query);
+
+        snarklib::marshal_out_rawspecial(os, m_K_query);
+    }
+
+    bool marshal_in_rawspecial(std::istream& is) {
+        return
+            m_A_query.marshal_in(
+                is,
+                [] (std::istream& i, Pairing<G1, G1>& a) {
+                    return a.marshal_in_rawspecial(i);
+                })
+            &&
+            m_B_query.marshal_in(
+                is,
+                [] (std::istream& i, Pairing<G2, G1>& a) {
+                    return a.marshal_in_rawspecial(i);
+                })
+            &&
+            m_C_query.marshal_in(
+                is,
+                [] (std::istream& i, Pairing<G1, G1>& a) {
+                    return a.marshal_in_rawspecial(i);
+                })
+            &&
+            snarklib::marshal_in_rawspecial(is, m_H_query)
+            &&
+            snarklib::marshal_in_rawspecial(is, m_K_query);
+    }
+#endif
 
     void clear() {
         m_A_query.clear();
@@ -213,6 +379,29 @@ public:
             m_gamma_beta_g2.marshal_in(is) &&
             m_rC_Z_g2.marshal_in(is) &&
             m_encoded_IC_query.marshal_in(is);
+    }
+
+    void marshal_out_raw(std::ostream& os) const {
+        alphaA_g2().marshal_out_raw(os);
+        alphaB_g1().marshal_out_raw(os);
+        alphaC_g2().marshal_out_raw(os);
+        gamma_g2().marshal_out_raw(os);
+        gamma_beta_g1().marshal_out_raw(os);
+        gamma_beta_g2().marshal_out_raw(os);
+        rC_Z_g2().marshal_out_raw(os);
+        encoded_IC_query().marshal_out_raw(os);
+    }
+
+    bool marshal_in_raw(std::istream& is) {
+        return
+            m_alphaA_g2.marshal_in_raw(is) &&
+            m_alphaB_g1.marshal_in_raw(is) &&
+            m_alphaC_g2.marshal_in_raw(is) &&
+            m_gamma_g2.marshal_in_raw(is) &&
+            m_gamma_beta_g1.marshal_in_raw(is) &&
+            m_gamma_beta_g2.marshal_in_raw(is) &&
+            m_rC_Z_g2.marshal_in_raw(is) &&
+            m_encoded_IC_query.marshal_in_raw(is);
     }
 
     void clear() {
