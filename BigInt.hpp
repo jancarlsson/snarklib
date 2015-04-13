@@ -48,7 +48,7 @@ public:
         m_data[0] = a;
     }
 
-    // string
+    // string (decimal number)
     explicit BigInt(const std::string& base10)
         : BigInt{}
     {
@@ -334,6 +334,59 @@ public:
         *this = s;
 
         return true; // ok
+    }
+
+    // raw format is little-endian
+    void marshal_out_raw(std::ostream& os) const {
+        // endianness test
+        const int test_i = 1;
+        if (0 == *reinterpret_cast<const char*>(std::addressof(test_i))) {
+
+            // big-endian
+            for (const auto& r : m_data) {
+                mp_limb_t a = r;
+                for (std::size_t i = 0; i < sizeof(a); ++i) {
+                    os.put(a & 0xff);
+                    a >>= 8;
+                }
+            }
+
+        } else {
+            // little-endian
+            os.write(
+                reinterpret_cast<const char*>(m_data.data()),
+                sizeof(m_data));
+        }
+    }
+
+    // raw format is little-endian
+    bool marshal_in_raw(std::istream& is) {
+        // endianness test
+        const int test_i = 1;
+        if (0 == *reinterpret_cast<const char*>(std::addressof(test_i))) {
+
+            // big-endian
+            char c;
+            for (auto& r : m_data) {
+                mp_limb_t a = 0;
+                if (!is.get(c)) return false;
+                a |= c;
+                for (size_t i = 1; i < sizeof(a); ++i) {
+                    a <<= 8;
+                    if (!is.get(c)) return false;
+                    a |= c;
+                }
+                r = a;
+            }
+
+            return true; // ok
+
+        } else {
+            // little-endian
+            return !!is.read(
+                reinterpret_cast<char*>(m_data.data()),
+                sizeof(m_data));
+        }
     }
 
 private:
