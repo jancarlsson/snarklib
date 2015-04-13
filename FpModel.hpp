@@ -430,6 +430,14 @@ public:
         return m_monty.marshal_in(is);
     }
 
+    void marshal_out_raw(std::ostream& os) const {
+        m_monty.marshal_out_raw(os);
+    }
+
+    bool marshal_in_raw(std::istream& is) {
+        return m_monty.marshal_in_raw(is);
+    }
+
 private:
     static FpModel random(std::function<void (BigInt<N>&)> func) {
         FpModel a;
