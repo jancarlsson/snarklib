@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <iostream>
 #include <istream>
 #include <ostream>
@@ -195,6 +196,20 @@ public:
     }
 
     void marshal_out(std::ostream& os) const {
+        marshal_out(
+            os,
+            [] (std::ostream& o, const T& a) { a.marshal_out(o); });
+    }
+
+    bool marshal_in(std::istream& is) {
+        return marshal_in(
+            is,
+            [] (std::istream& i, T& a) { return a.marshal_in(i); });
+    }
+
+    void marshal_out(std::ostream& os,
+                     std::function<void (std::ostream&, const T&)> func) const
+    {
         // size
         os << size() << std::endl;
 
@@ -203,18 +218,24 @@ public:
             os << a << std::endl;
         }
 
+        // mark
+        os << 1;
+
+        // space
+        os.put(' ');
+
         // value vector
         for (const auto& a : m_value) {
-            a.marshal_out(os);
-            os << std::endl;
+            func(os, a);
         }
     }
 
-    bool marshal_in(std::istream& is) {
+    bool marshal_in(std::istream& is,
+                    std::function<bool (std::istream&, T&)> func)
+    {
         // size
         std::size_t numberElems;
-        is >> numberElems;
-        if (!is) return false;
+        if (!(is >> numberElems)) return false;
 
         // index vector
         m_index.resize(numberElems);
@@ -222,10 +243,18 @@ public:
             if (!(is >> m_index[i])) return false;
         }
 
+        // mark
+        int mark;
+        if (!(is >> mark) || (1 != mark)) return false;
+
+        // space
+        char c;
+        if (!is.get(c) || (' ' != c)) return false;
+
         // value vector
         m_value.resize(numberElems);
         for (std::size_t i = 0; i < numberElems; ++i) {
-            if (! m_value[i].marshal_in(is)) return false;
+            if (! func(is, m_value[i])) return false;
         }
 
         return true; // ok
@@ -345,23 +374,50 @@ public:
     }
 
     void marshal_out(std::ostream& os) const {
+        marshal_out(
+            os,
+            [] (std::ostream& o, const T& a) {
+                a.marshal_out(o);
+            });
+    }
+
+    bool marshal_in(std::istream& is) {
+        return marshal_in(
+            is,
+            [] (std::istream& i, T& a) {
+                return a.marshal_in(i);
+            });
+    }
+
+    void marshal_out(std::ostream& os,
+                     std::function<void (std::ostream&, const T&)> func) const
+    {
         // index space
         m_space.marshal_out(os);
 
         // block
-        os << m_block[0] << std::endl;
+        os << m_block[0];
+
+        // space
+        os.put(' ');
 
         // value
         for (const auto& a : m_value)
-            a.marshal_out(os);
+            func(os, a);
     }
 
-    bool marshal_in(std::istream& is) {
+    bool marshal_in(std::istream& is,
+                    std::function<bool (std::istream&, T&)> func)
+    {
         // index space
         if (! m_space.marshal_in(is)) return false;
 
         // block
         if (!(is >> m_block[0])) return false;
+
+        // space
+        char c;
+        if (!is.get(c) || (' ' != c)) return false;
 
         // start and stop
         m_startIndex = m_space.indexOffset(m_block)[0];
@@ -371,7 +427,7 @@ public:
         const std::size_t len = m_stopIndex - m_startIndex;
         m_value.resize(len);
         for (std::size_t i = 0; i < len; ++i) {
-            if (! m_value[i].marshal_in(is)) return false;
+            if (! func(is, m_value[i])) return false;
         }
 
         return true; // ok
