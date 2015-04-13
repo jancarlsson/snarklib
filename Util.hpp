@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstdint>
 #include <fstream>
+#include <functional>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -68,7 +69,8 @@ void batch_invert(std::vector<T>& vec) {
 template <typename T>
 bool write_blockvector(const std::string& filePrefix,
                        const IndexSpace<1>& space,
-                       const std::vector<T>& a)
+                       const std::vector<T>& a,
+                       std::function<void (std::ostream&, const T&)> func)
 {
 #ifdef USE_ASSERT
     assert(space.globalID()[0] <= a.size());
@@ -78,7 +80,7 @@ bool write_blockvector(const std::string& filePrefix,
 
     // consecutively numbered filenames, one per block
     space.mapLambda(
-        [&status, &filePrefix, &space, &a] (std::size_t global, std::size_t block) {
+        [&status, &filePrefix, &space, &a, &func] (std::size_t global, std::size_t block) {
             std::stringstream ss;
             ss << filePrefix << block;
 
@@ -87,11 +89,55 @@ bool write_blockvector(const std::string& filePrefix,
                 status = false; // failure
             } else {
                 BlockVector<T> v(space, block, a);
-                v.marshal_out(ofs);
+                v.marshal_out(ofs, func);
             }
         });
 
     return status;
+}
+
+// block partition a vector in memory and write out to disk as files
+template <typename T>
+bool write_blockvector(const std::string& filePrefix,
+                       const IndexSpace<1>& space,
+                       const std::vector<T>& v)
+{
+    return write_blockvector<T>(
+        filePrefix, space, v,
+        [] (std::ostream& o, const T& a) { a.marshal_out(o); });
+}
+
+// block partition a vector in memory and write out to disk as files
+template <typename T>
+bool write_blockvector_raw(const std::string& filePrefix,
+                           const IndexSpace<1>& space,
+                           const std::vector<T>& v)
+{
+    return write_blockvector<T>(
+        filePrefix, space, v,
+        [] (std::ostream& o, const T& a) { a.marshal_out_raw(o); });
+}
+
+// block partition a vector in memory and write out to disk as files
+template <typename T>
+bool write_blockvector_special(const std::string& filePrefix,
+                               const IndexSpace<1>& space,
+                               const std::vector<T>& v)
+{
+    return write_blockvector<T>(
+        filePrefix, space, v,
+        [] (std::ostream& o, const T& a) { a.marshal_out_special(o); });
+}
+
+// block partition a vector in memory and write out to disk as files
+template <typename T>
+bool write_blockvector_rawspecial(const std::string& filePrefix,
+                                  const IndexSpace<1>& space,
+                                  const std::vector<T>& v)
+{
+    return write_blockvector<T>(
+        filePrefix, space, v,
+        [] (std::ostream& o, const T& a) { a.marshal_out_rawspecial(o); });
 }
 
 // write a single block partition to a file
@@ -99,7 +145,8 @@ template <typename T>
 bool write_blockvector(const std::string& filePrefix,
                        const std::size_t block,
                        const IndexSpace<1>& space,
-                       const std::vector<T>& a)
+                       const std::vector<T>& a,
+                       std::function<void (std::ostream&, const T&)> func)
 {
 #ifdef USE_ASSERT
     assert(space.globalID()[0] <= a.size());
@@ -113,10 +160,72 @@ bool write_blockvector(const std::string& filePrefix,
         return false; // failure
     } else {
         BlockVector<T> v(space, block, a);
-        v.marshal_out(ofs);
+        v.marshal_out(ofs, func);
     }
 
     return true;
+}
+
+// write a single block partition to a file
+template <typename T>
+bool write_blockvector(const std::string& filePrefix,
+                       const std::size_t block,
+                       const IndexSpace<1>& space,
+                       const std::vector<T>& v)
+{
+    return write_blockvector<T>(
+        filePrefix, block, space, v,
+        [] (std::ostream& o, const T& a) { a.marshal_out(o); });
+}
+
+// write a single block partition to a file
+template <typename T>
+bool write_blockvector_raw(const std::string& filePrefix,
+                           const std::size_t block,
+                           const IndexSpace<1>& space,
+                           const std::vector<T>& v)
+{
+    return write_blockvector<T>(
+        filePrefix, block, space, v,
+        [] (std::ostream& o, const T& a) { a.marshal_out_raw(o); });
+}
+
+// write a single block partition to a file
+template <typename T>
+bool write_blockvector_special(const std::string& filePrefix,
+                               const std::size_t block,
+                               const IndexSpace<1>& space,
+                               const std::vector<T>& v)
+{
+    return write_blockvector<T>(
+        filePrefix, block, space, v,
+        [] (std::ostream& o, const T& a) { a.marshal_out_special(o); });
+}
+
+// write a single block partition to a file
+template <typename T>
+bool write_blockvector_rawspecial(const std::string& filePrefix,
+                                  const std::size_t block,
+                                  const IndexSpace<1>& space,
+                                  const std::vector<T>& v)
+{
+    return write_blockvector<T>(
+        filePrefix, block, space, v,
+        [] (std::ostream& o, const T& a) { a.marshal_out_rawspecial(o); });
+}
+
+// read a block vector partition from a file
+template <typename T>
+bool read_blockvector(const std::string& filePrefix,
+                      const std::size_t block,
+                      BlockVector<T>& v,
+                      std::function<bool (std::istream&, T&)> func)
+{
+    std::stringstream ss;
+    ss << filePrefix << block;
+
+    std::ifstream ifs(ss.str());
+    return !!ifs && v.marshal_in(ifs, func);
 }
 
 // read a block vector partition from a file
@@ -125,11 +234,42 @@ bool read_blockvector(const std::string& filePrefix,
                       const std::size_t block,
                       BlockVector<T>& v)
 {
-    std::stringstream ss;
-    ss << filePrefix << block;
+    return read_blockvector<T>(
+        filePrefix, block, v,
+        [] (std::istream& i, T& a) { return a.marshal_in(i); });
+}
 
-    std::ifstream ifs(ss.str());
-    return !!ifs && v.marshal_in(ifs);
+// read a block vector partition from a file
+template <typename T>
+bool read_blockvector_raw(const std::string& filePrefix,
+                          const std::size_t block,
+                          BlockVector<T>& v)
+{
+    return read_blockvector<T>(
+        filePrefix, block, v,
+        [] (std::istream& i, T& a) { return a.marshal_in_raw(i); });
+}
+
+// read a block vector partition from a file
+template <typename T>
+bool read_blockvector_special(const std::string& filePrefix,
+                              const std::size_t block,
+                              BlockVector<T>& v)
+{
+    return read_blockvector<T>(
+        filePrefix, block, v,
+        [] (std::istream& i, T& a) { return a.marshal_in_special(i); });
+}
+
+// read a block vector partition from a file
+template <typename T>
+bool read_blockvector_rawspecial(const std::string& filePrefix,
+                                 const std::size_t block,
+                                 BlockVector<T>& v)
+{
+    return read_blockvector<T>(
+        filePrefix, block, v,
+        [] (std::istream& i, T& a) { return a.marshal_in_rawspecial(i); });
 }
 
 } // namespace snarklib
