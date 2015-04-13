@@ -212,6 +212,19 @@ public:
         return true; // ok
     }
 
+    void marshal_out_raw(std::ostream& os) const {
+        for (const auto& a : m_A)
+            a.marshal_out_raw(os);
+    }
+
+    bool marshal_in_raw(std::istream& is) {
+        for (auto& a : m_A) {
+            if (!a.marshal_in_raw(is)) return false;
+        }
+
+        return true; // ok
+    }
+
 private:
     std::array<T, N> m_A;
 };
@@ -265,6 +278,44 @@ bool marshal_in(std::istream& is,
     for (std::size_t i = 0; i < numberElems; ++i) {
         Field<T, N> f;
         if (!f.marshal_in(is)) return false;
+        a.emplace_back(f);
+    }
+
+    return true; // ok
+}
+
+template <typename T, std::size_t N>
+void marshal_out_raw(std::ostream& os,
+                     const std::vector<Field<T, N>>& a) {
+    // size
+    os << a.size();
+
+    // space
+    os.put(' ');
+
+    // field vector
+    for (const auto& f : a) {
+        f.marshal_out_raw(os);
+    }
+}
+
+template <typename T, std::size_t N>
+bool marshal_in_raw(std::istream& is,
+                    std::vector<Field<T, N>>& a) {
+    // size
+    std::size_t numberElems;
+    if (!(is >> numberElems)) return false;
+
+    // space
+    char c;
+    if (!is.get(c) || (' ' != c)) return false;
+
+    // field vector
+    a.clear();
+    a.reserve(numberElems);
+    for (std::size_t i = 0; i < numberElems; ++i) {
+        Field<T, N> f;
+        if (!f.marshal_in_raw(is)) return false;
         a.emplace_back(f);
     }
 
