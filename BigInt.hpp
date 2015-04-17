@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 #include "AsmMacros.hpp"
+#include "Util.hpp"
 
 namespace snarklib {
 
@@ -338,54 +339,43 @@ public:
 
     // raw format is little-endian
     void marshal_out_raw(std::ostream& os) const {
-        // endianness test
-        const int test_i = 1;
-        if (0 == *reinterpret_cast<const char*>(std::addressof(test_i))) {
+        const char *ptr = reinterpret_cast<const char*>(m_data.data());
+
+        if (is_big_endian<int>()) {
 
             // big-endian
-            for (const auto& r : m_data) {
-                mp_limb_t a = r;
-                for (std::size_t i = 0; i < sizeof(a); ++i) {
-                    os.put(a & 0xff);
-                    a >>= 8;
+            for (std::size_t i = 0; i < N; ++i) {
+                for (int j = sizeof(mp_limb_t) - 1; j >= 0; --j) {
+                    os.put(ptr[i * sizeof(mp_limb_t) + j]);
                 }
             }
 
         } else {
             // little-endian
-            os.write(
-                reinterpret_cast<const char*>(m_data.data()),
-                sizeof(m_data));
+            os.write(ptr, sizeof(m_data));
         }
     }
 
     // raw format is little-endian
     bool marshal_in_raw(std::istream& is) {
+        char *ptr = reinterpret_cast<char*>(m_data.data());
+
         // endianness test
-        const int test_i = 1;
-        if (0 == *reinterpret_cast<const char*>(std::addressof(test_i))) {
+        if (is_big_endian<int>()) {
 
             // big-endian
-            char c;
-            for (auto& r : m_data) {
-                mp_limb_t a = 0;
-                if (!is.get(c)) return false;
-                a |= c;
-                for (size_t i = 1; i < sizeof(a); ++i) {
-                    a <<= 8;
-                    if (!is.get(c)) return false;
-                    a |= c;
+            for (std::size_t i = 0; i < N; ++i) {
+                for (int j = sizeof(mp_limb_t) - 1; j >= 0; --j) {
+                    if (! is.get(ptr[i * sizeof(mp_limb_t) + j]))
+                        return false;
                 }
-                r = a;
             }
 
             return true; // ok
 
         } else {
             // little-endian
-            return !!is.read(
-                reinterpret_cast<char*>(m_data.data()),
-                sizeof(m_data));
+            return !!is.read(ptr, sizeof(m_data));
         }
     }
 
