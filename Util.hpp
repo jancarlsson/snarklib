@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <fstream>
 #include <functional>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -63,6 +64,13 @@ void batch_invert(std::vector<T>& vec) {
         vec[i] = accum_inv * prod[i];
         accum_inv = accum_inv * orig;
     }
+}
+
+// returns true if big-endian
+template <typename T>
+bool is_big_endian() {
+    const T test_value = 1;
+    return 0 == *reinterpret_cast<const char*>(std::addressof(test_value));
 }
 
 // block partition a vector in memory and write out to disk as files
