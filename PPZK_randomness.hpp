@@ -29,11 +29,11 @@ public:
     }
 
     void marshal_out(std::ostream& os) const {
-        point().marshal_out(os);
+        point().marshal_out_raw(os);
     }
 
     bool marshal_in(std::istream& is) {
-        return m_point.marshal_in(is);
+        return m_point.marshal_in_raw(is);
     }
 
     void clear() {
@@ -145,50 +145,50 @@ public:
     const BLIND& beta_gamma() const { return m_beta_gamma; }
 
     void marshal_out(std::ostream& os) const {
-        rA().marshal_out(os);
-        rB().marshal_out(os);
-        rC().marshal_out(os);
+        rA().marshal_out_raw(os);
+        rB().marshal_out_raw(os);
+        rC().marshal_out_raw(os);
 
-        alphaA().marshal_out(os);
-        alphaB().marshal_out(os);
-        alphaC().marshal_out(os);
+        alphaA().marshal_out_raw(os);
+        alphaB().marshal_out_raw(os);
+        alphaC().marshal_out_raw(os);
 
-        beta().marshal_out(os);
-        gamma().marshal_out(os);
+        beta().marshal_out_raw(os);
+        gamma().marshal_out_raw(os);
 
-        alphaA_rA().marshal_out(os);
-        alphaB_rB().marshal_out(os);
-        alphaC_rC().marshal_out(os);
+        alphaA_rA().marshal_out_raw(os);
+        alphaB_rB().marshal_out_raw(os);
+        alphaC_rC().marshal_out_raw(os);
 
-        beta_rA().marshal_out(os);
-        beta_rB().marshal_out(os);
-        beta_rC().marshal_out(os);
+        beta_rA().marshal_out_raw(os);
+        beta_rB().marshal_out_raw(os);
+        beta_rC().marshal_out_raw(os);
 
-        beta_gamma().marshal_out(os);
+        beta_gamma().marshal_out_raw(os);
     }
 
     bool marshal_in(std::istream& is) {
         return
-            m_rA.marshal_in(is) &&
-            m_rB.marshal_in(is) &&
-            m_rC.marshal_in(is) &&
+            m_rA.marshal_in_raw(is) &&
+            m_rB.marshal_in_raw(is) &&
+            m_rC.marshal_in_raw(is) &&
 
-            m_alphaA.marshal_in(is) &&
-            m_alphaB.marshal_in(is) &&
-            m_alphaC.marshal_in(is) &&
+            m_alphaA.marshal_in_raw(is) &&
+            m_alphaB.marshal_in_raw(is) &&
+            m_alphaC.marshal_in_raw(is) &&
 
-            m_beta.marshal_in(is) &&
-            m_gamma.marshal_in(is) &&
+            m_beta.marshal_in_raw(is) &&
+            m_gamma.marshal_in_raw(is) &&
 
-            m_alphaA_rA.marshal_in(is) &&
-            m_alphaB_rB.marshal_in(is) &&
-            m_alphaC_rC.marshal_in(is) &&
+            m_alphaA_rA.marshal_in_raw(is) &&
+            m_alphaB_rB.marshal_in_raw(is) &&
+            m_alphaC_rC.marshal_in_raw(is) &&
 
-            m_beta_rA.marshal_in(is) &&
-            m_beta_rB.marshal_in(is) &&
-            m_beta_rC.marshal_in(is) &&
+            m_beta_rA.marshal_in_raw(is) &&
+            m_beta_rB.marshal_in_raw(is) &&
+            m_beta_rC.marshal_in_raw(is) &&
 
-            m_beta_gamma.marshal_in(is);
+            m_beta_gamma.marshal_in_raw(is);
     }
 
     void clear() {
@@ -285,16 +285,16 @@ public:
     const FR& d3() const { return m_d3; }
 
     void marshal_out(std::ostream& os) const {
-        d1().marshal_out(os);
-        d2().marshal_out(os);
-        d3().marshal_out(os);
+        d1().marshal_out_raw(os);
+        d2().marshal_out_raw(os);
+        d3().marshal_out_raw(os);
     }
 
     bool marshal_in(std::istream& is) {
         return
-            m_d1.marshal_in(is) &&
-            m_d2.marshal_in(is) &&
-            m_d3.marshal_in(is);
+            m_d1.marshal_in_raw(is) &&
+            m_d2.marshal_in_raw(is) &&
+            m_d3.marshal_in_raw(is);
     }
 
     void clear() {
