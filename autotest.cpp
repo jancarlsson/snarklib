@@ -488,5 +488,5 @@ int main(int argc, char *argv[])
         ATB.testLog(cout, testNumber);
     }
 
-    exit(EXIT_SUCCESS);
+    return EXIT_SUCCESS;
 }
