@@ -138,20 +138,20 @@ public:
     }
 
     void marshal_out(std::ostream& os) const {
-        A().marshal_out(os);
-        B().marshal_out(os);
-        C().marshal_out(os);
-        H().marshal_out(os);
-        K().marshal_out(os);
+        A().marshal_out_raw(os);
+        B().marshal_out_raw(os);
+        C().marshal_out_raw(os);
+        H().marshal_out_raw(os);
+        K().marshal_out_raw(os);
     }
 
     bool marshal_in(std::istream& is) {
         return
-            m_A.marshal_in(is) &&
-            m_B.marshal_in(is) &&
-            m_C.marshal_in(is) &&
-            m_H.marshal_in(is) &&
-            m_K.marshal_in(is);
+            m_A.marshal_in_raw(is) &&
+            m_B.marshal_in_raw(is) &&
+            m_C.marshal_in_raw(is) &&
+            m_H.marshal_in_raw(is) &&
+            m_K.marshal_in_raw(is);
     }
 
     void clear() {
