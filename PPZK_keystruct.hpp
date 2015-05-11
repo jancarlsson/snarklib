@@ -6,10 +6,11 @@
 #include <ostream>
 #include <utility>
 #include <vector>
-#include "AuxSTL.hpp"
-#include "Group.hpp"
-#include "Pairing.hpp"
-#include "PPZK_query.hpp"
+
+#include <snarklib/AuxSTL.hpp>
+#include <snarklib/Group.hpp>
+#include <snarklib/Pairing.hpp>
+#include <snarklib/PPZK_query.hpp>
 
 namespace snarklib {
 
@@ -38,13 +39,11 @@ public:
           m_H_query(H_query),
           m_K_query(K_query)
     {
-#ifdef USE_ADD_SPECIAL
         batchSpecial(m_A_query);
         batchSpecial(m_B_query);
         batchSpecial(m_C_query);
         batchSpecial(m_H_query);
         batchSpecial(m_K_query);
-#endif
     }
 
     // move semantics
@@ -59,13 +58,11 @@ public:
           m_H_query(std::move(H_query)),
           m_K_query(std::move(K_query))
     {
-#ifdef USE_ADD_SPECIAL
         batchSpecial(m_A_query);
         batchSpecial(m_B_query);
         batchSpecial(m_C_query);
         batchSpecial(m_H_query);
         batchSpecial(m_K_query);
-#endif
     }
 
     const SparseVector<Pairing<G1, G1>>& A_query() const { return m_A_query; }
@@ -153,7 +150,6 @@ public:
             snarklib::marshal_in_raw(is, m_K_query);
     }
 
-#ifdef USE_ADD_SPECIAL
     void marshal_out_special(std::ostream& os) const {
         A_query().marshal_out(
             os,
@@ -251,7 +247,6 @@ public:
             &&
             snarklib::marshal_in_rawspecial(is, m_K_query);
     }
-#endif
 
     void clear() {
         m_A_query.clear();
@@ -309,7 +304,16 @@ public:
           m_gamma_beta_g2(gamma_beta_g2),
           m_rC_Z_g2(rC_Z_g2),
           m_encoded_IC_query(encoded_IC_query)
-    {}
+    {
+        m_alphaA_g2.toSpecial();
+        m_alphaB_g1.toSpecial();
+        m_alphaC_g2.toSpecial();
+        m_gamma_g2.toSpecial();
+        m_gamma_beta_g1.toSpecial();
+        m_gamma_beta_g2.toSpecial();
+        m_rC_Z_g2.toSpecial();
+        m_encoded_IC_query.toSpecial();
+    }
 
     // move semantics
     PPZK_VerificationKey(const G2& alphaA_g2,
@@ -328,7 +332,16 @@ public:
           m_gamma_beta_g2(gamma_beta_g2),
           m_rC_Z_g2(rC_Z_g2),
           m_encoded_IC_query(std::move(encoded_IC_query))
-    {}
+    {
+        m_alphaA_g2.toSpecial();
+        m_alphaB_g1.toSpecial();
+        m_alphaC_g2.toSpecial();
+        m_gamma_g2.toSpecial();
+        m_gamma_beta_g1.toSpecial();
+        m_gamma_beta_g2.toSpecial();
+        m_rC_Z_g2.toSpecial();
+        m_encoded_IC_query.toSpecial();
+    }
 
     const G2& alphaA_g2() const { return m_alphaA_g2; }
     const G1& alphaB_g1() const { return m_alphaB_g1; }
@@ -402,6 +415,52 @@ public:
             m_gamma_beta_g2.marshal_in_raw(is) &&
             m_rC_Z_g2.marshal_in_raw(is) &&
             m_encoded_IC_query.marshal_in_raw(is);
+    }
+
+    void marshal_out_special(std::ostream& os) const {
+        alphaA_g2().marshal_out_special(os);
+        alphaB_g1().marshal_out_special(os);
+        alphaC_g2().marshal_out_special(os);
+        gamma_g2().marshal_out_special(os);
+        gamma_beta_g1().marshal_out_special(os);
+        gamma_beta_g2().marshal_out_special(os);
+        rC_Z_g2().marshal_out_special(os);
+        encoded_IC_query().marshal_out_special(os);
+    }
+
+    bool marshal_in_special(std::istream& is) {
+        return
+            m_alphaA_g2.marshal_in_special(is) &&
+            m_alphaB_g1.marshal_in_special(is) &&
+            m_alphaC_g2.marshal_in_special(is) &&
+            m_gamma_g2.marshal_in_special(is) &&
+            m_gamma_beta_g1.marshal_in_special(is) &&
+            m_gamma_beta_g2.marshal_in_special(is) &&
+            m_rC_Z_g2.marshal_in_special(is) &&
+            m_encoded_IC_query.marshal_in_special(is);
+    }
+
+    void marshal_out_rawspecial(std::ostream& os) const {
+        alphaA_g2().marshal_out_rawspecial(os);
+        alphaB_g1().marshal_out_rawspecial(os);
+        alphaC_g2().marshal_out_rawspecial(os);
+        gamma_g2().marshal_out_rawspecial(os);
+        gamma_beta_g1().marshal_out_rawspecial(os);
+        gamma_beta_g2().marshal_out_rawspecial(os);
+        rC_Z_g2().marshal_out_rawspecial(os);
+        encoded_IC_query().marshal_out_rawspecial(os);
+    }
+
+    bool marshal_in_rawspecial(std::istream& is) {
+        return
+            m_alphaA_g2.marshal_in_rawspecial(is) &&
+            m_alphaB_g1.marshal_in_rawspecial(is) &&
+            m_alphaC_g2.marshal_in_rawspecial(is) &&
+            m_gamma_g2.marshal_in_rawspecial(is) &&
+            m_gamma_beta_g1.marshal_in_rawspecial(is) &&
+            m_gamma_beta_g2.marshal_in_rawspecial(is) &&
+            m_rC_Z_g2.marshal_in_rawspecial(is) &&
+            m_encoded_IC_query.marshal_in_rawspecial(is);
     }
 
     void clear() {
