@@ -3,10 +3,11 @@
 
 #include <cstdint>
 #include <vector>
-#include "HugeSystem.hpp"
-#include "LagrangeFFT.hpp"
-#include "LagrangeFFTX.hpp"
-#include "Rank1DSL.hpp"
+
+#include <snarklib/HugeSystem.hpp>
+#include <snarklib/LagrangeFFT.hpp>
+#include <snarklib/LagrangeFFTX.hpp>
+#include <snarklib/Rank1DSL.hpp>
 
 namespace snarklib {
 
