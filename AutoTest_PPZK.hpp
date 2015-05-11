@@ -3,17 +3,24 @@
 
 #include <cstdint>
 #include <vector>
-#include "AutoTest.hpp"
-#include "AutoTest_R1CS.hpp"
-#include "AuxSTL.hpp"
-#include "common/types.hpp"
-#include "Pairing.hpp"
-#include "PPZK_keypair.hpp"
-#include "PPZK_keystruct.hpp"
-#include "PPZK_query.hpp"
-#include "PPZK_proof.hpp"
-#include "PPZK_verify.hpp"
-#include "r1cs_ppzksnark/r1cs_ppzksnark.hpp"
+
+#ifdef USE_OLD_LIBSNARK
+#include /*libsnark*/ "common/types.hpp"
+#include /*libsnark*/ "r1cs_ppzksnark/r1cs_ppzksnark.hpp"
+#else
+#include /*libsnark*/ "algebra/curves/public_params.hpp"
+#include /*libsnark*/ "zk_proof_systems/ppzksnark/r1cs_ppzksnark/r1cs_ppzksnark.hpp"
+#endif
+
+#include "snarklib/AutoTest.hpp"
+#include "snarklib/AutoTest_R1CS.hpp"
+#include "snarklib/AuxSTL.hpp"
+#include "snarklib/Pairing.hpp"
+#include "snarklib/PPZK_keypair.hpp"
+#include "snarklib/PPZK_keystruct.hpp"
+#include "snarklib/PPZK_query.hpp"
+#include "snarklib/PPZK_proof.hpp"
+#include "snarklib/PPZK_verify.hpp"
 
 namespace snarklib {
 
@@ -24,7 +31,11 @@ namespace snarklib {
 template <typename T, typename U>
 class AutoTest_PPZK_libsnark_only : public AutoTest
 {
+#ifdef USE_OLD_LIBSNARK
     typedef typename libsnark::default_pp PPT;
+#else
+    typedef typename libsnark::default_ec_pp PPT;
+#endif
 
 public:
     template <template <typename> class SYS>
@@ -44,10 +55,18 @@ public:
             = libsnark::r1cs_ppzksnark_verifier_process_vk<PPT>(
                 keypair.vk);
 
+#ifdef USE_OLD_LIBSNARK
         const auto proof
             = libsnark::r1cs_ppzksnark_prover<PPT>(
                 keypair.pk,
                 m_witness);
+#else
+        const auto proof
+            = libsnark::r1cs_ppzksnark_prover<PPT>(
+                keypair.pk,
+                m_input,
+                m_witness);
+#endif
 
         const auto ans_online
             = libsnark::r1cs_ppzksnark_online_verifier_strong_IC<PPT>(
@@ -75,7 +94,11 @@ class AutoTest_PPZK_strongVerify : public AutoTest
     typedef typename PAIRING::G1 G1;
     typedef typename PAIRING::G2 G2;
 
+#ifdef USE_OLD_LIBSNARK
     typedef typename libsnark::default_pp PPT;
+#else
+    typedef typename libsnark::default_ec_pp PPT;
+#endif
 
 public:
     AutoTest_PPZK_strongVerify(const AutoTestR1CS<SYS, Fr, U>& cs)
@@ -88,18 +111,38 @@ public:
             = libsnark::r1cs_ppzksnark_generator<PPT>(
                 m_constraintSystem.systemA());
 
+#ifdef USE_OLD_LIBSNARK
         const auto proof
             = libsnark::r1cs_ppzksnark_prover<PPT>(
                 keypair.pk,
                 m_constraintSystem.witnessA());
+#else
+        const auto proof
+            = libsnark::r1cs_ppzksnark_prover<PPT>(
+                keypair.pk,
+                m_constraintSystem.inputA(),
+                m_constraintSystem.witnessA());
+#endif
 
         // encoded IC query
         G1 base;
+#ifdef USE_OLD_LIBSNARK
         const size_t encSize = keypair.vk.encoded_IC_query->encoded_terms.size();
+#else
+        const size_t encSize = keypair.vk.encoded_IC_query.rest.size();
+#endif
         std::vector<G1> encoded_terms(encSize);
+#ifdef USE_OLD_LIBSNARK
         copyData(keypair.vk.encoded_IC_query->base, base);
+#else
+        copyData(keypair.vk.encoded_IC_query.first, base);
+#endif
         for (std::size_t i = 0; i < encSize; ++i) {
+#ifdef USE_OLD_LIBSNARK
             copyData(keypair.vk.encoded_IC_query->encoded_terms[i], encoded_terms[i]);
+#else
+            copyData(keypair.vk.encoded_IC_query.rest[i], encoded_terms[i]);
+#endif
         }
         const PPZK_QueryIC<PAIRING> icqB(base, encoded_terms);
 
@@ -163,7 +206,11 @@ class AutoTest_PPZK_ProofCompare : public AutoTest
     typedef typename PAIRING::G1 G1;
     typedef typename PAIRING::G2 G2;
 
+#ifdef USE_OLD_LIBSNARK
     typedef typename libsnark::default_pp PPT;
+#else
+    typedef typename libsnark::default_ec_pp PPT;
+#endif
 
 public:
     AutoTest_PPZK_ProofCompare(const AutoTestR1CS<SYS, Fr, U>& cs)
@@ -176,10 +223,18 @@ public:
             = libsnark::r1cs_ppzksnark_generator<PPT>(
                 m_constraintSystem.systemA());
 
+#ifdef USE_OLD_LIBSNARK
         const auto proof
             = libsnark::r1cs_ppzksnark_prover<PPT>(
                 keypair.pk,
                 m_constraintSystem.witnessA());
+#else
+        const auto proof
+            = libsnark::r1cs_ppzksnark_prover<PPT>(
+                keypair.pk,
+                m_constraintSystem.inputA(),
+                m_constraintSystem.witnessA());
+#endif
 
         // proof from original code
         G1 AG, AH, BH, CG, CH, H, K;
@@ -270,7 +325,11 @@ class AutoTest_PPZK_Proof : public AutoTest
     typedef typename PAIRING::G1 G1;
     typedef typename PAIRING::G2 G2;
 
+#ifdef USE_OLD_LIBSNARK
     typedef typename libsnark::default_pp PPT;
+#else
+    typedef typename libsnark::default_ec_pp PPT;
+#endif
 
 public:
     AutoTest_PPZK_Proof(const AutoTestR1CS<SYS, Fr, U>& cs)
@@ -287,11 +346,102 @@ public:
         SparseVector<Pairing<G1, G1>> A_query, C_query;
         SparseVector<Pairing<G2, G1>> B_query;
         std::vector<G1> H_query, K_query;
+#ifdef USE_OLD_LIBSNARK
         copyData(keypair.pk.A_query, A_query);
         copyData(keypair.pk.B_query, B_query);
         copyData(keypair.pk.C_query, C_query);
         copyData(keypair.pk.H_query, H_query);
         copyData(keypair.pk.K_query, K_query);
+#else
+        // new and old libsnark have different query vector formats
+        // new libsnark appends inhomogeneous Z values to the back
+        // old libsnark prepends inhomogeneous Z values to the front
+        // convert new format to old format which snarklib expects
+
+        // A
+        {
+            const auto Z = keypair.pk.A_query.values.back();
+            const auto len = keypair.pk.A_query.size();
+            A_query.reserve(len + 2);
+            G1 tmpG, tmpH;
+            copyData(Z.g, tmpG);
+            copyData(Z.h, tmpH);
+            A_query.pushBack(0, Pairing<G1, G1>(tmpG, tmpH));
+            A_query.pushBack(1, Pairing<G1, G1>::zero());
+            A_query.pushBack(2, Pairing<G1, G1>::zero());
+            for (std::size_t i = 0; i < len - 1; ++i) {
+                copyData(keypair.pk.A_query.values[i].g, tmpG);
+                copyData(keypair.pk.A_query.values[i].h, tmpH);
+
+                A_query.pushBack(
+                    keypair.pk.A_query.indices[i] + 3,
+                    Pairing<G1, G1>(tmpG, tmpH));
+            }
+        }
+
+        // B
+        {
+            const auto Z = keypair.pk.B_query.values.back();
+            const auto len = keypair.pk.B_query.size();
+            B_query.reserve(len + 2);
+            G2 tmpG;
+            G1 tmpH;
+            copyData(Z.g, tmpG);
+            copyData(Z.h, tmpH);
+            B_query.pushBack(0, Pairing<G2, G1>::zero());
+            B_query.pushBack(1, Pairing<G2, G1>(tmpG, tmpH));
+            B_query.pushBack(2, Pairing<G2, G1>::zero());
+            for (std::size_t i = 0; i < len - 1; ++i) {
+                copyData(keypair.pk.B_query.values[i].g, tmpG);
+                copyData(keypair.pk.B_query.values[i].h, tmpH);
+
+                B_query.pushBack(
+                    keypair.pk.B_query.indices[i] + 3,
+                    Pairing<G2, G1>(tmpG, tmpH));
+            }
+        }
+
+        // C
+        {
+            const auto Z = keypair.pk.C_query.values.back();
+            const auto len = keypair.pk.C_query.size();
+            C_query.reserve(len + 2);
+            G1 tmpG, tmpH;
+            copyData(Z.g, tmpG);
+            copyData(Z.h, tmpH);
+            C_query.pushBack(0, Pairing<G1, G1>::zero());
+            C_query.pushBack(1, Pairing<G1, G1>::zero());
+            C_query.pushBack(2, Pairing<G1, G1>(tmpG, tmpH));
+            for (std::size_t i = 0; i < len - 1; ++i) {
+                copyData(keypair.pk.C_query.values[i].g, tmpG);
+                copyData(keypair.pk.C_query.values[i].h, tmpH);
+
+                C_query.pushBack(
+                    keypair.pk.C_query.indices[i] + 3,
+                    Pairing<G1, G1>(tmpG, tmpH));
+            }
+        }
+
+        // H
+        copyData(keypair.pk.H_query, H_query);
+
+        // K
+        {
+            const auto lenK = keypair.pk.K_query.size();
+            K_query.reserve(lenK);
+            G1 tmpG;
+            copyData(keypair.pk.K_query[lenK - 3], tmpG);
+            K_query.emplace_back(tmpG);
+            copyData(keypair.pk.K_query[lenK - 2], tmpG);
+            K_query.emplace_back(tmpG);
+            copyData(keypair.pk.K_query[lenK - 1], tmpG);
+            K_query.emplace_back(tmpG);
+            for (std::size_t i = 0; i < lenK - 3; ++i) {
+                copyData(keypair.pk.K_query[i], tmpG);
+                K_query.emplace_back(tmpG);
+            }
+        }
+#endif
         const PPZK_ProvingKey<PAIRING> pkB(A_query,
                                            B_query,
                                            C_query,
@@ -300,11 +450,23 @@ public:
 
         // encoded IC query
         G1 base;
+#ifdef USE_OLD_LIBSNARK
         const size_t encSize = keypair.vk.encoded_IC_query->encoded_terms.size();
+#else
+        const size_t encSize = keypair.vk.encoded_IC_query.rest.size();
+#endif
         std::vector<G1> encoded_terms(encSize);
+#ifdef USE_OLD_LIBSNARK
         copyData(keypair.vk.encoded_IC_query->base, base);
+#else
+        copyData(keypair.vk.encoded_IC_query.first, base);
+#endif
         for (std::size_t i = 0; i < encSize; ++i) {
+#ifdef USE_OLD_LIBSNARK
             copyData(keypair.vk.encoded_IC_query->encoded_terms[i], encoded_terms[i]);
+#else
+            copyData(keypair.vk.encoded_IC_query.rest[i], encoded_terms[i]);
+#endif
         }
         const PPZK_QueryIC<PAIRING> icqB(base, encoded_terms);
 
@@ -358,7 +520,11 @@ class AutoTest_PPZK_full_redesign : public AutoTest
     typedef typename PAIRING::G1 G1;
     typedef typename PAIRING::G2 G2;
 
+#ifdef USE_OLD_LIBSNARK
     typedef typename libsnark::default_pp PPT;
+#else
+    typedef typename libsnark::default_ec_pp PPT;
+#endif
 
 public:
     AutoTest_PPZK_full_redesign(const AutoTestR1CS<SYS, Fr, U>& cs)
