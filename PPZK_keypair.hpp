@@ -5,16 +5,17 @@
 #include <istream>
 #include <memory>
 #include <ostream>
-#include "AuxSTL.hpp"
-#include "Group.hpp"
-#include "Pairing.hpp"
-#include "PPZK_keystruct.hpp"
-#include "PPZK_query.hpp"
-#include "PPZK_randomness.hpp"
-#include "ProgressCallback.hpp"
-#include "QAP_query.hpp"
-#include "Rank1DSL.hpp"
-#include "WindowExp.hpp"
+
+#include <snarklib/AuxSTL.hpp>
+#include <snarklib/Group.hpp>
+#include <snarklib/Pairing.hpp>
+#include <snarklib/PPZK_keystruct.hpp>
+#include <snarklib/PPZK_query.hpp>
+#include <snarklib/PPZK_randomness.hpp>
+#include <snarklib/ProgressCallback.hpp>
+#include <snarklib/QAP_query.hpp>
+#include <snarklib/Rank1DSL.hpp>
+#include <snarklib/WindowExp.hpp>
 
 namespace snarklib {
 
@@ -148,13 +149,13 @@ public:
 
     void marshal_out(std::ostream& os) const {
         pk().marshal_out_rawspecial(os);
-        vk().marshal_out_raw(os);
+        vk().marshal_out_rawspecial(os);
     }
 
     bool marshal_in(std::istream& is) {
         return
             m_pk.marshal_in_rawspecial(is) &&
-            m_vk.marshal_in_raw(is);
+            m_vk.marshal_in_rawspecial(is);
     }
 
     void clear() {
