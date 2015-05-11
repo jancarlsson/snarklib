@@ -5,12 +5,13 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
-#include "AuxSTL.hpp"
-#include "MultiExp.hpp"
-#include "Pairing.hpp"
-#include "ProgressCallback.hpp"
-#include "QAP_system.hpp"
-#include "Rank1DSL.hpp"
+
+#include <snarklib/AuxSTL.hpp>
+#include <snarklib/MultiExp.hpp>
+#include <snarklib/Pairing.hpp>
+#include <snarklib/ProgressCallback.hpp>
+#include <snarklib/QAP_system.hpp>
+#include <snarklib/Rank1DSL.hpp>
 
 namespace snarklib {
 
