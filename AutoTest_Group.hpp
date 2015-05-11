@@ -3,9 +3,11 @@
 
 #include <gmp.h>
 #include <string>
-#include "AutoTest.hpp"
-#include "algebra/fields/bigint.hpp"
-#include "BigInt.hpp"
+
+#include /*libsnark*/ "algebra/fields/bigint.hpp"
+
+#include "snarklib/AutoTest.hpp"
+#include "snarklib/BigInt.hpp"
 
 namespace snarklib {
 
@@ -162,7 +164,11 @@ public:
 
         checkPass(
             sameData(
+#ifdef USE_OLD_LIBSNARK
                 a1.fast_add_special(a2),
+#else
+                a1.mixed_add(a2),
+#endif
                 fastAddSpecial(b1, b2)));
     }
 
@@ -206,7 +212,11 @@ public:
 
         checkPass(
             sameData(
+#ifdef USE_OLD_LIBSNARK
                 a1.fast_add_special(a2),
+#else
+                a1.mixed_add(a2),
+#endif
                 fastAddSpecial(b1, b2)));
     }
 
