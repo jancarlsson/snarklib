@@ -4,12 +4,20 @@
 #include <gmp.h>
 #include <string>
 #include <vector>
-#include "algebra/fields/bigint.hpp"
-#include "AutoTest.hpp"
-#include "BigInt.hpp"
-#include "common/wnaf.hpp"
-#include "encoding/multiexp.hpp"
-#include "MultiExp.hpp"
+
+#ifdef USE_OLD_LIBSNARK
+#include /*libsnark*/ "algebra/fields/bigint.hpp"
+#include /*libsnark*/ "common/wnaf.hpp"
+#include /*libsnark*/ "encoding/multiexp.hpp"
+#else
+#include /*libsnark*/ "algebra/fields/bigint.hpp"
+#include /*libsnark*/ "algebra/scalar_multiplication/wnaf.hpp"
+#include /*libsnark*/ "algebra/scalar_multiplication/multiexp.hpp"
+#endif
+
+#include "snarklib/AutoTest.hpp"
+#include "snarklib/BigInt.hpp"
+#include "snarklib/MultiExp.hpp"
 
 namespace snarklib {
 
@@ -31,7 +39,10 @@ public:
     {}
 
     void runTest() {
-        const auto a = opt_window_wnaf_exp(U::zero(),
+        const auto a = opt_window_wnaf_exp(
+#ifdef USE_OLD_LIBSNARK
+                                           U::zero(),
+#endif
                                            m_baseA,
                                            m_scalarA,
                                            m_scalarA.num_bits());
@@ -79,7 +90,10 @@ public:
     }
 
     void runTest() {
-        const auto a = libsnark::multi_exp<U, G>(U::zero(),
+        const auto a = libsnark::multi_exp<U, G>(
+#ifdef USE_OLD_LIBSNARK
+                                                 U::zero(),
+#endif
                                                  m_baseA.begin(),
                                                  m_baseA.end(),
                                                  m_scalarA.begin(),
@@ -131,7 +145,10 @@ public:
     }
 
     void runTest() {
-        const auto a = libsnark::multi_exp<U, G>(U::zero(),
+        const auto a = libsnark::multi_exp<U, G>(
+#ifdef USE_OLD_LIBSNARK
+                                                 U::zero(),
+#endif
                                                  m_baseA.begin(),
                                                  m_baseA.end(),
                                                  m_scalarA.begin(),
