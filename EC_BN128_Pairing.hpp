@@ -3,10 +3,11 @@
 
 #include <cassert>
 #include <vector>
-#include "EC.hpp"
-#include "EC_BN128_GroupCurve.hpp"
-#include "EC_Pairing.hpp"
-#include "Group.hpp"
+
+#include <snarklib/EC.hpp>
+#include <snarklib/EC_BN128_GroupCurve.hpp>
+#include <snarklib/EC_Pairing.hpp>
+#include <snarklib/Group.hpp>
 
 namespace snarklib {
 
