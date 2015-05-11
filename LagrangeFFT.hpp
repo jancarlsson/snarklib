@@ -5,10 +5,11 @@
 #include <cassert>
 #include <cstdint>
 #include <vector>
-#include "Field.hpp"
-#include "FpModel.hpp"
-#include "FpX.hpp"
-#include "Util.hpp"
+
+#include <snarklib/Field.hpp>
+#include <snarklib/FpModel.hpp>
+#include <snarklib/FpX.hpp>
+#include <snarklib/Util.hpp>
 
 namespace snarklib {
 
