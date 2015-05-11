@@ -1,6 +1,8 @@
 CXX = g++
 CXXFLAGS = -O2 -g3 -std=c++11 -fPIC
 
+RM = rm
+LN = ln
 AR = ar
 RANLIB = ranlib
 
@@ -59,6 +61,10 @@ README.html : README.md
 
 doc : README.html
 
+# need symbolic link for header file paths
+snarklib :
+	$(LN) -s . snarklib
+
 ifeq ($(PREFIX),)
 install :
 	$(error Please provide PREFIX, e.g. make install PREFIX=/usr/local)
@@ -71,11 +77,13 @@ endif
 
 CLEAN_FILES = \
 	autotest_bn128 \
+	autotest_bn128_oldlibsnark \
 	autotest_edwards \
+	autotest_edwards_oldlibsnark \
 	README.html
 
 clean :
-	rm -f *.o autotest_tmpfile* $(CLEAN_FILES)
+	$(RM) -f *.o autotest_tmpfile* $(CLEAN_FILES) snarklib
 
 
 ################################################################################
@@ -85,19 +93,26 @@ clean :
 ifeq ($(LIBSNARK_PREFIX),)
 autotest_bn128 :
 	$(error Please provide LIBSNARK_PREFIX, e.g. make autotest_bn128 LIBSNARK_PREFIX=/usr/local)
+
+autotest_bn128_oldlibsnark :
+	$(error Please provide LIBSNARK_PREFIX, e.g. make autotest_bn128_oldlibsnark LIBSNARK_PREFIX=/usr/local)
 else
 CXXFLAGS_CURVE_ALT_BN128 = \
-	-I$(LIBSNARK_PREFIX)/include \
-	-I$(LIBSNARK_PREFIX)/include/libsnark \
+	-I. -I$(LIBSNARK_PREFIX)/include/libsnark \
 	-DCURVE_ALT_BN128 -DUSE_ASM -DUSE_ADD_SPECIAL -DUSE_ASSERT
 
 LDFLAGS_CURVE_ALT_BN128 = \
 	-L$(LIBSNARK_PREFIX)/lib \
 	-Wl,-rpath $(LIBSNARK_PREFIX)/lib \
-	-lgmpxx -lgmp -lprocps -lsnark
+	-lgmpxx -lgmp -lsnark
 
-autotest_bn128 : autotest.cpp $(LIBRARY_FILES)
-	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_ALT_BN128) $< -o autotest_bn128.o
+autotest_bn128 : autotest.cpp $(LIBRARY_FILES) snarklib
+	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_ALT_BN128) -DUSE_MIXED_ADDITION $< -o autotest_bn128.o
+	$(CXX) -o $@ autotest_bn128.o $(LDFLAGS_CURVE_ALT_BN128) -lprocps
+
+# link does not need procps even when libsnark is built with it
+autotest_bn128_oldlibsnark : autotest.cpp $(LIBRARY_FILES) snarklib
+	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_ALT_BN128) -DUSE_OLD_LIBSNARK $< -o autotest_bn128.o
 	$(CXX) -o $@ autotest_bn128.o $(LDFLAGS_CURVE_ALT_BN128)
 endif
 
@@ -109,18 +124,25 @@ endif
 ifeq ($(LIBSNARK_PREFIX),)
 autotest_edwards :
 	$(error Please provide LIBSNARK_PREFIX, e.g. make autotest_edwards LIBSNARK_PREFIX=/usr/local)
+
+autotest_edwards_oldlibsnark :
+	$(error Please provide LIBSNARK_PREFIX, e.g. make autotest_edwards_oldlibsnark LIBSNARK_PREFIX=/usr/local)
 else
 CXXFLAGS_CURVE_EDWARDS = \
-	-I$(LIBSNARK_PREFIX)/include \
-	-I$(LIBSNARK_PREFIX)/include/libsnark \
+	-I. -I$(LIBSNARK_PREFIX)/include/libsnark \
 	-DCURVE_EDWARDS -DUSE_ASM -DUSE_ADD_SPECIAL -DUSE_ASSERT
 
 LDFLAGS_CURVE_EDWARDS = \
 	-L$(LIBSNARK_PREFIX)/lib \
 	-Wl,-rpath $(LIBSNARK_PREFIX)/lib \
-	-lgmpxx -lgmp -lprocps -lsnark
+	-lgmpxx -lgmp -lsnark
 
-autotest_edwards : autotest.cpp $(LIBRARY_FILES)
-	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_EDWARDS) $< -o autotest_edwards.o
+autotest_edwards : autotest.cpp $(LIBRARY_FILES) snarklib
+	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_EDWARDS) -DUSE_MIXED_ADDITION $< -o autotest_edwards.o
+	$(CXX) -o $@ autotest_edwards.o $(LDFLAGS_CURVE_EDWARDS) -lprocps
+
+# link does not need procps even when libsnark is built with it
+autotest_edwards_oldlibsnark : autotest.cpp $(LIBRARY_FILES) snarklib
+	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_EDWARDS) -DUSE_OLD_LIBSNARK $< -o autotest_edwards.o
 	$(CXX) -o $@ autotest_edwards.o $(LDFLAGS_CURVE_EDWARDS)
 endif
