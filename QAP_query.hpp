@@ -5,10 +5,11 @@
 #include <cassert>
 #include <cstdint>
 #include <vector>
-#include "AuxSTL.hpp"
-#include "HugeSystem.hpp"
-#include "QAP_system.hpp"
-#include "Rank1DSL.hpp"
+
+#include <snarklib/AuxSTL.hpp>
+#include <snarklib/HugeSystem.hpp>
+#include <snarklib/QAP_system.hpp>
+#include <snarklib/Rank1DSL.hpp>
 
 namespace snarklib {
 
