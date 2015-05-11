@@ -1,7 +1,7 @@
 #ifndef _SNARKLIB_LAGRANGE_FFT_X_HPP_
 #define _SNARKLIB_LAGRANGE_FFT_X_HPP_
 
-#include "LagrangeFFT.hpp"
+#include <snarklib/LagrangeFFT.hpp>
 
 namespace snarklib {
 
