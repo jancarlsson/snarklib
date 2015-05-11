@@ -6,14 +6,22 @@
 #include <random>
 #include <string>
 #include <vector>
-#include "algebra/fields/bigint.hpp"
-#include "AutoTest.hpp"
-#include "AuxSTL.hpp"
-#include "BigInt.hpp"
-#include "encoding/knowledge_commitment.hpp"
-#include "encoding/multiexp.hpp"
-#include "Pairing.hpp"
-#include "WindowExp.hpp"
+
+#ifdef USE_OLD_LIBSNARK
+#include /*libsnark*/ "algebra/fields/bigint.hpp"
+#include /*libsnark*/ "encoding/knowledge_commitment.hpp"
+#include /*libsnark*/ "encoding/multiexp.hpp"
+#else
+#include /*libsnark*/ "algebra/fields/bigint.hpp"
+#include /*libsnark*/ "algebra/knowledge_commitment/knowledge_commitment.hpp"
+#include /*libsnark*/ "algebra/scalar_multiplication/kc_multiexp.hpp"
+#endif
+
+#include "snarklib/AutoTest.hpp"
+#include "snarklib/AuxSTL.hpp"
+#include "snarklib/BigInt.hpp"
+#include "snarklib/Pairing.hpp"
+#include "snarklib/WindowExp.hpp"
 
 namespace snarklib {
 
@@ -108,8 +116,13 @@ public:
     {}
 
     void runTest() {
+#ifdef USE_OLD_LIBSNARK
         m_A1.g = m_A1.g.fast_add_special(m_A2.g);
         m_A1.h = m_A1.h.fast_add_special(m_A2.h);
+#else
+        m_A1.g = m_A1.g.mixed_add(m_A2.g);
+        m_A1.h = m_A1.h.mixed_add(m_A2.h);
+#endif
 
         const auto b = fastAddSpecial(m_B1, m_B2);
 
@@ -150,8 +163,10 @@ public:
             m_A.values.emplace_back(
                 libsnark::knowledge_commitment<UG, UH>(
                     to_bigint<N>(a) * UG::one(), to_bigint<N>(b) * UH::one()));
+#ifdef USE_OLD_LIBSNARK
             m_A.is_sparse = true;
             m_A.original_size = 0;
+#endif
 
             m_B.setIndexElement(
                 i,
@@ -203,7 +218,9 @@ public:
 
     void runTest() {
         const auto a = libsnark::opt_window_wnaf_exp(
+#ifdef USE_OLD_LIBSNARK
             libsnark::knowledge_commitment<UG, UH>(UG::zero(), UH::zero()),
+#endif
             m_baseA,
             m_scalarA,
             m_scalarA.num_bits());
@@ -273,12 +290,16 @@ public:
 
         // create window tables
         const auto winTable_UG_A = libsnark::get_window_table(UF::num_bits,
+#ifdef USE_OLD_LIBSNARK
                                                               UG::zero(),
+#endif
                                                               expSize_UG_A,
                                                               UG::one());
 
         const auto winTable_UH_A = libsnark::get_window_table(UF::num_bits,
+#ifdef USE_OLD_LIBSNARK
                                                               UH::zero(),
+#endif
                                                               expSize_UH_A,
                                                               UH::one());
 
@@ -294,7 +315,9 @@ public:
                                               m_coeffA_A,
                                               m_coeffB_A,
                                               m_vecA,
+#ifdef USE_OLD_LIBSNARK
                                               true,
+#endif
                                               1);
 
         auto sparseVec_B = batchExp(winTable_TG_B,
@@ -354,8 +377,10 @@ public:
             m_baseA.values.emplace_back(
                 libsnark::knowledge_commitment<UG, UH>(
                     to_bigint<N>(a) * UG::one(), to_bigint<N>(b) * UH::one()));
+#ifdef USE_OLD_LIBSNARK
             m_baseA.is_sparse = true;
             m_baseA.original_size = 0;
+#endif
 
             m_baseB.setIndexElement(
                 i,
@@ -381,6 +406,7 @@ public:
     }
 
     void runTest() {
+#ifdef USE_OLD_LIBSNARK
         const auto a = libsnark::kc_multi_exp_with_fast_add_special<UG, UH, UF>(
             libsnark::knowledge_commitment<UG, UH>(UG::zero(), UH::zero()),
             m_baseA,
@@ -390,6 +416,16 @@ public:
             m_scalarA.end(),
             1,
             true);
+#else
+        const auto a = libsnark::kc_multi_exp_with_mixed_addition<UG, UH, UF>(
+            m_baseA,
+            m_minIndex,
+            m_maxIndex,
+            m_scalarA.begin(),
+            m_scalarA.end(),
+            1,
+            true);
+#endif
 
         const auto b = multiExp01(m_baseB, m_scalarB, m_minIndex, m_maxIndex);
 
