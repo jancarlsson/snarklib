@@ -3,10 +3,16 @@
 
 #include <cstdint>
 #include <vector>
-#include "AutoTest.hpp"
-#include "LagrangeFFT.hpp"
-#include "LagrangeFFTX.hpp"
-#include "qap/evaluation_domain.hpp"
+
+#ifdef USE_OLD_LIBSNARK
+#include /*libsnark*/ "qap/evaluation_domain.hpp"
+#else
+#include /*libsnark*/ "algebra/evaluation_domain/evaluation_domain.hpp"
+#endif
+
+#include "snarklib/AutoTest.hpp"
+#include "snarklib/LagrangeFFT.hpp"
+#include "snarklib/LagrangeFFTX.hpp"
 
 namespace snarklib {
 
