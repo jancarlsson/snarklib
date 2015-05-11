@@ -3,10 +3,16 @@
 
 #include <cstdint>
 #include <vector>
-#include "AutoTest.hpp"
-#include "AuxSTL.hpp"
-#include "encoding/multiexp.hpp"
-#include "WindowExp.hpp"
+
+#ifdef USE_OLD_LIBSNARK
+#include /*libsnark*/ "encoding/multiexp.hpp"
+#else
+#include /*libsnark*/ "algebra/scalar_multiplication/multiexp.hpp"
+#endif
+
+#include "snarklib/AutoTest.hpp"
+#include "snarklib/AuxSTL.hpp"
+#include "snarklib/WindowExp.hpp"
 
 namespace snarklib {
 
@@ -60,7 +66,13 @@ public:
         const auto b = WindowExp<T>::windowBits(m_exp_count);
         if (! checkPass(a == b)) return;
 
-        const auto A = libsnark::get_window_table(G::num_bits, U::zero(), a, U::one());
+        const auto A = libsnark::get_window_table(G::num_bits,
+#ifdef USE_OLD_LIBSNARK
+                                                  U::zero(),
+#endif
+                                                  a,
+                                                  U::one());
+
         const WindowExp<T> B(m_exp_count);
 
         const auto valueA = libsnark::windowed_exp(G::num_bits, a, A, m_A);
@@ -102,7 +114,12 @@ public:
         const auto b = WindowExp<T>::windowBits(m_exp_count);
         if (! checkPass(a == b)) return;
 
-        const auto A = libsnark::get_window_table(G::num_bits, U::zero(), a, U::one());
+        const auto A = libsnark::get_window_table(G::num_bits,
+#ifdef USE_OLD_LIBSNARK
+                                                  U::zero(),
+#endif
+                                                  a,
+                                                  U::one());
         const WindowExp<T> B(m_exp_count);
 
         const auto valueA = libsnark::batch_exp(G::num_bits, a, A, m_A);
