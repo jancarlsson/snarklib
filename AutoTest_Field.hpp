@@ -3,10 +3,12 @@
 
 #include <gmp.h>
 #include <string>
-#include "AutoTest.hpp"
-#include "algebra/fields/bigint.hpp"
-#include "BigInt.hpp"
-#include "FpX.hpp"
+
+#include /*libsnark*/ "algebra/fields/bigint.hpp"
+
+#include "snarklib/AutoTest.hpp"
+#include "snarklib/BigInt.hpp"
+#include "snarklib/FpX.hpp"
 
 namespace snarklib {
 
