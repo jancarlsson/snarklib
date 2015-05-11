@@ -5,14 +5,15 @@
 #include <istream>
 #include <memory>
 #include <ostream>
-#include "AuxSTL.hpp"
-#include "Pairing.hpp"
-#include "PPZK_keystruct.hpp"
-#include "PPZK_randomness.hpp"
-#include "PPZK_witness.hpp"
-#include "ProgressCallback.hpp"
-#include "QAP_witness.hpp"
-#include "Rank1DSL.hpp"
+
+#include <snarklib/AuxSTL.hpp>
+#include <snarklib/Pairing.hpp>
+#include <snarklib/PPZK_keystruct.hpp>
+#include <snarklib/PPZK_randomness.hpp>
+#include <snarklib/PPZK_witness.hpp>
+#include <snarklib/ProgressCallback.hpp>
+#include <snarklib/QAP_witness.hpp>
+#include <snarklib/Rank1DSL.hpp>
 
 namespace snarklib {
 
