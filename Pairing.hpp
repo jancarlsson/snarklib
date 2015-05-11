@@ -6,11 +6,12 @@
 #include <istream>
 #include <ostream>
 #include <vector>
-#include "AuxSTL.hpp"
-#include "BigInt.hpp"
-#include "Group.hpp"
-#include "ProgressCallback.hpp"
-#include "WindowExp.hpp"
+
+#include <snarklib/AuxSTL.hpp>
+#include <snarklib/BigInt.hpp>
+#include <snarklib/Group.hpp>
+#include <snarklib/ProgressCallback.hpp>
+#include <snarklib/WindowExp.hpp>
 
 namespace snarklib {
 
