@@ -1,8 +1,8 @@
 #ifndef _SNARKLIB_FP_MODEL_TCC_
 #define _SNARKLIB_FP_MODEL_TCC_
 
-#include "AsmMacros.hpp"
-#include "FpModel.hpp"
+#include <snarklib/AsmMacros.hpp>
+#include <snarklib/FpModel.hpp>
 
 namespace snarklib {
 
