@@ -9,9 +9,10 @@
 #include <ostream>
 #include <tuple>
 #include <vector>
-#include "AuxSTL.hpp"
-#include "BigInt.hpp"
-#include "FpModel.hpp"
+
+#include <snarklib/AuxSTL.hpp>
+#include <snarklib/BigInt.hpp>
+#include <snarklib/FpModel.hpp>
 
 namespace snarklib {
 
