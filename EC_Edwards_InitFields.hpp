@@ -1,8 +1,8 @@
 #ifndef _SNARKLIB_EC_EDWARDS_INIT_FIELDS_HPP_
 #define _SNARKLIB_EC_EDWARDS_INIT_FIELDS_HPP_
 
-#include "EC.hpp"
-#include "EC_Edwards_Modulus.hpp"
+#include <snarklib/EC.hpp>
+#include <snarklib/EC_Edwards_Modulus.hpp>
 
 namespace snarklib {
 
