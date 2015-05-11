@@ -4,16 +4,17 @@
 #include <cstdint>
 #include <gmp.h>
 #include <sstream>
-#include "AutoTest.hpp"
-#include "AuxSTL.hpp"
-#include "BigInt.hpp"
-#include "Field.hpp"
-#include "Group.hpp"
-#include "Pairing.hpp"
-#include "PPZK_keypair.hpp"
-#include "PPZK_keystruct.hpp"
-#include "PPZK_proof.hpp"
-#include "PPZK_query.hpp"
+
+#include "snarklib/AutoTest.hpp"
+#include "snarklib/AuxSTL.hpp"
+#include "snarklib/BigInt.hpp"
+#include "snarklib/Field.hpp"
+#include "snarklib/Group.hpp"
+#include "snarklib/Pairing.hpp"
+#include "snarklib/PPZK_keypair.hpp"
+#include "snarklib/PPZK_keystruct.hpp"
+#include "snarklib/PPZK_proof.hpp"
+#include "snarklib/PPZK_query.hpp"
 
 namespace snarklib {
 
