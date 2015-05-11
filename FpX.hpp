@@ -4,9 +4,10 @@
 #include <array>
 #include <cstdint>
 #include <gmp.h>
-#include "BigInt.hpp"
-#include "Field.hpp"
-#include "FpModel.hpp"
+
+#include <snarklib/BigInt.hpp>
+#include <snarklib/Field.hpp>
+#include <snarklib/FpModel.hpp>
 
 namespace snarklib {
 
