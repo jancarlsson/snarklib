@@ -5,13 +5,14 @@
 #include <istream>
 #include <ostream>
 #include <vector>
-#include "AuxSTL.hpp"
-#include "Group.hpp"
-#include "MultiExp.hpp"
-#include "Pairing.hpp"
-#include "ProgressCallback.hpp"
-#include "Rank1DSL.hpp"
-#include "WindowExp.hpp"
+
+#include <snarklib/AuxSTL.hpp>
+#include <snarklib/Group.hpp>
+#include <snarklib/MultiExp.hpp>
+#include <snarklib/Pairing.hpp>
+#include <snarklib/ProgressCallback.hpp>
+#include <snarklib/Rank1DSL.hpp>
+#include <snarklib/WindowExp.hpp>
 
 namespace snarklib {
 
@@ -128,6 +129,11 @@ public:
         return m_encoded_terms;
     }
 
+    void toSpecial() {
+        m_base.toSpecial();
+        batchSpecial(m_encoded_terms);
+    }
+
     // only used for roundtrip marshalling tests
     bool operator== (const PPZK_QueryIC& other) const {
         return
@@ -160,6 +166,28 @@ public:
         return
             m_base.marshal_in_raw(is) &&
             snarklib::marshal_in_raw(is, m_encoded_terms);
+    }
+
+    void marshal_out_special(std::ostream& os) const {
+        base().marshal_out_special(os);
+        snarklib::marshal_out_special(os, encoded_terms());
+    }
+
+    bool marshal_in_special(std::istream& is) {
+        return
+            m_base.marshal_in_special(is) &&
+            snarklib::marshal_in_special(is, m_encoded_terms);
+    }
+
+    void marshal_out_rawspecial(std::ostream& os) const {
+        base().marshal_out_rawspecial(os);
+        snarklib::marshal_out_rawspecial(os, encoded_terms());
+    }
+
+    bool marshal_in_rawspecial(std::istream& is) {
+        return
+            m_base.marshal_in_rawspecial(is) &&
+            snarklib::marshal_in_rawspecial(is, m_encoded_terms);
     }
 
     void clear() {
