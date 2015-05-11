@@ -2,10 +2,11 @@
 #define _SNARKLIB_PPZK_VERIFY_HPP_
 
 #include <memory>
-#include "ProgressCallback.hpp"
-#include "PPZK_keystruct.hpp"
-#include "PPZK_proof.hpp"
-#include "Rank1DSL.hpp"
+
+#include <snarklib/ProgressCallback.hpp>
+#include <snarklib/PPZK_keystruct.hpp>
+#include <snarklib/PPZK_proof.hpp>
+#include <snarklib/Rank1DSL.hpp>
 
 namespace snarklib {
 
