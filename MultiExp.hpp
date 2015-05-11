@@ -6,9 +6,10 @@
 #include <cstdint>
 #include <gmp.h>
 #include <vector>
-#include "AuxSTL.hpp"
-#include "BigInt.hpp"
-#include "ProgressCallback.hpp"
+
+#include <snarklib/AuxSTL.hpp>
+#include <snarklib/BigInt.hpp>
+#include <snarklib/ProgressCallback.hpp>
 
 namespace snarklib {
 
