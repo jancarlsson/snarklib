@@ -5,11 +5,12 @@
 #include <cstdint>
 #include <gmp.h>
 #include <vector>
-#include "AuxSTL.hpp"
-#include "BigInt.hpp"
-#include "Group.hpp"
-#include "IndexSpace.hpp"
-#include "ProgressCallback.hpp"
+
+#include <snarklib/AuxSTL.hpp>
+#include <snarklib/BigInt.hpp>
+#include <snarklib/Group.hpp>
+#include <snarklib/IndexSpace.hpp>
+#include <snarklib/ProgressCallback.hpp>
 
 namespace snarklib {
 
