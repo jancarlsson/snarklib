@@ -4,10 +4,11 @@
 #include <cassert>
 #include <cstdint>
 #include <vector>
-#include "HugeSystem.hpp"
-#include "ProgressCallback.hpp"
-#include "QAP_system.hpp"
-#include "Rank1DSL.hpp"
+
+#include <snarklib/HugeSystem.hpp>
+#include <snarklib/ProgressCallback.hpp>
+#include <snarklib/QAP_system.hpp>
+#include <snarklib/Rank1DSL.hpp>
 
 namespace snarklib {
 
