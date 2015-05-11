@@ -1,9 +1,9 @@
 #ifndef _SNARKLIB_EC_BN128_INIT_GROUPS_HPP_
 #define _SNARKLIB_EC_BN128_INIT_GROUPS_HPP_
 
-#include "EC.hpp"
-#include "EC_BN128_GroupCurve.hpp"
-#include "Group.hpp"
+#include <snarklib/EC.hpp>
+#include <snarklib/EC_BN128_GroupCurve.hpp>
+#include <snarklib/Group.hpp>
 
 namespace snarklib {
 
