@@ -10,7 +10,8 @@
 #include <queue>
 #include <utility>
 #include <vector>
-#include "IndexSpace.hpp"
+
+#include <snarklib/IndexSpace.hpp>
 
 namespace snarklib {
 
