@@ -12,8 +12,9 @@
 #include <ostream>
 #include <string>
 #include <vector>
-#include "BigInt.hpp"
-#include "Field.hpp"
+
+#include <snarklib/BigInt.hpp>
+#include <snarklib/Field.hpp>
 
 namespace snarklib {
 
