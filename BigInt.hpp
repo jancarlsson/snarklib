@@ -15,8 +15,9 @@
 #include <random>
 #include <string>
 #include <vector>
-#include "AsmMacros.hpp"
-#include "Util.hpp"
+
+#include <snarklib/AsmMacros.hpp>
+#include <snarklib/Util.hpp>
 
 namespace snarklib {
 
