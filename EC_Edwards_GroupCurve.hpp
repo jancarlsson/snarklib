@@ -4,10 +4,11 @@
 #include <ostream>
 #include <tuple>
 #include <vector>
-#include "EC.hpp"
-#include "FpX.hpp"
-#include "Group.hpp"
-#include "Util.hpp"
+
+#include <snarklib/EC.hpp>
+#include <snarklib/FpX.hpp>
+#include <snarklib/Group.hpp>
+#include <snarklib/Util.hpp>
 
 namespace snarklib {
 
