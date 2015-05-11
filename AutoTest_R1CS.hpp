@@ -5,9 +5,15 @@
 #include <ostream>
 #include <sstream>
 #include <string>
-#include "HugeSystem.hpp"
-#include "Rank1DSL.hpp"
-#include "r1cs/r1cs.hpp"
+
+#ifdef USE_OLD_LIBSNARK
+#include /*libsnark*/ "r1cs/r1cs.hpp"
+#else
+#include /*libsnark*/ "relations/constraint_satisfaction_problems/r1cs/r1cs.hpp"
+#endif
+
+#include "snarklib/HugeSystem.hpp"
+#include "snarklib/Rank1DSL.hpp"
 
 namespace snarklib {
 
@@ -26,8 +32,13 @@ public:
     }
 
     const libsnark::r1cs_constraint_system<U>& systemA() const { return m_csA; }
+#ifdef USE_OLD_LIBSNARK
     const libsnark::r1cs_variable_assignment<U>& witnessA() const { return m_witnessA; }
     const libsnark::r1cs_variable_assignment<U>& inputA() const { return m_inputA; }
+#else
+    const libsnark::r1cs_auxiliary_input<U>& witnessA() const { return m_witnessA; }
+    const libsnark::r1cs_primary_input<U>& inputA() const { return m_inputA; }
+#endif
 
     const SYS<T>& systemB() const { return m_csB; }
     const R1Witness<T>& witnessB() const { return m_witnessB; }
@@ -62,7 +73,12 @@ protected:
     void finalize(HugeSystem<T>& a) { a.finalize(numCircuitInputs()); }
 
     libsnark::r1cs_constraint_system<U> m_csA;
+#ifdef USE_OLD_LIBSNARK
     libsnark::r1cs_variable_assignment<U> m_witnessA, m_inputA;
+#else
+    libsnark::r1cs_auxiliary_input<U> m_witnessA;
+    libsnark::r1cs_primary_input<U> m_inputA;
+#endif
     SYS<T> m_csB;
     R1Witness<T> m_witnessB, m_inputB;
 
@@ -95,8 +111,13 @@ public:
 
 private:
     void initA() {
+#ifdef USE_OLD_LIBSNARK
         this->m_csA.num_inputs = this->numCircuitInputs();
         this->m_csA.num_vars = 3;
+#else
+        this->m_csA.primary_input_size = this->numCircuitInputs();
+        this->m_csA.auxiliary_input_size = 3 - this->numCircuitInputs();
+#endif
 
         libsnark::linear_combination<U> A, B, C;
         A.add_term(1, 1);
@@ -108,8 +129,10 @@ private:
         if (m_booleanityX) this->addBooleanity_A(1);
         if (m_booleanityY) this->addBooleanity_A(2);
 
+#ifdef USE_OLD_LIBSNARK
         this->m_witnessA.push_back(U::one()); // 1
         this->m_witnessA.push_back(U::one()); // 2
+#endif
         this->m_witnessA.push_back(U::one()); // 3
 
         this->m_inputA.push_back(U::one()); // 1
@@ -161,8 +184,13 @@ public:
 
 private:
     void initA() {
+#ifdef USE_OLD_LIBSNARK
         this->m_csA.num_inputs = this->numCircuitInputs();
         this->m_csA.num_vars = 3;
+#else
+        this->m_csA.primary_input_size = this->numCircuitInputs();
+        this->m_csA.auxiliary_input_size = 3 - this->numCircuitInputs();
+#endif
 
         libsnark::linear_combination<U> A, B, C;
         A.add_term(1, 1);
@@ -176,8 +204,10 @@ private:
         if (m_booleanityX) this->addBooleanity_A(1);
         if (m_booleanityY) this->addBooleanity_A(2);
 
+#ifdef USE_OLD_LIBSNARK
         this->m_witnessA.push_back(U::one()); // 1
         this->m_witnessA.push_back(U::one()); // 2
+#endif
         this->m_witnessA.push_back(U::one()); // 3
 
         this->m_inputA.push_back(U::one()); // 1
@@ -229,8 +259,13 @@ public:
 
 private:
     void initA() {
+#ifdef USE_OLD_LIBSNARK
         this->m_csA.num_inputs = this->numCircuitInputs();
         this->m_csA.num_vars = 3;
+#else
+        this->m_csA.primary_input_size = this->numCircuitInputs();
+        this->m_csA.auxiliary_input_size = 3 - this->numCircuitInputs();
+#endif
 
         libsnark::linear_combination<U> A, B, C;
         A.add_term(1, 2); // A = 2 * x
@@ -244,8 +279,10 @@ private:
         if (m_booleanityX) this->addBooleanity_A(1);
         if (m_booleanityY) this->addBooleanity_A(2);
 
+#ifdef USE_OLD_LIBSNARK
         this->m_witnessA.push_back(U::one()); // 1
         this->m_witnessA.push_back(U::one()); // 2
+#endif
         this->m_witnessA.push_back(U::zero()); // 3
 
         this->m_inputA.push_back(U::one()); // 1
@@ -297,8 +334,13 @@ public:
 
 private:
     void initA() {
+#ifdef USE_OLD_LIBSNARK
         this->m_csA.num_inputs = this->numCircuitInputs();
         this->m_csA.num_vars = 2;
+#else
+        this->m_csA.primary_input_size = this->numCircuitInputs();
+        this->m_csA.auxiliary_input_size = 2 - this->numCircuitInputs();
+#endif
 
         libsnark::linear_combination<U> A, B, C;
         A.add_term(1, 1);
@@ -310,7 +352,9 @@ private:
 
         if (m_booleanityX) this->addBooleanity_A(1);
 
+#ifdef USE_OLD_LIBSNARK
         this->m_witnessA.push_back(U::zero()); // 1
+#endif
         this->m_witnessA.push_back(U::one()); // 2
 
         this->m_inputA.push_back(U::zero()); // 1
