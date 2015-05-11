@@ -3,7 +3,8 @@
 
 #include <gmp.h>
 #include <vector>
-#include "BigInt.hpp"
+
+#include <snarklib/BigInt.hpp>
 
 namespace snarklib {
 
