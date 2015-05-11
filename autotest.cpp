@@ -8,25 +8,32 @@
 #include <sstream>
 #include <string>
 #include <unistd.h>
-#include "AutoTest.hpp"
-#include "AutoTest_BigInt.hpp"
-#include "AutoTest_EC_Pairing.hpp"
-#include "AutoTest_Field.hpp"
-#include "AutoTest_Group.hpp"
-#include "AutoTest_LagrangeFFT.hpp"
-#include "AutoTest_Marshalling.hpp"
-#include "AutoTest_MultiExp.hpp"
-#include "AutoTest_Pairing.hpp"
-#include "AutoTest_PPZK.hpp"
-#include "AutoTest_QAP.hpp"
-#include "AutoTest_R1CS.hpp"
-#include "AutoTest_WindowExp.hpp"
-#include "common/profiling.hpp"
-#include "common/types.hpp"
-#include "EC.hpp"
-#include "Field.hpp"
-#include "FpModel.hpp"
-#include "Rank1DSL.hpp"
+
+#ifdef USE_OLD_LIBSNARK
+#include /*libsnark*/ "common/profiling.hpp"
+#include /*libsnark*/ "common/types.hpp"
+#else
+#include /*libsnark*/ "common/profiling.hpp"
+#include /*libsnark*/ "common/default_types/ec_pp.hpp"
+#endif
+
+#include "snarklib/AutoTest.hpp"
+#include "snarklib/AutoTest_BigInt.hpp"
+#include "snarklib/AutoTest_EC_Pairing.hpp"
+#include "snarklib/AutoTest_Field.hpp"
+#include "snarklib/AutoTest_Group.hpp"
+#include "snarklib/AutoTest_LagrangeFFT.hpp"
+#include "snarklib/AutoTest_Marshalling.hpp"
+#include "snarklib/AutoTest_MultiExp.hpp"
+#include "snarklib/AutoTest_Pairing.hpp"
+#include "snarklib/AutoTest_PPZK.hpp"
+#include "snarklib/AutoTest_QAP.hpp"
+#include "snarklib/AutoTest_R1CS.hpp"
+#include "snarklib/AutoTest_WindowExp.hpp"
+#include "snarklib/EC.hpp"
+#include "snarklib/Field.hpp"
+#include "snarklib/FpModel.hpp"
+#include "snarklib/Rank1DSL.hpp"
 
 using namespace snarklib;
 using namespace std;
@@ -69,8 +76,17 @@ void initEC() {
     CURVE::Groups<NRQ, MODULUS_R, MODULUS_Q>::initParams();
 
     // libsnark:
-    // critically important to initialize finite fiels and group parameters
+    // critically important to initialize finite fields and group parameters
+#ifdef USE_OLD_LIBSNARK
     libsnark::init_public_params<libsnark::default_pp>();
+#else
+    #ifdef CURVE_ALT_BN128
+    libsnark::alt_bn128_pp::init_public_params();
+    #endif
+    #ifdef CURVE_EDWARDS
+    libsnark::edwards_pp::init_public_params();
+    #endif
+#endif
 
     // disable/reduce instrumentation messages
     libsnark::inhibit_profiling_counters = true;
@@ -146,8 +162,13 @@ void add_Field_mul_by_024(AutoTestBattery& ATB)
         ATB.addTest(
             new AutoTest_FieldMulBy024<Fqk,
                                        Fqe,
+#ifdef USE_OLD_LIBSNARK
                                        libsnark::Fqk<libsnark::default_pp>,
                                        libsnark::Fqe<libsnark::default_pp>>);
+#else
+                                       libsnark::Fqk<libsnark::default_ec_pp>,
+                                       libsnark::Fqe<libsnark::default_ec_pp>>);
+#endif
     }
 }
 #endif
@@ -405,6 +426,7 @@ int main(int argc, char *argv[])
     // initialize snarklib and libsnark
     initEC();
 
+#ifdef USE_OLD_LIBSNARK
     typedef typename libsnark::Fr<libsnark::default_pp> libsnark_Fr;
 
     typedef typename libsnark::Fq<libsnark::default_pp> libsnark_Fq;
@@ -413,8 +435,20 @@ int main(int argc, char *argv[])
 
     typedef typename libsnark::G1<libsnark::default_pp> libsnark_G1;
     typedef typename libsnark::G2<libsnark::default_pp> libsnark_G2;
+#else
+    typedef typename libsnark::Fr<libsnark::default_ec_pp> libsnark_Fr;
 
-    AutoTestBattery ATB;
+    typedef typename libsnark::Fq<libsnark::default_ec_pp> libsnark_Fq;
+    typedef typename libsnark::Fqe<libsnark::default_ec_pp> libsnark_Fqe;
+    typedef typename libsnark::Fqk<libsnark::default_ec_pp> libsnark_Fqk;
+
+    typedef typename libsnark::G1<libsnark::default_ec_pp> libsnark_G1;
+    typedef typename libsnark::G2<libsnark::default_ec_pp> libsnark_G2;
+#endif
+
+    AutoTestBattery ATB(cerr);
+
+    cout << "Setting up tests: ";
 
     // big integers
     add_BigInt<1>(ATB);
@@ -435,9 +469,6 @@ int main(int argc, char *argv[])
     add_Field_Frobenius_map<Fqe, libsnark_Fqe>(ATB);
     add_Field_Frobenius_map<Fqk, libsnark_Fqk>(ATB);
     add_Field_cyclotomic_exp<NRQ, Fqk, libsnark_Fqk>(ATB);
-#ifdef CURVE_ALT_BN128
-    add_Field_mul_by_024(ATB);
-#endif
 
     // algebraic groups
     add_Group<NRQ, G1, libsnark_G1>(ATB);
@@ -475,17 +506,36 @@ int main(int argc, char *argv[])
     add_Marshalling<G2, G1, 3, Fq, PAIRING>(ATB);
     add_Marshalling<G2, G2, 4, Fq, PAIRING>(ATB);
 
+    // put these last so test numbers for BN128 and Edwards match
+#ifdef CURVE_ALT_BN128
+    // algebraic fields
+    add_Field_mul_by_024(ATB);
+#endif
+
+    cout << endl;
+
     if (-1 == testNumber) {
         // run all tests
-        if (ATB.runTest())
-            cout << ATB.testCount() << " tests passed" << endl;
-        else
-            ATB.testLog(cout);
+        const auto failCount = ATB.runTest();
+        if (0 == failCount) {
+            cout << endl << "PASS - All " << ATB.testCount()
+                 << " tests passed"
+                 << endl;
+
+        } else {
+            cout << endl;
+            ATB.failLog(cout);
+            cout << endl << "FAIL - " << failCount
+                 << " tests failed out of " << ATB.testCount() << " in total"
+                 << endl;
+            exit(EXIT_FAILURE);
+        }
 
     } else {
         // run specified test only
-        ATB.runTest(testNumber);
+        const bool ok  = ATB.runTest(testNumber);
         ATB.testLog(cout, testNumber);
+        if (! ok) exit(EXIT_FAILURE);
     }
 
     return EXIT_SUCCESS;
