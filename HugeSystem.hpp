@@ -10,7 +10,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include "Rank1DSL.hpp"
+
+#include <snarklib/Rank1DSL.hpp>
 
 namespace snarklib {
 
