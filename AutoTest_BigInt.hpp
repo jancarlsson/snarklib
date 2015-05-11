@@ -5,10 +5,17 @@
 #include <gmp.h>
 #include <sstream>
 #include <string>
-#include "algebra/fields/bigint.hpp"
-#include "AutoTest.hpp"
-#include "BigInt.hpp"
-#include "common/wnaf.hpp"
+
+#ifdef USE_OLD_LIBSNARK
+#include /*libsnark*/ "algebra/fields/bigint.hpp"
+#include /*libsnark*/ "common/wnaf.hpp"
+#else
+#include /*libsnark*/ "algebra/fields/bigint.hpp"
+#include /*libsnark*/ "algebra/scalar_multiplication/wnaf.hpp"
+#endif
+
+#include "snarklib/AutoTest.hpp"
+#include "snarklib/BigInt.hpp"
 
 namespace snarklib {
 
@@ -219,7 +226,11 @@ public:
     {}
 
     void runTest() {
+#ifdef USE_OLD_LIBSNARK
         const auto a = libsnark::find_wNAF(m_w, m_A);
+#else
+        const auto a = libsnark::find_wnaf(m_w, m_A);
+#endif
         const auto b = find_wNAF(m_w, m_B);
 
         if (checkPass(a.size() == b.size())) {
