@@ -2,10 +2,12 @@
 #define _SNARKLIB_AUTOTEST_EC_PAIRING_HPP_
 
 #include <string>
-#include "algebra/curves/alt_bn128/alt_bn128_pairing.hpp"
-#include "algebra/curves/edwards/edwards_pairing.hpp"
-#include "AutoTest.hpp"
-#include "BigInt.hpp"
+
+#include /*libsnark*/ "algebra/curves/alt_bn128/alt_bn128_pairing.hpp"
+#include /*libsnark*/ "algebra/curves/edwards/edwards_pairing.hpp"
+
+#include "snarklib/AutoTest.hpp"
+#include "snarklib/BigInt.hpp"
 
 namespace snarklib {
 
