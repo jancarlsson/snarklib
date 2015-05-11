@@ -2,7 +2,8 @@
 #define _SNARKLIB_EC_BN128_MODULUS_HPP_
 
 #include <gmp.h>
-#include "BigInt.hpp"
+
+#include <snarklib/BigInt.hpp>
 
 namespace snarklib {
 
