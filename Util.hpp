@@ -9,8 +9,9 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include "AuxSTL.hpp"
-#include "IndexSpace.hpp"
+
+#include <snarklib/AuxSTL.hpp>
+#include <snarklib/IndexSpace.hpp>
 
 namespace snarklib {
 
