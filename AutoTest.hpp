@@ -12,26 +12,44 @@
 #include <string>
 #include <typeinfo>
 #include <vector>
-#include "algebra/curves/alt_bn128/alt_bn128_g1.hpp"
-#include "algebra/curves/alt_bn128/alt_bn128_g2.hpp"
-#include "algebra/curves/edwards/edwards_g1.hpp"
-#include "algebra/curves/edwards/edwards_g2.hpp"
-#include "algebra/fields/bigint.hpp"
-#include "algebra/fields/fp.hpp"
-#include "algebra/fields/fp2.hpp"
-#include "algebra/fields/fp3.hpp"
-#include "algebra/fields/fp6_2over3.hpp"
-#include "algebra/fields/fp6_3over2.hpp"
-#include "algebra/fields/fp12_2over3over2.hpp"
-#include "AuxSTL.hpp"
-#include "BigInt.hpp"
-#include "common/types.hpp"
-#include "EC.hpp"
-#include "encoding/knowledge_commitment.hpp"
-#include "Field.hpp"
-#include "FpModel.hpp"
-#include "Group.hpp"
-#include "Pairing.hpp"
+
+#ifdef USE_OLD_LIBSNARK
+#include /*libsnark*/ "algebra/curves/alt_bn128/alt_bn128_g1.hpp"
+#include /*libsnark*/ "algebra/curves/alt_bn128/alt_bn128_g2.hpp"
+#include /*libsnark*/ "algebra/curves/edwards/edwards_g1.hpp"
+#include /*libsnark*/ "algebra/curves/edwards/edwards_g2.hpp"
+#include /*libsnark*/ "algebra/fields/bigint.hpp"
+#include /*libsnark*/ "algebra/fields/fp.hpp"
+#include /*libsnark*/ "algebra/fields/fp2.hpp"
+#include /*libsnark*/ "algebra/fields/fp3.hpp"
+#include /*libsnark*/ "algebra/fields/fp6_2over3.hpp"
+#include /*libsnark*/ "algebra/fields/fp6_3over2.hpp"
+#include /*libsnark*/ "algebra/fields/fp12_2over3over2.hpp"
+#include /*libsnark*/ "common/types.hpp"
+#include /*libsnark*/ "encoding/knowledge_commitment.hpp"
+#else
+#include /*libsnark*/ "algebra/curves/alt_bn128/alt_bn128_g1.hpp"
+#include /*libsnark*/ "algebra/curves/alt_bn128/alt_bn128_g2.hpp"
+#include /*libsnark*/ "algebra/curves/edwards/edwards_g1.hpp"
+#include /*libsnark*/ "algebra/curves/edwards/edwards_g2.hpp"
+#include /*libsnark*/ "algebra/fields/bigint.hpp"
+#include /*libsnark*/ "algebra/fields/fp.hpp"
+#include /*libsnark*/ "algebra/fields/fp2.hpp"
+#include /*libsnark*/ "algebra/fields/fp3.hpp"
+#include /*libsnark*/ "algebra/fields/fp6_2over3.hpp"
+#include /*libsnark*/ "algebra/fields/fp6_3over2.hpp"
+#include /*libsnark*/ "algebra/fields/fp12_2over3over2.hpp"
+#include /*libsnark*/ "common/default_types/ec_pp.hpp"
+#include /*libsnark*/ "algebra/knowledge_commitment/knowledge_commitment.hpp"
+#endif
+
+#include "snarklib/AuxSTL.hpp"
+#include "snarklib/BigInt.hpp"
+#include "snarklib/EC.hpp"
+#include "snarklib/Field.hpp"
+#include "snarklib/FpModel.hpp"
+#include "snarklib/Group.hpp"
+#include "snarklib/Pairing.hpp"
 
 namespace snarklib {
 
@@ -391,7 +409,11 @@ protected:
     // from libsnark group vector to snarklib vector
     template <typename G1>
     void copyData(
+#ifdef USE_OLD_LIBSNARK
         const libsnark::G1_vector<libsnark::default_pp>& a,
+#else
+        const libsnark::G1_vector<libsnark::default_ec_pp>& a,
+#endif
         std::vector<G1>& b)
     {
         const std::size_t vecSize = a.size();
@@ -410,7 +432,11 @@ protected:
     // from libsnark paired groups vector to snarklib sparse vector
     template <typename G1>
     void copyData(
+#ifdef USE_OLD_LIBSNARK
         const libsnark::G1G1_knowledge_commitment_vector<libsnark::default_pp>& a,
+#else
+        const libsnark::knowledge_commitment_vector<libsnark::G1<libsnark::default_ec_pp>, libsnark::G1<libsnark::default_ec_pp>>& a,
+#endif
         SparseVector<Pairing<G1, G1>>& b)
     {
         const std::size_t vecSize = a.values.size();
@@ -433,7 +459,11 @@ protected:
     // from libsnark paired groups vector to snarklib sparse vector
     template <typename G2, typename G1>
     void copyData(
+#ifdef USE_OLD_LIBSNARK
         const libsnark::G2G1_knowledge_commitment_vector<libsnark::default_pp>& a,
+#else
+        const libsnark::knowledge_commitment_vector<libsnark::G2<libsnark::default_ec_pp>, libsnark::G1<libsnark::default_ec_pp>>& a,
+#endif
         SparseVector<Pairing<G2, G1>>& b)
     {
         const std::size_t vecSize = a.values.size();
@@ -478,27 +508,46 @@ private:
 class AutoTestBattery
 {
 public:
-    AutoTestBattery() = default;
+    AutoTestBattery()
+        : m_os(nullptr)
+    {}
+
+    AutoTestBattery(std::ostream& os)
+        : m_os(std::addressof(os))
+    {}
 
     std::size_t testCount() const {
         return m_testVector.size();
     }
 
     void addTest(AutoTest* ptr) {
+        if (m_os) {
+            *m_os << ".";
+        }
+
         m_testVector.push_back(std::unique_ptr<AutoTest>(ptr));
     }
 
-    bool runTest() {
-        bool allPass = true;
+    // returns number of failed tests
+    std::size_t runTest() {
+        std::size_t failCount = 0;
 
         for (const auto& a : m_testVector) {
+            if (m_os) {
+                *m_os << std::endl
+                      << "Running test " << a->testNumber() << " - " << a->testName()
+                      << std::endl;
+            }
+
             a->runTest();
-            allPass &= a->testPass();
+
+            if (! a->testPass()) ++failCount;
         }
 
-        return allPass;
+        return failCount;
     }
 
+    // returns true if test passes, false if test fails
     bool runTest(const std::size_t indexNumber) {
         m_testVector[indexNumber]->runTest();
         return m_testVector[indexNumber]->testPass();
@@ -510,11 +559,18 @@ public:
         }
     }
 
+    void failLog(std::ostream& out) const {
+        for (const auto& a : m_testVector) {
+            if (! a->testPass()) a->testLog(out);
+        }
+    }
+
     void testLog(std::ostream& out, const std::size_t indexNumber) const {
         m_testVector[indexNumber]->testLog(out);
     }
 
 private:
+    std::ostream* m_os;
     std::vector<std::unique_ptr<AutoTest>> m_testVector;
 };
 
