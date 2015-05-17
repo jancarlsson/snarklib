@@ -11,7 +11,6 @@
 #endif
 
 #include "snarklib/AutoTest.hpp"
-#include "snarklib/LagrangeFFT.hpp"
 #include "snarklib/LagrangeFFTX.hpp"
 
 namespace snarklib {
