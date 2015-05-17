@@ -70,6 +70,10 @@ public:
             &beta_gamma = blindRand.beta_gamma();
 
         const QAP_SystemPoint<SYS, Fr> qap(constraintSystem, numCircuitInputs, point);
+        if (qap.weakPoint()) {
+            // Lagrange evaluation point is root of unity
+            return;
+        }
 
         // ABCH
         const QAP_QueryABC<SYS, Fr> ABCt(qap);
