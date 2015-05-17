@@ -17,8 +17,48 @@ namespace snarklib {
 // Evaluate Lagrange polynomials
 //
 
+// defined in LagrangeFFTX.hpp
 template <typename T>
 void* get_evaluation_domain(const std::size_t min_size);
+
+template <template <typename> class CRTP, typename FR>
+class LagrangeEvalDomain
+{
+protected:
+    static
+    void* factory(const std::size_t min_size)
+    {
+#ifdef USE_ASSERT
+        assert(min_size > 1);
+#endif
+        const std::size_t log_min_size = ceil_log2(min_size);
+#ifdef USE_ASSERT
+        assert(log_min_size <= (FR::params.s() + 1));
+#endif
+
+        if (min_size == (1u << log_min_size)) {
+            if (log_min_size == FR::params.s() + 1)
+                return CRTP<FR>::extended_radix2(min_size);
+            else
+                return CRTP<FR>::basic_radix2(min_size);
+
+        } else {
+            const std::size_t big = 1u << (ceil_log2(min_size) - 1);
+            const std::size_t small = min_size - big;
+            const std::size_t rounded_small = 1u << ceil_log2(small);
+
+            if (big == rounded_small) {
+                if (ceil_log2(big + rounded_small) < FR::params.s() + 1)
+                    return CRTP<FR>::basic_radix2(big + rounded_small);
+                else
+                    return CRTP<FR>::extended_radix2(big + rounded_small);
+
+            } else {
+                return CRTP<FR>::step_radix2(big + rounded_small);
+            }
+        }
+    }
+};
 
 template <typename T>
 class LagrangeFFT
@@ -53,7 +93,12 @@ public:
             multiply_by_coset(a, inverse(g));
         }
 
-        virtual std::vector<T> lagrange_coeffs(const T& t) const = 0;
+        virtual std::vector<T> lagrange_coeffs(const T& t, bool& weakPoint) const = 0;
+
+        std::vector<T> lagrange_coeffs(const T& t) const {
+            bool weakPoint = false; // ignored
+            return lagrange_coeffs(t, weakPoint);
+        }
 
         virtual T get_element(const std::size_t idx) const = 0;
         virtual T compute_Z(const T& t) const = 0;
@@ -139,7 +184,9 @@ public:
             }
         }
 
-        std::vector<T> basic_radix2_lagrange_coeffs(const std::size_t m, const T& t) const {
+        std::vector<T> basic_radix2_lagrange_coeffs(const std::size_t m,
+                                                    const T& t,
+                                                    bool& weakPoint) const {
             if (1 == m) {
                 return std::vector<T>(1, T::one());
             }
@@ -154,6 +201,8 @@ public:
 
             if (T::one() == (t ^ m)) {
                 T omega_i = T::one();
+
+                weakPoint = true;
 
                 for (std::size_t i = 0; i < m; ++i) {
                     if (omega_i == t) {
