@@ -127,6 +127,10 @@ public:
         return true;
     }
 
+    explicit operator bool() const {
+        return ! isZero();
+    }
+
     // addition in-place
     Field<T, N>& operator+= (const Field<T, N>& other) {
         for (std::size_t i = 0; i < N; ++i) {
