@@ -5,7 +5,6 @@
 #include <vector>
 
 #include <snarklib/HugeSystem.hpp>
-#include <snarklib/LagrangeFFT.hpp>
 #include <snarklib/LagrangeFFTX.hpp>
 #include <snarklib/Rank1DSL.hpp>
 
@@ -63,16 +62,18 @@ public:
                     const std::size_t numCircuitInputs,
                     const T& point)
         : QAP<T>(constraintSystem, numCircuitInputs),
+          m_weakPoint(false),
           m_constraintSystem(constraintSystem),
           m_point(point),
           m_compute_Z(QAP<T>::FFT()->compute_Z(point)),
-          m_lagrange_coeffs(QAP<T>::FFT()->lagrange_coeffs(point))
+          m_lagrange_coeffs(QAP<T>::FFT()->lagrange_coeffs(point, m_weakPoint))
     {}
 
     // proof generation
     QAP_SystemPoint(const SYS<T>& constraintSystem,
                     const std::size_t numCircuitInputs)
         : QAP<T>(constraintSystem, numCircuitInputs),
+          m_weakPoint(false),
           m_constraintSystem(constraintSystem),
           m_point(T::zero()),
           m_compute_Z(T::zero()),
@@ -85,11 +86,13 @@ public:
 
     const SYS<T>& constraintSystem() const { return m_constraintSystem; }
 
+    bool weakPoint() const { return m_weakPoint; }
     const T& point() const { return m_point; }
     const T& compute_Z() const { return m_compute_Z; }
     const std::vector<T>& lagrange_coeffs() const { return m_lagrange_coeffs; }
 
 private:
+    bool m_weakPoint;
     const SYS<T>& m_constraintSystem;
     const T m_point, m_compute_Z;
     const std::vector<T> m_lagrange_coeffs;
