@@ -178,21 +178,24 @@ Pairing<GA, GB> wnafExp(const BigInt<N>& scalar,
                            wnafExp(scalar, base.H()));
 }
 
-// standard vector, works with map-reduce or monolithic window tables
-template <typename GA, typename GB, typename FR>
-SparseVector<Pairing<GA, GB>> batchExp(const WindowExp<GA>& tableA,
-                                       const WindowExp<GB>& tableB,
-                                       const FR& coeffA,
-                                       const FR& coeffB,
-                                       const std::vector<FR>& vec,
-                                       ProgressCallback* callback = nullptr)
+template <typename GA, typename GB, typename FR, typename VEC>
+SparseVector<Pairing<GA, GB>> batchExp_internal(
+    const WindowExp<GA>& tableA,
+    const WindowExp<GB>& tableB,
+    const FR& coeffA,
+    const FR& coeffB,
+    const VEC& vec,
+    const std::size_t startIdx,
+    const std::size_t stopIdx,
+    ProgressCallback* callback)
 {
-    const std::size_t M = callback ? callback->minorSteps() : 0;
-    const std::size_t N = vec.size();
+    const std::size_t
+        M = callback ? callback->minorSteps() : 0,
+        N = stopIdx - startIdx;
 
     SparseVector<Pairing<GA, GB>> res(N, Pairing<GA, GB>::zero());
 
-    std::size_t index = 0, idx = 0;
+    std::size_t index = startIdx, idx = 0;
 
     // full blocks
     for (std::size_t j = 0; j < M; ++j) {
@@ -212,7 +215,7 @@ SparseVector<Pairing<GA, GB>> batchExp(const WindowExp<GA>& tableA,
     }
 
     // remaining steps smaller than one block
-    while (index < N) {
+    while (index < stopIdx) {
         if (! vec[index].isZero()) {
             res.setIndexElement(
                 idx++,
@@ -229,6 +232,25 @@ SparseVector<Pairing<GA, GB>> batchExp(const WindowExp<GA>& tableA,
     return res;
 }
 
+// standard vector, works with map-reduce or monolithic window tables
+template <typename GA, typename GB, typename FR>
+SparseVector<Pairing<GA, GB>> batchExp(const WindowExp<GA>& tableA,
+                                       const WindowExp<GB>& tableB,
+                                       const FR& coeffA,
+                                       const FR& coeffB,
+                                       const std::vector<FR>& vec,
+                                       ProgressCallback* callback = nullptr)
+{
+    return batchExp_internal(tableA,
+                             tableB,
+                             coeffA,
+                             coeffB,
+                             vec,
+                             0,
+                             vec.size(),
+                             callback);
+}
+
 // block partitioned vector, works with map-reduce or monolithic window table
 template <typename GA, typename GB, typename FR>
 SparseVector<Pairing<GA, GB>> batchExp(const WindowExp<GA>& tableA,
@@ -238,46 +260,60 @@ SparseVector<Pairing<GA, GB>> batchExp(const WindowExp<GA>& tableA,
                                        const BlockVector<FR>& vec,
                                        ProgressCallback* callback = nullptr)
 {
+    return batchExp_internal(tableA,
+                             tableB,
+                             coeffA,
+                             coeffB,
+                             vec,
+                             vec.startIndex(),
+                             vec.stopIndex(),
+                             callback);
+}
+
+template <typename GA, typename GB, typename FR, typename VEC>
+void batchExp_internal(
+    SparseVector<Pairing<GA, GB>>& res, // returned from batchExp()
+    const WindowExp<GA>& tableA,
+    const WindowExp<GB>& tableB,
+    const FR& coeffA,
+    const FR& coeffB,
+    const VEC& vec,
+    ProgressCallback* callback)
+{
     const std::size_t M = callback ? callback->minorSteps() : 0;
-    const std::size_t N = vec.size();
+    const std::size_t N = res.size(); // iterate over sparse vector directly
 
-    SparseVector<Pairing<GA, GB>> res(vec.size(), Pairing<GA, GB>::zero());
-
-    std::size_t index = vec.startIndex(), idx = 0;
+    std::size_t idx = 0;
 
     // full blocks
     for (std::size_t j = 0; j < M; ++j) {
         for (std::size_t k = 0; k < N / M; ++k) {
-            if (! vec[index].isZero()) {
-                res.setIndexElement(
-                    idx++,
-                    index,
-                    Pairing<GA, GB>(tableA.exp(coeffA * vec[index]),
-                                    tableB.exp(coeffB * vec[index])));
-            }
+            const auto index = res.getIndex(idx);
+            const auto& ga = res.getElement(idx).G();
+            const auto& gb = res.getElement(idx).H();
 
-            ++index;
+            res.setIndexElement(
+                idx++,
+                index,
+                Pairing<GA, GB>(ga + tableA.exp(coeffA * vec[index]),
+                                gb + tableB.exp(coeffB * vec[index])));
         }
 
         callback->minor();
     }
 
     // remaining steps smaller than one block
-    while (index < vec.stopIndex()) {
-        if (! vec[index].isZero()) {
-            res.setIndexElement(
-                idx++,
-                index,
-                Pairing<GA, GB>(tableA.exp(coeffA * vec[index]),
-                                tableB.exp(coeffB * vec[index])));
-        }
+    while (idx < N) {
+        const auto index = res.getIndex(idx);
+        const auto& ga = res.getElement(idx).G();
+        const auto& gb = res.getElement(idx).H();
 
-        ++index;
+        res.setIndexElement(
+            idx++,
+            index,
+            Pairing<GA, GB>(ga + tableA.exp(coeffA * vec[index]),
+                            gb + tableB.exp(coeffB * vec[index])));
     }
-
-    res.resize(idx);
-
-    return res;
 }
 
 // used with map-reduce
@@ -290,40 +326,13 @@ void batchExp(SparseVector<Pairing<GA, GB>>& res, // returned from batchExp()
               const std::vector<FR>& vec,
               ProgressCallback* callback = nullptr)
 {
-    const std::size_t M = callback ? callback->minorSteps() : 0;
-    const std::size_t N = res.size(); // iterate over sparse vector directly
-
-    std::size_t idx = 0;
-
-    // full blocks
-    for (std::size_t j = 0; j < M; ++j) {
-        for (std::size_t k = 0; k < N / M; ++k) {
-            const auto index = res.getIndex(idx);
-            const auto& ga = res.getElement(idx).G();
-            const auto& gb = res.getElement(idx).H();
-
-            res.setIndexElement(
-                idx++,
-                index,
-                Pairing<GA, GB>(ga + tableA.exp(coeffA * vec[index]),
-                                gb + tableB.exp(coeffB * vec[index])));
-        }
-
-        callback->minor();
-    }
-
-    // remaining steps smaller than one block
-    while (idx < N) {
-        const auto index = res.getIndex(idx);
-        const auto& ga = res.getElement(idx).G();
-        const auto& gb = res.getElement(idx).H();
-
-        res.setIndexElement(
-            idx++,
-            index,
-            Pairing<GA, GB>(ga + tableA.exp(coeffA * vec[index]),
-                            gb + tableB.exp(coeffB * vec[index])));
-    }
+    batchExp_internal(res,
+                      tableA,
+                      tableB,
+                      coeffA,
+                      coeffB,
+                      vec,
+                      callback);
 }
 
 // block partitioned vector, used with map-reduce
@@ -336,40 +345,13 @@ void batchExp(SparseVector<Pairing<GA, GB>>& res, // returned from batchExp()
               const BlockVector<FR>& vec,
               ProgressCallback* callback = nullptr)
 {
-    const std::size_t M = callback ? callback->minorSteps() : 0;
-    const std::size_t N = res.size(); // iterate over sparse vector directly
-
-    std::size_t idx = 0;
-
-    // full blocks
-    for (std::size_t j = 0; j < M; ++j) {
-        for (std::size_t k = 0; k < N / M; ++k) {
-            const auto index = res.getIndex(idx);
-            const auto& ga = res.getElement(idx).G();
-            const auto& gb = res.getElement(idx).H();
-
-            res.setIndexElement(
-                idx++,
-                index,
-                Pairing<GA, GB>(ga + tableA.exp(coeffA * vec[index]),
-                                gb + tableB.exp(coeffB * vec[index])));
-        }
-
-        callback->minor();
-    }
-
-    // remaining steps smaller than one block
-    while (idx < N) {
-        const auto index = res.getIndex(idx);
-        const auto& ga = res.getElement(idx).G();
-        const auto& gb = res.getElement(idx).H();
-
-        res.setIndexElement(
-            idx++,
-            index,
-            Pairing<GA, GB>(ga + tableA.exp(coeffA * vec[index]),
-                            gb + tableB.exp(coeffB * vec[index])));
-    }
+    batchExp_internal(res,
+                      tableA,
+                      tableB,
+                      coeffA,
+                      coeffB,
+                      vec,
+                      callback);
 }
 
 template <typename GA, typename GB, typename FR>
