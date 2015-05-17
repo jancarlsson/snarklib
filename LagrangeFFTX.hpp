@@ -25,8 +25,11 @@ public:
 #endif
     }
 
-    std::vector<T> lagrange_coeffs(const T& t) const {
-        return BASE::basic_radix2_lagrange_coeffs(BASE::min_size(), t);
+    std::vector<T> lagrange_coeffs(const T& t, bool& weakPoint) const {
+        return BASE::basic_radix2_lagrange_coeffs(
+            BASE::min_size(),
+            t,
+            weakPoint);
     }
 
     T get_element(const std::size_t idx) const {
@@ -65,7 +68,7 @@ protected:
     }
 
 private:
-    T omega;
+    const T omega;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -90,10 +93,14 @@ public:
 #endif
     }
 
-    std::vector<T> lagrange_coeffs(const T& t) const {
+    std::vector<T> lagrange_coeffs(const T& t, bool& weakPoint) const {
         const auto
-            T0 = BASE::basic_radix2_lagrange_coeffs(small_m, t),
-            T1 = BASE::basic_radix2_lagrange_coeffs(small_m, t * inverse(shift));
+            T0 = BASE::basic_radix2_lagrange_coeffs(small_m,
+                                                    t,
+                                                    weakPoint),
+            T1 = BASE::basic_radix2_lagrange_coeffs(small_m,
+                                                    t * inverse(shift),
+                                                    weakPoint);
 
         std::vector<T> result(BASE::min_size(), T::zero());
 
@@ -205,8 +212,8 @@ protected:
     }
 
 private:
-    std::size_t small_m;
-    T omega, shift;
+    const std::size_t small_m;
+    const T omega, shift;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -233,10 +240,14 @@ public:
 #endif
     }
 
-    std::vector<T> lagrange_coeffs(const T& t) const {
+    std::vector<T> lagrange_coeffs(const T& t, bool& weakPoint) const {
         const auto
-            inner_big = BASE::basic_radix2_lagrange_coeffs(big_m, t),
-            inner_small = BASE::basic_radix2_lagrange_coeffs(small_m, t * inverse(omega));
+            inner_big = BASE::basic_radix2_lagrange_coeffs(big_m,
+                                                           t,
+                                                           weakPoint),
+            inner_small = BASE::basic_radix2_lagrange_coeffs(small_m,
+                                                             t * inverse(omega),
+                                                             weakPoint);
 
         std::vector<T> result(BASE::min_size(), T::zero());
 
@@ -394,49 +405,45 @@ protected:
     }
 
 private:
-    std::size_t big_m, small_m;
-    T omega, big_omega, small_omega;
+    const std::size_t big_m, small_m;
+    const T omega, big_omega, small_omega;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 // constructor factory function
 //
 
-template <typename T>
-void* get_evaluation_domain(const std::size_t min_size) {
-    typename LagrangeFFT<T>::Base* ptr = nullptr;
+template <typename FR>
+class LagrangeFFT_factory
+    : public LagrangeEvalDomain<LagrangeFFT_factory, FR>
+{
+    typedef LagrangeEvalDomain<LagrangeFFT_factory, FR> BASE;
 
-#ifdef USE_ASSERT
-    assert(min_size > 1);
-#endif
-    const std::size_t log_min_size = ceil_log2(min_size);
-#ifdef USE_ASSERT
-    assert(log_min_size <= (T::params.s() + 1));
-#endif
-
-    if (min_size == (1u << log_min_size)) {
-        if (log_min_size == T::params.s() + 1) {
-            ptr = new extended_radix2_domain<T>(min_size);
-        } else {
-            ptr = new basic_radix2_domain<T>(min_size);
-        }
-    } else {
-        const std::size_t big = 1u << (ceil_log2(min_size) - 1);
-        const std::size_t small = min_size - big;
-        const std::size_t rounded_small = 1u << ceil_log2(small);
-
-        if (big == rounded_small) {
-            if (ceil_log2(big + rounded_small) < T::params.s() + 1) {
-                ptr = new basic_radix2_domain<T>(big + rounded_small);
-            } else {
-                ptr = new extended_radix2_domain<T>(big + rounded_small);
-            }
-        } else {
-            ptr = new step_radix2_domain<T>(big + rounded_small);
-        }
+public:
+    static
+    void* factory(const std::size_t min_size) {
+        return BASE::factory(min_size);
     }
 
-    return ptr;
+    static
+    basic_radix2_domain<FR>* basic_radix2(const std::size_t n) {
+        return new basic_radix2_domain<FR>(n);
+    }
+
+    static
+    extended_radix2_domain<FR>* extended_radix2(const std::size_t n) {
+        return new extended_radix2_domain<FR>(n);
+    }
+
+    static
+    step_radix2_domain<FR>* step_radix2(const std::size_t n) {
+        return new step_radix2_domain<FR>(n);
+    }
+};
+
+template <typename T>
+void* get_evaluation_domain(const std::size_t min_size) {
+    return LagrangeFFT_factory<T>::factory(min_size);
 }
 
 } // namespace snarklib
