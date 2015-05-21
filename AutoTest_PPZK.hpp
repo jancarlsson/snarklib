@@ -527,9 +527,11 @@ class AutoTest_PPZK_full_redesign : public AutoTest
 #endif
 
 public:
-    AutoTest_PPZK_full_redesign(const AutoTestR1CS<SYS, Fr, U>& cs)
+    AutoTest_PPZK_full_redesign(const AutoTestR1CS<SYS, Fr, U>& cs,
+                                const bool failure_is_success = false)
         : AutoTest(cs),
-          m_constraintSystem(cs)
+          m_constraintSystem(cs),
+          m_failureIsSuccess(failure_is_success)
     {}
 
     void runTest() {
@@ -548,11 +550,12 @@ public:
                                       m_constraintSystem.inputB(),
                                       proofB);
 
-        checkPass(ans);
+        checkPass(m_failureIsSuccess ? !ans : ans);
     }
 
 private:
     const AutoTestR1CS<SYS, Fr, U> m_constraintSystem;
+    const bool m_failureIsSuccess;
 };
 
 } // namespace snarklib
