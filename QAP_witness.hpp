@@ -33,10 +33,17 @@ public:
           m_error(false)
     {
         // input consistency (for A only)
+#ifdef PARNO_SOUNDNESS_FIX
+        m_vecA[qap.numConstraints()] = T::one();
+        for (std::size_t i = 1; i <= qap.numCircuitInputs(); ++i) {
+            m_vecA[qap.numConstraints() + i] = witness[i - 1];
+        }
+#else
         *m_uitA = T::one();
         for (std::size_t i = 0; i < qap.numCircuitInputs(); ++i) {
             *m_uitA += witness[i] * T(i + 2);
         }
+#endif
 
         // A, B, C
         constraintLoop(qap.constraintSystem());
@@ -61,9 +68,15 @@ public:
 private:
     void constraintLoop(const R1System<T>& S) {
         for (const auto& constraint : S.constraints()) {
+#ifdef PARNO_SOUNDNESS_FIX
+            *m_uitA += constraint.a() * m_witness; ++m_uitA;
+            *m_uitB += constraint.b() * m_witness; ++m_uitB;
+            *m_uitC += constraint.c() * m_witness; ++m_uitC;
+#else
             ++m_uitA; *m_uitA += constraint.a() * m_witness;
             ++m_uitB; *m_uitB += constraint.b() * m_witness;
             ++m_uitC; *m_uitC += constraint.c() * m_witness;
+#endif
         }
     }
 
