@@ -59,7 +59,7 @@ To build and run the autotests for CURVE_ALT_BN128:
     $ make autotest_bn128 LIBSNARK_PREFIX=/usr/local
     $ ./autotest_bn128 -a
     ...lots of output...
-    PASS - All 2058 tests passed
+    PASS - All 2064 tests passed
     $
 
 To build and run the autotests for CURVE_EDWARDS:
@@ -68,15 +68,20 @@ To build and run the autotests for CURVE_EDWARDS:
     $ make autotest_edwards LIBSNARK_PREFIX=/usr/local
     $ ./autotest_edwards -a
     ...lots of output...
-    PASS - All 2048 tests passed
+    PASS - All 2054 tests passed
     $
 
-These alternative build targets work for older versions of libsnark from late
-2014 code snapshots. They define the macro USE_OLD_LIBSNARK which adapts the
-autotest code.
+These alternative build targets work for older versions of libsnark.
 
-    $ make autotest_bn128_oldlibsnark LIBSNARK_PREFIX=/usr/local
-    $ make autotest_edwards_oldlibsnark LIBSNARK_PREFIX=/usr/local
+(2015 until Bryan Parno soundness bug fix in May)
+
+    $ make autotest_bn128_2015 LIBSNARK_PREFIX=/usr/local
+    $ make autotest_edwards_2015 LIBSNARK_PREFIX=/usr/local
+
+(2014 code snapshots)
+
+    $ make autotest_bn128_2014 LIBSNARK_PREFIX=/usr/local
+    $ make autotest_edwards_2014 LIBSNARK_PREFIX=/usr/local
 
 All tests should pass. The autotest program should not crash or hang. Any
 failed tests are printed to standard output. Each unit test case is numbered.
@@ -262,3 +267,6 @@ If you have more time, two additional research papers are:
 [GNU Multiple Precision Arithmetic Library]: https://gmplib.org/
 
 [GitHub snarkfront project]: https://github.com/jancarlsson/snarkfront
+
+Bryan Parno's report motivated the input consistency change in May 2015:
+[A Note on the Unsoundness of vnTinyRAM's SNARK](https://eprint.iacr.org/2015/437)
