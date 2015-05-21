@@ -45,7 +45,11 @@ public:
         // input consistency (for A only)
         if (m_A) {
             for (std::size_t i = 0; i <= qap.numCircuitInputs(); ++i)
+#ifdef PARNO_SOUNDNESS_FIX
+                m_vecA[3 + i] = qap.lagrange_coeffs()[qap.numConstraints() + i];
+#else
                 m_vecA[3 + i] = (*m_uit) * T(i + 1);
+#endif
         }
 
         constraintLoop(qap.constraintSystem());
@@ -110,34 +114,51 @@ private:
         if (m_A && !m_B && !m_C) {
             // only A
             for (const auto& c : S.constraints()) {
+#ifndef PARNO_SOUNDNESS_FIX
                 ++m_uit;
+#endif
                 const auto& u = *m_uit;
                 for (const auto& t : c.a().terms())
                     m_vecA[3 + t.index()] += u * t.coeff();
+#ifdef PARNO_SOUNDNESS_FIX
+                ++m_uit;
+#endif
             }
 
         } else if (m_B && !m_A && !m_C) {
             // only B
             for (const auto& c : S.constraints()) {
+#ifndef PARNO_SOUNDNESS_FIX
                 ++m_uit;
+#endif
                 const auto& u = *m_uit;
                 for (const auto& t : c.b().terms())
                     m_vecB[3 + t.index()] += u * t.coeff();
+#ifdef PARNO_SOUNDNESS_FIX
+                ++m_uit;
+#endif
             }
 
         } else if (m_C && !m_A && !m_C) {
             // only C
             for (const auto& c : S.constraints()) {
+#ifndef PARNO_SOUNDNESS_FIX
                 ++m_uit;
+#endif
                 const auto& u = *m_uit;
                 for (const auto& t : c.c().terms())
                     m_vecC[3 + t.index()] += u * t.coeff();
+#ifdef PARNO_SOUNDNESS_FIX
+                ++m_uit;
+#endif
             }
 
         } else if (m_A && m_B && m_C) {
             // all query vectors
             for (const auto& c : S.constraints()) {
+#ifndef PARNO_SOUNDNESS_FIX
                 ++m_uit;
+#endif
                 const auto& u = *m_uit;
 
                 for (const auto& t : c.a().terms())
@@ -148,12 +169,17 @@ private:
 
                 for (const auto& t : c.c().terms())
                     m_vecC[3 + t.index()] += u * t.coeff();
+#ifdef PARNO_SOUNDNESS_FIX
+                ++m_uit;
+#endif
             }
 
         } else {
             // subset of query vectors
             for (const auto& c : S.constraints()) {
+#ifndef PARNO_SOUNDNESS_FIX
                 ++m_uit;
+#endif
                 const auto& u = *m_uit;
 
                 if (m_A) {
@@ -170,6 +196,9 @@ private:
                     for (const auto& t : c.c().terms())
                         m_vecC[3 + t.index()] += u * t.coeff();
                 }
+#ifdef PARNO_SOUNDNESS_FIX
+                ++m_uit;
+#endif
             }
         }
     }
