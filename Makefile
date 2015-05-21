@@ -51,7 +51,11 @@ LIBRARY_FILES = \
 default :
 	@echo Build options:
 	@echo make autotest_bn128 LIBSNARK_PREFIX=\<path\>
+	@echo make autotest_bn128_2015 LIBSNARK_PREFIX=\<path\>
+	@echo make autotest_bn128_2014 LIBSNARK_PREFIX=\<path\>
 	@echo make autotest_edwards LIBSNARK_PREFIX=\<path\>
+	@echo make autotest_edwards_2015 LIBSNARK_PREFIX=\<path\>
+	@echo make autotest_edwards_2014 LIBSNARK_PREFIX=\<path\>
 	@echo make install PREFIX=\<path\>
 	@echo make doc
 	@echo make clean
@@ -77,9 +81,11 @@ endif
 
 CLEAN_FILES = \
 	autotest_bn128 \
-	autotest_bn128_oldlibsnark \
+	autotest_bn128_2015 \
+	autotest_bn128_2014 \
 	autotest_edwards \
-	autotest_edwards_oldlibsnark \
+	autotest_edwards_2015 \
+	autotest_edwards_2014 \
 	README.html
 
 clean :
@@ -94,8 +100,11 @@ ifeq ($(LIBSNARK_PREFIX),)
 autotest_bn128 :
 	$(error Please provide LIBSNARK_PREFIX, e.g. make autotest_bn128 LIBSNARK_PREFIX=/usr/local)
 
-autotest_bn128_oldlibsnark :
-	$(error Please provide LIBSNARK_PREFIX, e.g. make autotest_bn128_oldlibsnark LIBSNARK_PREFIX=/usr/local)
+autotest_bn128_2015 :
+	$(error Please provide LIBSNARK_PREFIX, e.g. make autotest_bn128_2015 LIBSNARK_PREFIX=/usr/local)
+
+autotest_bn128_2014 :
+	$(error Please provide LIBSNARK_PREFIX, e.g. make autotest_bn128_2014 LIBSNARK_PREFIX=/usr/local)
 else
 CXXFLAGS_CURVE_ALT_BN128 = \
 	-I. -I$(LIBSNARK_PREFIX)/include/libsnark \
@@ -106,12 +115,18 @@ LDFLAGS_CURVE_ALT_BN128 = \
 	-Wl,-rpath $(LIBSNARK_PREFIX)/lib \
 	-lgmpxx -lgmp -lsnark
 
+# use latest version of libsnark
 autotest_bn128 : autotest.cpp $(LIBRARY_FILES) snarklib
+	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_ALT_BN128) -DUSE_MIXED_ADDITION -DMONTGOMERY_OUTPUT -DPARNO_SOUNDNESS_FIX $< -o autotest_bn128.o
+	$(CXX) -o $@ autotest_bn128.o $(LDFLAGS_CURVE_ALT_BN128) -lprocps
+
+# predates Bryan Parno soundness bug fix in May 2015
+autotest_bn128_2015 : autotest.cpp $(LIBRARY_FILES) snarklib
 	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_ALT_BN128) -DUSE_MIXED_ADDITION $< -o autotest_bn128.o
 	$(CXX) -o $@ autotest_bn128.o $(LDFLAGS_CURVE_ALT_BN128) -lprocps
 
 # link does not need procps even when libsnark is built with it
-autotest_bn128_oldlibsnark : autotest.cpp $(LIBRARY_FILES) snarklib
+autotest_bn128_2014 : autotest.cpp $(LIBRARY_FILES) snarklib
 	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_ALT_BN128) -DUSE_OLD_LIBSNARK $< -o autotest_bn128.o
 	$(CXX) -o $@ autotest_bn128.o $(LDFLAGS_CURVE_ALT_BN128)
 endif
@@ -125,8 +140,11 @@ ifeq ($(LIBSNARK_PREFIX),)
 autotest_edwards :
 	$(error Please provide LIBSNARK_PREFIX, e.g. make autotest_edwards LIBSNARK_PREFIX=/usr/local)
 
-autotest_edwards_oldlibsnark :
-	$(error Please provide LIBSNARK_PREFIX, e.g. make autotest_edwards_oldlibsnark LIBSNARK_PREFIX=/usr/local)
+autotest_edwards_2015 :
+	$(error Please provide LIBSNARK_PREFIX, e.g. make autotest_edwards_2015 LIBSNARK_PREFIX=/usr/local)
+
+autotest_edwards_2014 :
+	$(error Please provide LIBSNARK_PREFIX, e.g. make autotest_edwards_2014 LIBSNARK_PREFIX=/usr/local)
 else
 CXXFLAGS_CURVE_EDWARDS = \
 	-I. -I$(LIBSNARK_PREFIX)/include/libsnark \
@@ -137,12 +155,18 @@ LDFLAGS_CURVE_EDWARDS = \
 	-Wl,-rpath $(LIBSNARK_PREFIX)/lib \
 	-lgmpxx -lgmp -lsnark
 
+# use latest version of libsnark
 autotest_edwards : autotest.cpp $(LIBRARY_FILES) snarklib
+	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_EDWARDS) -DUSE_MIXED_ADDITION -DMONTGOMERY_OUTPUT -DPARNO_SOUNDNESS_FIX $< -o autotest_edwards.o
+	$(CXX) -o $@ autotest_edwards.o $(LDFLAGS_CURVE_EDWARDS) -lprocps
+
+# predates Bryan Parno soundness bug fix in May 2015
+autotest_edwards_2015 : autotest.cpp $(LIBRARY_FILES) snarklib
 	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_EDWARDS) -DUSE_MIXED_ADDITION $< -o autotest_edwards.o
 	$(CXX) -o $@ autotest_edwards.o $(LDFLAGS_CURVE_EDWARDS) -lprocps
 
 # link does not need procps even when libsnark is built with it
-autotest_edwards_oldlibsnark : autotest.cpp $(LIBRARY_FILES) snarklib
+autotest_edwards_2014 : autotest.cpp $(LIBRARY_FILES) snarklib
 	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_EDWARDS) -DUSE_OLD_LIBSNARK $< -o autotest_edwards.o
 	$(CXX) -o $@ autotest_edwards.o $(LDFLAGS_CURVE_EDWARDS)
 endif
