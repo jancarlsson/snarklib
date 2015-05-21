@@ -20,31 +20,46 @@ class QAP
 public:
     virtual ~QAP() = default;
 
-    std::size_t degree() const { return m_degree; }
     std::size_t numVariables() const { return m_numVariables; }
+    std::size_t numConstraints() const { return m_numConstraints; }
     std::size_t numCircuitInputs() const { return m_numCircuitInputs; }
+
+    std::size_t degree() const { return m_degree; }
 
     const LagrangeFFT<T>& FFT() const { return m_FFT; }
 
 protected:
     QAP(const R1System<T>& constraintSystem,
         const std::size_t numCircuitInputs)
-        : m_degree(LagrangeFFT<T>::getDegree(constraintSystem.constraints().size() + 1)),
-          m_numVariables(constraintSystem.maxIndex()),
+        : m_numVariables(constraintSystem.maxIndex()),
+          m_numConstraints(constraintSystem.constraints().size()),
           m_numCircuitInputs(numCircuitInputs),
+          m_degree(LagrangeFFT<T>::getDegree(m_numConstraints
+#ifdef PARNO_SOUNDNESS_FIX
+                                             + numCircuitInputs
+#endif
+                                             + 1)),
           m_FFT(m_degree)
     {}
 
     QAP(const HugeSystem<T>& hugeSystem,
         const std::size_t numCircuitInputs)
-        : m_degree(LagrangeFFT<T>::getDegree(hugeSystem.totalConstraints() + 1)),
-          m_numVariables(hugeSystem.maxIndex()),
+        : m_numVariables(hugeSystem.maxIndex()),
+          m_numConstraints(hugeSystem.totalConstraints()),
           m_numCircuitInputs(numCircuitInputs),
+          m_degree(LagrangeFFT<T>::getDegree(m_numConstraints
+#ifdef PARNO_SOUNDNESS_FIX
+                                             + numCircuitInputs
+#endif
+                                             + 1)),
           m_FFT(m_degree)
     {}
 
 private:
-    std::size_t m_degree, m_numVariables, m_numCircuitInputs;
+    std::size_t m_numVariables;
+    std::size_t m_numConstraints;
+    std::size_t m_numCircuitInputs;
+    std::size_t m_degree;
     LagrangeFFT<T> m_FFT;
 };
 
@@ -80,9 +95,11 @@ public:
           m_lagrange_coeffs()
     {}
 
-    std::size_t degree() const { return QAP<T>::degree(); }
     std::size_t numVariables() const { return QAP<T>::numVariables(); }
+    std::size_t numConstraints() const { return QAP<T>::numConstraints(); }
     std::size_t numCircuitInputs() const { return QAP<T>::numCircuitInputs(); }
+
+    std::size_t degree() const { return QAP<T>::degree(); }
 
     const SYS<T>& constraintSystem() const { return m_constraintSystem; }
 
