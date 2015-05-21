@@ -382,6 +382,145 @@ private:
     const bool m_booleanityX;
 };
 
+////////////////////////////////////////////////////////////////////////////////
+// unsoundness circuit from: A Note on the Unsoundness of vnTinyRAM's SNARK
+//
+// Six scalar wires, three multiplication gates:
+//
+//     c1, c2, c3 are free
+//     c4 = c1 * c2
+//     c5 = c1 * c3
+//     c6 = c4 * c5
+//
+// To demonstrate unsoundness, the input wires are: c1, c2, c3, c6.
+// As input variables must be first, it is convenient to relabel the
+// wires so the circuit is:
+//
+//     d1, d2, d3 are free
+//     d5 = d1 * d2
+//     d6 = d1 * d3
+//     d4 = d5 * d6
+//
+// Then the input wires are: d1, d2, d3, d4.
+//
+
+template <template <typename> class SYS, typename T, typename U>
+class AutoTestR1CS_Soundness : public AutoTestR1CS<SYS, T, U>
+{
+public:
+    // may be unsound
+    AutoTestR1CS_Soundness(const unsigned long c1,
+                           const unsigned long c2,
+                           const unsigned long c3,
+                           const unsigned long c4,
+                           const unsigned long c5,
+                           const unsigned long c6,
+                           const std::string& filePrefix)
+        : AutoTestR1CS<SYS, T, U>(4, filePrefix),
+          m_d1(c1), // d1 is c1
+          m_d2(c2), // d2 is c2
+          m_d3(c3), // d3 is c3
+          m_d4(c6), // d4 is c6
+          m_d5(c4), // d5 is c4
+          m_d6(c5)  // d6 is c5
+    {
+        initA();
+        initB();
+    }
+
+    // will be sound as input is consistent with witness
+    AutoTestR1CS_Soundness(const unsigned long c1,
+                           const unsigned long c2,
+                           const unsigned long c3,
+                           const std::string& filePrefix)
+        : AutoTestR1CS_Soundness{c1, c2, c3, c1*c2, c1*c3, c1*c1*c2*c3, filePrefix}
+    {}
+
+private:
+    void initA() {
+#ifdef USE_OLD_LIBSNARK
+        this->m_csA.num_inputs = this->numCircuitInputs();
+        this->m_csA.num_vars = 6;
+#else
+        this->m_csA.primary_input_size = this->numCircuitInputs();
+        this->m_csA.auxiliary_input_size = 6 - this->numCircuitInputs();
+#endif
+
+        // d1 * d2 = d5
+        {
+            libsnark::linear_combination<U> A, B, C;
+            A.add_term(1, 1);
+            B.add_term(2, 1);
+            C.add_term(5, 1);
+            this->m_csA.add_constraint(libsnark::r1cs_constraint<U>(A, B, C));
+        }
+
+        // d1 * d3 = d6
+        {
+            libsnark::linear_combination<U> A, B, C;
+            A.add_term(1, 1);
+            B.add_term(3, 1);
+            C.add_term(6, 1);
+            this->m_csA.add_constraint(libsnark::r1cs_constraint<U>(A, B, C));
+        }
+
+        // d5 * d6 = d4
+        {
+            libsnark::linear_combination<U> A, B, C;
+            A.add_term(5, 1);
+            B.add_term(6, 1);
+            C.add_term(4, 1);
+            this->m_csA.add_constraint(libsnark::r1cs_constraint<U>(A, B, C));
+        }
+
+        // witness always consistent
+#ifdef USE_OLD_LIBSNARK
+        this->m_witnessA.push_back(U(m_d1)); // 1
+        this->m_witnessA.push_back(U(m_d2)); // 2
+        this->m_witnessA.push_back(U(m_d2)); // 3
+        this->m_witnessA.push_back(U(m_d1 * m_d1 * m_d2 * m_d3)); // 4
+#endif
+        this->m_witnessA.push_back(U(m_d1 * m_d2)); // 5
+        this->m_witnessA.push_back(U(m_d1 * m_d3)); // 6
+
+        // public inputs may be inconsistent
+        this->m_inputA.push_back(U(m_d1)); // 1
+        this->m_inputA.push_back(U(m_d2)); // 2
+        this->m_inputA.push_back(U(m_d2)); // 3
+        this->m_inputA.push_back(U(m_d4)); // 4
+    }
+
+    void initB() {
+        this->clearAppend(this->m_csB);
+
+        R1Variable<T> d1(1), d2(2), d3(3), d4(4), d5(5), d6(6);
+
+        this->m_csB.addConstraint(d1 * d2 == d5);
+        this->m_csB.addConstraint(d1 * d3 == d6);
+        this->m_csB.addConstraint(d5 * d6 == d4);
+
+        this->m_csB.swap_AB_if_beneficial();
+
+        // witness always consistent
+        this->m_witnessB.assignVar(d1, T(m_d1));
+        this->m_witnessB.assignVar(d2, T(m_d2));
+        this->m_witnessB.assignVar(d3, T(m_d3));
+        this->m_witnessB.assignVar(d4, T(m_d1 * m_d1 * m_d2 * m_d3));
+        this->m_witnessB.assignVar(d5, T(m_d1 * m_d2));
+        this->m_witnessB.assignVar(d6, T(m_d1 * m_d3));
+
+        // public inputs may be inconsistent
+        this->m_inputB.assignVar(d1, T(m_d1));
+        this->m_inputB.assignVar(d2, T(m_d2));
+        this->m_inputB.assignVar(d3, T(m_d3));
+        this->m_inputB.assignVar(d4, T(m_d4));
+
+        this->finalize(this->m_csB);
+    }
+
+    const unsigned long m_d1, m_d2, m_d3, m_d4, m_d5, m_d6;
+};
+
 } // namespace snarklib
 
 #endif
