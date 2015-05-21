@@ -393,6 +393,26 @@ void add_Marshalling(AutoTestBattery& ATB)
     }
 }
 
+template <template <typename> class SYS, typename PAIRING, typename T, typename U>
+void add_Soundness(AutoTestBattery& ATB)
+{
+    // from:
+    // "A Note on the Unsoundness of vnTinyRAM's SNARK"
+    // by Bryan Parno
+    const AutoTestR1CS_Soundness<SYS, T, U>
+        sound(1, 2, 10, "autotest_tmpfileSOUND"),
+        unsoundA(1, 10, 4, 10, 4, 20, "autotest_tmpfileUNSOUNDA"),
+        unsoundB(6, 2, 10, 12, 60, 18, "autotest_tmpfileUNSOUNDB");
+
+    // verification should always succeed as the example is sound
+    ATB.addTest(new AutoTest_PPZK_full_redesign<SYS, PAIRING, U>(sound));
+
+    // verification should fail as the example is unsound
+    // success of the test happens with failure to verify the unsound proof
+    ATB.addTest(new AutoTest_PPZK_full_redesign<SYS, PAIRING, U>(unsoundA, true));
+    ATB.addTest(new AutoTest_PPZK_full_redesign<SYS, PAIRING, U>(unsoundB, true));
+}
+
 void printUsage(const char* exeName) {
     cout << "run all tests:  " << exeName << " -a" << endl
          << "specified test: " << exeName << " -i testnumber" << endl;
@@ -505,6 +525,10 @@ int main(int argc, char *argv[])
     add_Marshalling<G1, G2, 2, Fr, PAIRING>(ATB);
     add_Marshalling<G2, G1, 3, Fq, PAIRING>(ATB);
     add_Marshalling<G2, G2, 4, Fq, PAIRING>(ATB);
+
+    // proof soundness
+    add_Soundness<R1System, PAIRING, Fr, libsnark_Fr>(ATB);
+    add_Soundness<HugeSystem, PAIRING, Fr, libsnark_Fr>(ATB);
 
     // put these last so test numbers for BN128 and Edwards match
 #ifdef CURVE_ALT_BN128
