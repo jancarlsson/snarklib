@@ -39,7 +39,8 @@ public:
           m_random_d(std::addressof(random_d))
     {}
 
-    PPZK_WitnessABC(const QAP<FR>& qap,
+    template <template <typename> class SYS>
+    PPZK_WitnessABC(const QAP<SYS, FR>& qap,
                     const R1Witness<FR>& witness,
                     const FR& random_d)
         : PPZK_WitnessABC{qap.numVariables(), witness, random_d}
