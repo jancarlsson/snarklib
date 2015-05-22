@@ -35,14 +35,12 @@ public:
         // input consistency (for A only)
 #ifdef PARNO_SOUNDNESS_FIX
         m_vecA[qap.numConstraints()] = T::one();
-        for (std::size_t i = 1; i <= qap.numCircuitInputs(); ++i) {
+        for (std::size_t i = 1; i <= qap.numCircuitInputs(); ++i)
             m_vecA[qap.numConstraints() + i] = witness[i - 1];
-        }
 #else
         *m_uitA = T::one();
-        for (std::size_t i = 0; i < qap.numCircuitInputs(); ++i) {
-            *m_uitA += witness[i] * T(i + 2);
-        }
+        for (std::size_t i = 1; i <= qap.numCircuitInputs(); ++i)
+            *m_uitA += witness[i - 1] * T(i + 1);
 #endif
 
         // A, B, C
@@ -66,17 +64,22 @@ public:
     bool operator! () const { return m_error; }
 
 private:
+    void accum_witness(typename std::vector<T>::iterator& uit,
+                       const snarklib::R1Combination<T>& lc) {
+#ifdef PARNO_SOUNDNESS_FIX
+        *uit += lc * m_witness;
+        ++uit;
+#else
+        ++uit;
+        *uit += lc * m_witness;
+#endif
+    }
+
     void constraintLoop(const R1System<T>& S) {
         for (const auto& constraint : S.constraints()) {
-#ifdef PARNO_SOUNDNESS_FIX
-            *m_uitA += constraint.a() * m_witness; ++m_uitA;
-            *m_uitB += constraint.b() * m_witness; ++m_uitB;
-            *m_uitC += constraint.c() * m_witness; ++m_uitC;
-#else
-            ++m_uitA; *m_uitA += constraint.a() * m_witness;
-            ++m_uitB; *m_uitB += constraint.b() * m_witness;
-            ++m_uitC; *m_uitC += constraint.c() * m_witness;
-#endif
+            accum_witness(m_uitA, constraint.a());
+            accum_witness(m_uitB, constraint.b());
+            accum_witness(m_uitC, constraint.c());
         }
     }
 
