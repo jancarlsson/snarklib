@@ -54,29 +54,9 @@ public:
 
         constraintLoop(qap.constraintSystem());
 
-        if (m_A) {
-            m_nonzeroA = std::count_if(m_vecA.begin(),
-                                       m_vecA.end(),
-                                       [] (const T& v) -> bool {
-                                           return ! v.isZero();
-                                       });
-        }
-
-        if (m_B) {
-            m_nonzeroB = std::count_if(m_vecB.begin(),
-                                       m_vecB.end(),
-                                       [] (const T& v) -> bool {
-                                           return ! v.isZero();
-                                       });
-        }
-
-        if (m_C) {
-            m_nonzeroC = std::count_if(m_vecC.begin(),
-                                       m_vecC.end(),
-                                       [] (const T& v) -> bool {
-                                           return ! v.isZero();
-                                       });
-        }
+        if (m_A) m_nonzeroA = count_nonzero(m_vecA);
+        if (m_B) m_nonzeroB = count_nonzero(m_vecB);
+        if (m_C) m_nonzeroC = count_nonzero(m_vecC);
     }
 
     std::size_t nonzeroA() const { return m_nonzeroA; }
@@ -109,97 +89,35 @@ public:
     bool operator! () const { return m_error; }
 
 private:
+    std::size_t count_nonzero(const std::vector<T>& a) {
+        return std::count_if(a.begin(),
+                             a.end(),
+                             [] (const T& v) -> bool {
+                                 return ! v.isZero();
+                             });
+    }
+
+    void accum_coeff(std::vector<T>& a,
+                     const R1Combination<T>& lc,
+                     const T& u) {
+        for (const auto& t : lc.terms())
+            a[3 + t.index()] += u * t.coeff();
+    }
+
     void constraintLoop(const R1System<T>& S)
     {
-        if (m_A && !m_B && !m_C) {
-            // only A
-            for (const auto& c : S.constraints()) {
-#ifndef PARNO_SOUNDNESS_FIX
-                ++m_uit;
-#endif
-                const auto& u = *m_uit;
-                for (const auto& t : c.a().terms())
-                    m_vecA[3 + t.index()] += u * t.coeff();
+        for (const auto& c : S.constraints()) {
 #ifdef PARNO_SOUNDNESS_FIX
-                ++m_uit;
+            if (m_A) accum_coeff(m_vecA, c.a(), *m_uit);
+            if (m_B) accum_coeff(m_vecB, c.b(), *m_uit);
+            if (m_C) accum_coeff(m_vecC, c.c(), *m_uit);
+            ++m_uit;
+#else
+            ++m_uit;
+            if (m_A) accum_coeff(m_vecA, c.a(), *m_uit);
+            if (m_B) accum_coeff(m_vecB, c.b(), *m_uit);
+            if (m_C) accum_coeff(m_vecC, c.c(), *m_uit);
 #endif
-            }
-
-        } else if (m_B && !m_A && !m_C) {
-            // only B
-            for (const auto& c : S.constraints()) {
-#ifndef PARNO_SOUNDNESS_FIX
-                ++m_uit;
-#endif
-                const auto& u = *m_uit;
-                for (const auto& t : c.b().terms())
-                    m_vecB[3 + t.index()] += u * t.coeff();
-#ifdef PARNO_SOUNDNESS_FIX
-                ++m_uit;
-#endif
-            }
-
-        } else if (m_C && !m_A && !m_C) {
-            // only C
-            for (const auto& c : S.constraints()) {
-#ifndef PARNO_SOUNDNESS_FIX
-                ++m_uit;
-#endif
-                const auto& u = *m_uit;
-                for (const auto& t : c.c().terms())
-                    m_vecC[3 + t.index()] += u * t.coeff();
-#ifdef PARNO_SOUNDNESS_FIX
-                ++m_uit;
-#endif
-            }
-
-        } else if (m_A && m_B && m_C) {
-            // all query vectors
-            for (const auto& c : S.constraints()) {
-#ifndef PARNO_SOUNDNESS_FIX
-                ++m_uit;
-#endif
-                const auto& u = *m_uit;
-
-                for (const auto& t : c.a().terms())
-                    m_vecA[3 + t.index()] += u * t.coeff();
-
-                for (const auto& t : c.b().terms())
-                    m_vecB[3 + t.index()] += u * t.coeff();
-
-                for (const auto& t : c.c().terms())
-                    m_vecC[3 + t.index()] += u * t.coeff();
-#ifdef PARNO_SOUNDNESS_FIX
-                ++m_uit;
-#endif
-            }
-
-        } else {
-            // subset of query vectors
-            for (const auto& c : S.constraints()) {
-#ifndef PARNO_SOUNDNESS_FIX
-                ++m_uit;
-#endif
-                const auto& u = *m_uit;
-
-                if (m_A) {
-                    for (const auto& t : c.a().terms())
-                        m_vecA[3 + t.index()] += u * t.coeff();
-                }
-
-                if (m_B) {
-                    for (const auto& t : c.b().terms())
-                        m_vecB[3 + t.index()] += u * t.coeff();
-                }
-
-                if (m_C) {
-                    for (const auto& t : c.c().terms())
-                        m_vecC[3 + t.index()] += u * t.coeff();
-                }
-#ifdef PARNO_SOUNDNESS_FIX
-                ++m_uit;
-#endif
-            }
         }
     }
 
@@ -319,7 +237,7 @@ std::size_t g2_exp_count(const QAP_QueryABC<SYS, T>& ABCt) {
 //
 
 template <template <typename> class SYS, typename T>
-std::vector<T> qap_query_IC(const QAP<T>& qap,
+std::vector<T> qap_query_IC(const QAP<SYS, T>& qap,
                             const QAP_QueryABC<SYS, T>& ABCt,
                             const T& random_rA)
 {
@@ -328,7 +246,6 @@ std::vector<T> qap_query_IC(const QAP<T>& qap,
     // circuit inputs from At query vector
     for (std::size_t i = 0; i < vec.size(); ++i) {
         vec[i] = ABCt.vecA()[3 + i] * random_rA;
-
 #ifdef USE_ASSERT
         assert(! vec[i].isZero());
 #endif
@@ -338,7 +255,7 @@ std::vector<T> qap_query_IC(const QAP<T>& qap,
 }
 
 template <template <typename> class SYS, typename T>
-std::vector<T> qap_query_IC(const QAP<T>& qap,
+std::vector<T> qap_query_IC(const QAP<SYS, T>& qap,
                             const QAP_QueryABC<SYS, T>& ABCt)
 {
     auto vec = ABCt.vecA();
@@ -351,19 +268,19 @@ std::vector<T> qap_query_IC(const QAP<T>& qap,
     return vec;
 }
 
-template <typename T>
+template <template <typename> class SYS, typename T>
 class QAP_QueryIC
 {
 public:
     // use with accumVector() to avoid having all vectors in memory
-    QAP_QueryIC(const QAP<T>& qap,
+    QAP_QueryIC(const QAP<SYS, T>& qap,
                 const T& random_rA)
         : m_vec(qap.numCircuitInputs() + 1, T::zero()),
           m_random_rA(random_rA)
     {}
 
     // blinded random_A is windowed exponentiation table generator
-    QAP_QueryIC(const QAP<T>& qap)
+    QAP_QueryIC(const QAP<SYS, T>& qap)
         : QAP_QueryIC{qap, T::one()}
     {}
 
@@ -399,7 +316,7 @@ private:
 //
 
 template <template <typename> class SYS, typename T>
-std::vector<T> qap_query_K(const QAP<T>& qap,
+std::vector<T> qap_query_K(const QAP<SYS, T>& qap,
                            const QAP_QueryABC<SYS, T>& ABCt,
                            const T& random_beta_rA,
                            const T& random_beta_rB,
@@ -417,12 +334,12 @@ std::vector<T> qap_query_K(const QAP<T>& qap,
     return vec;
 }
 
-template <typename T>
+template <template <typename> class SYS, typename T>
 class QAP_QueryK
 {
 public:
     // use with accumVector() to avoid having all vectors in memory
-    QAP_QueryK(const QAP<T>& qap,
+    QAP_QueryK(const QAP<SYS, T>& qap,
                const T& random_beta_rA,
                const T& random_beta_rB,
                const T& random_beta_rC)
