@@ -4,9 +4,7 @@
 #include <cstdint>
 #include <vector>
 
-#include <snarklib/HugeSystem.hpp>
 #include <snarklib/LagrangeFFTX.hpp>
-#include <snarklib/Rank1DSL.hpp>
 
 namespace snarklib {
 
@@ -14,7 +12,7 @@ namespace snarklib {
 // base class
 //
 
-template <typename T>
+template <template <typename> class SYS, typename T>
 class QAP
 {
 public:
@@ -29,23 +27,10 @@ public:
     const LagrangeFFT<T>& FFT() const { return m_FFT; }
 
 protected:
-    QAP(const R1System<T>& constraintSystem,
+    QAP(const SYS<T>& constraintSystem,
         const std::size_t numCircuitInputs)
         : m_numVariables(constraintSystem.maxIndex()),
-          m_numConstraints(constraintSystem.constraints().size()),
-          m_numCircuitInputs(numCircuitInputs),
-          m_degree(LagrangeFFT<T>::getDegree(m_numConstraints
-#ifdef PARNO_SOUNDNESS_FIX
-                                             + numCircuitInputs
-#endif
-                                             + 1)),
-          m_FFT(m_degree)
-    {}
-
-    QAP(const HugeSystem<T>& hugeSystem,
-        const std::size_t numCircuitInputs)
-        : m_numVariables(hugeSystem.maxIndex()),
-          m_numConstraints(hugeSystem.totalConstraints()),
+          m_numConstraints(constraintSystem.size()),
           m_numCircuitInputs(numCircuitInputs),
           m_degree(LagrangeFFT<T>::getDegree(m_numConstraints
 #ifdef PARNO_SOUNDNESS_FIX
@@ -69,25 +54,25 @@ private:
 
 // SYS may be R1System<T> or HugeSystem<T>
 template <template <typename> class SYS, typename T>
-class QAP_SystemPoint : public QAP<T>
+class QAP_SystemPoint : public QAP<SYS, T>
 {
 public:
     // keypair generation: ABCH, IC coefficients, and K
     QAP_SystemPoint(const SYS<T>& constraintSystem,
                     const std::size_t numCircuitInputs,
                     const T& point)
-        : QAP<T>(constraintSystem, numCircuitInputs),
+        : QAP<SYS, T>(constraintSystem, numCircuitInputs),
           m_weakPoint(false),
           m_constraintSystem(constraintSystem),
           m_point(point),
-          m_compute_Z(QAP<T>::FFT()->compute_Z(point)),
-          m_lagrange_coeffs(QAP<T>::FFT()->lagrange_coeffs(point, m_weakPoint))
+          m_compute_Z(QAP<SYS, T>::FFT()->compute_Z(point)),
+          m_lagrange_coeffs(QAP<SYS, T>::FFT()->lagrange_coeffs(point, m_weakPoint))
     {}
 
     // proof generation
     QAP_SystemPoint(const SYS<T>& constraintSystem,
                     const std::size_t numCircuitInputs)
-        : QAP<T>(constraintSystem, numCircuitInputs),
+        : QAP<SYS, T>(constraintSystem, numCircuitInputs),
           m_weakPoint(false),
           m_constraintSystem(constraintSystem),
           m_point(T::zero()),
@@ -95,11 +80,11 @@ public:
           m_lagrange_coeffs()
     {}
 
-    std::size_t numVariables() const { return QAP<T>::numVariables(); }
-    std::size_t numConstraints() const { return QAP<T>::numConstraints(); }
-    std::size_t numCircuitInputs() const { return QAP<T>::numCircuitInputs(); }
+    std::size_t numVariables() const { return QAP<SYS, T>::numVariables(); }
+    std::size_t numConstraints() const { return QAP<SYS, T>::numConstraints(); }
+    std::size_t numCircuitInputs() const { return QAP<SYS, T>::numCircuitInputs(); }
 
-    std::size_t degree() const { return QAP<T>::degree(); }
+    std::size_t degree() const { return QAP<SYS, T>::degree(); }
 
     const SYS<T>& constraintSystem() const { return m_constraintSystem; }
 
