@@ -85,7 +85,7 @@ public:
     const std::string& filePrefix() const { return m_filePrefix; }
     std::size_t fileCount() const { return m_fileCount; }
     std::size_t constraintsPerFile() const { return m_constraintsPerFile; }
-    std::size_t totalConstraints() const { return m_totalConstraints; }
+    std::size_t size() const { return m_totalConstraints; }
 
     void addConstraint(const R1Constraint<T>& d) {
         m_r1system.addConstraint(d);
