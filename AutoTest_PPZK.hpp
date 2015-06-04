@@ -32,9 +32,9 @@ template <typename T, typename U>
 class AutoTest_PPZK_libsnark_only : public AutoTest
 {
 #ifdef USE_OLD_LIBSNARK
-    typedef typename libsnark::default_pp PPT;
+    typedef libsnark::default_pp PPT;
 #else
-    typedef typename libsnark::default_ec_pp PPT;
+    typedef libsnark::default_ec_pp PPT;
 #endif
 
 public:
@@ -95,9 +95,9 @@ class AutoTest_PPZK_strongVerify : public AutoTest
     typedef typename PAIRING::G2 G2;
 
 #ifdef USE_OLD_LIBSNARK
-    typedef typename libsnark::default_pp PPT;
+    typedef libsnark::default_pp PPT;
 #else
-    typedef typename libsnark::default_ec_pp PPT;
+    typedef libsnark::default_ec_pp PPT;
 #endif
 
 public:
@@ -207,9 +207,9 @@ class AutoTest_PPZK_ProofCompare : public AutoTest
     typedef typename PAIRING::G2 G2;
 
 #ifdef USE_OLD_LIBSNARK
-    typedef typename libsnark::default_pp PPT;
+    typedef libsnark::default_pp PPT;
 #else
-    typedef typename libsnark::default_ec_pp PPT;
+    typedef libsnark::default_ec_pp PPT;
 #endif
 
 public:
@@ -326,9 +326,9 @@ class AutoTest_PPZK_Proof : public AutoTest
     typedef typename PAIRING::G2 G2;
 
 #ifdef USE_OLD_LIBSNARK
-    typedef typename libsnark::default_pp PPT;
+    typedef libsnark::default_pp PPT;
 #else
-    typedef typename libsnark::default_ec_pp PPT;
+    typedef libsnark::default_ec_pp PPT;
 #endif
 
 public:
@@ -521,9 +521,9 @@ class AutoTest_PPZK_full_redesign : public AutoTest
     typedef typename PAIRING::G2 G2;
 
 #ifdef USE_OLD_LIBSNARK
-    typedef typename libsnark::default_pp PPT;
+    typedef libsnark::default_pp PPT;
 #else
-    typedef typename libsnark::default_ec_pp PPT;
+    typedef libsnark::default_ec_pp PPT;
 #endif
 
 public:
