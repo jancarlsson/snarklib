@@ -447,23 +447,23 @@ int main(int argc, char *argv[])
     initEC();
 
 #ifdef USE_OLD_LIBSNARK
-    typedef typename libsnark::Fr<libsnark::default_pp> libsnark_Fr;
+    typedef libsnark::Fr<libsnark::default_pp> libsnark_Fr;
 
-    typedef typename libsnark::Fq<libsnark::default_pp> libsnark_Fq;
-    typedef typename libsnark::Fqe<libsnark::default_pp> libsnark_Fqe;
-    typedef typename libsnark::Fqk<libsnark::default_pp> libsnark_Fqk;
+    typedef libsnark::Fq<libsnark::default_pp> libsnark_Fq;
+    typedef libsnark::Fqe<libsnark::default_pp> libsnark_Fqe;
+    typedef libsnark::Fqk<libsnark::default_pp> libsnark_Fqk;
 
-    typedef typename libsnark::G1<libsnark::default_pp> libsnark_G1;
-    typedef typename libsnark::G2<libsnark::default_pp> libsnark_G2;
+    typedef libsnark::G1<libsnark::default_pp> libsnark_G1;
+    typedef libsnark::G2<libsnark::default_pp> libsnark_G2;
 #else
-    typedef typename libsnark::Fr<libsnark::default_ec_pp> libsnark_Fr;
+    typedef libsnark::Fr<libsnark::default_ec_pp> libsnark_Fr;
 
-    typedef typename libsnark::Fq<libsnark::default_ec_pp> libsnark_Fq;
-    typedef typename libsnark::Fqe<libsnark::default_ec_pp> libsnark_Fqe;
-    typedef typename libsnark::Fqk<libsnark::default_ec_pp> libsnark_Fqk;
+    typedef libsnark::Fq<libsnark::default_ec_pp> libsnark_Fq;
+    typedef libsnark::Fqe<libsnark::default_ec_pp> libsnark_Fqe;
+    typedef libsnark::Fqk<libsnark::default_ec_pp> libsnark_Fqk;
 
-    typedef typename libsnark::G1<libsnark::default_ec_pp> libsnark_G1;
-    typedef typename libsnark::G2<libsnark::default_ec_pp> libsnark_G2;
+    typedef libsnark::G1<libsnark::default_ec_pp> libsnark_G1;
+    typedef libsnark::G2<libsnark::default_ec_pp> libsnark_G2;
 #endif
 
     AutoTestBattery ATB(cerr);
