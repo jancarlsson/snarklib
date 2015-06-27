@@ -6,6 +6,10 @@
 
 #include <snarklib/LagrangeFFTX.hpp>
 
+#ifndef DISABLE_PARNO_SOUNDNESS_FIX
+#define PARNO_SOUNDNESS_FIX
+#endif
+
 namespace snarklib {
 
 ////////////////////////////////////////////////////////////////////////////////
