@@ -117,17 +117,17 @@ LDFLAGS_CURVE_ALT_BN128 = \
 
 # use latest version of libsnark
 autotest_bn128 : autotest.cpp $(LIBRARY_FILES) snarklib
-	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_ALT_BN128) -DUSE_MIXED_ADDITION -DMONTGOMERY_OUTPUT -DPARNO_SOUNDNESS_FIX $< -o autotest_bn128.o
+	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_ALT_BN128) -DUSE_MIXED_ADDITION -DMONTGOMERY_OUTPUT $< -o autotest_bn128.o
 	$(CXX) -o $@ autotest_bn128.o $(LDFLAGS_CURVE_ALT_BN128) -lprocps
 
 # predates Bryan Parno soundness bug fix in May 2015
 autotest_bn128_2015 : autotest.cpp $(LIBRARY_FILES) snarklib
-	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_ALT_BN128) -DUSE_MIXED_ADDITION $< -o autotest_bn128.o
+	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_ALT_BN128) -DUSE_MIXED_ADDITION -DDISABLE_PARNO_SOUNDNESS_FIX $< -o autotest_bn128.o
 	$(CXX) -o $@ autotest_bn128.o $(LDFLAGS_CURVE_ALT_BN128) -lprocps
 
 # link does not need procps even when libsnark is built with it
 autotest_bn128_2014 : autotest.cpp $(LIBRARY_FILES) snarklib
-	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_ALT_BN128) -DUSE_OLD_LIBSNARK $< -o autotest_bn128.o
+	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_ALT_BN128) -DUSE_OLD_LIBSNARK -DDISABLE_PARNO_SOUNDNESS_FIX $< -o autotest_bn128.o
 	$(CXX) -o $@ autotest_bn128.o $(LDFLAGS_CURVE_ALT_BN128)
 endif
 
@@ -157,16 +157,16 @@ LDFLAGS_CURVE_EDWARDS = \
 
 # use latest version of libsnark
 autotest_edwards : autotest.cpp $(LIBRARY_FILES) snarklib
-	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_EDWARDS) -DUSE_MIXED_ADDITION -DMONTGOMERY_OUTPUT -DPARNO_SOUNDNESS_FIX $< -o autotest_edwards.o
+	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_EDWARDS) -DUSE_MIXED_ADDITION -DMONTGOMERY_OUTPUT $< -o autotest_edwards.o
 	$(CXX) -o $@ autotest_edwards.o $(LDFLAGS_CURVE_EDWARDS) -lprocps
 
 # predates Bryan Parno soundness bug fix in May 2015
 autotest_edwards_2015 : autotest.cpp $(LIBRARY_FILES) snarklib
-	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_EDWARDS) -DUSE_MIXED_ADDITION $< -o autotest_edwards.o
+	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_EDWARDS) -DUSE_MIXED_ADDITION -DDISABLE_PARNO_SOUNDNESS_FIX $< -o autotest_edwards.o
 	$(CXX) -o $@ autotest_edwards.o $(LDFLAGS_CURVE_EDWARDS) -lprocps
 
 # link does not need procps even when libsnark is built with it
 autotest_edwards_2014 : autotest.cpp $(LIBRARY_FILES) snarklib
-	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_EDWARDS) -DUSE_OLD_LIBSNARK $< -o autotest_edwards.o
+	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_EDWARDS) -DUSE_OLD_LIBSNARK -DDISABLE_PARNO_SOUNDNESS_FIX $< -o autotest_edwards.o
 	$(CXX) -o $@ autotest_edwards.o $(LDFLAGS_CURVE_EDWARDS)
 endif
