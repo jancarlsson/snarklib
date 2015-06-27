@@ -10,6 +10,10 @@
 #include <snarklib/QAP_system.hpp>
 #include <snarklib/Rank1DSL.hpp>
 
+#ifndef DISABLE_PARNO_SOUNDNESS_FIX
+#define PARNO_SOUNDNESS_FIX
+#endif
+
 namespace snarklib {
 
 ////////////////////////////////////////////////////////////////////////////////
