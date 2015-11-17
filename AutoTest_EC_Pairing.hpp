@@ -8,6 +8,7 @@
 
 #include "snarklib/AutoTest.hpp"
 #include "snarklib/BigInt.hpp"
+#include "snarklib/ForeignLib.hpp"
 
 namespace snarklib {
 
@@ -34,16 +35,16 @@ public:
 #ifdef CURVE_EDWARDS
         const auto a = edwards_ate_precompute_G1(m_A);
 
-        checkPass(sameData(a.P_XY, b.P_XY));
-        checkPass(sameData(a.P_XZ, b.P_XZ));
-        checkPass(sameData(a.P_ZZplusYZ, b.P_ZZplusYZ));
+        checkPass(equal_libsnark(a.P_XY, b.P_XY));
+        checkPass(equal_libsnark(a.P_XZ, b.P_XZ));
+        checkPass(equal_libsnark(a.P_ZZplusYZ, b.P_ZZplusYZ));
 #endif
 
 #ifdef CURVE_ALT_BN128
         const auto a = alt_bn128_ate_precompute_G1(m_A);
 
-        checkPass(sameData(a.PX, b.PX));
-        checkPass(sameData(a.PY, b.PY));
+        checkPass(equal_libsnark(a.PX, b.PX));
+        checkPass(equal_libsnark(a.PY, b.PY));
 #endif
     }
 
@@ -102,9 +103,9 @@ public:
         typename PAIRING::G2_projective bR(b.x(), b.y(), b.z(), b.x() * b.y());
         const auto bC = PAIRING::doubling_step_for_flipped_miller_loop(bR);
 
-        checkPass(sameData(aC.c_ZZ, bC.c_ZZ));
-        checkPass(sameData(aC.c_XY, bC.c_XY));
-        checkPass(sameData(aC.c_XZ, bC.c_XZ));
+        checkPass(equal_libsnark(aC.c_ZZ, bC.c_ZZ));
+        checkPass(equal_libsnark(aC.c_XY, bC.c_XY));
+        checkPass(equal_libsnark(aC.c_XZ, bC.c_XZ));
 #endif
 
 #ifdef CURVE_ALT_BN128
@@ -119,9 +120,9 @@ public:
         typename PAIRING::G2 bR(b.x(), b.y(), PAIRING::Fq2::one());
         const auto bC = PAIRING::doubling_step_for_flipped_miller_loop(bR);
 
-        checkPass(sameData(aC.ell_0, bC.ell_0));
-        checkPass(sameData(aC.ell_VW, bC.ell_VW));
-        checkPass(sameData(aC.ell_VV, bC.ell_VV));
+        checkPass(equal_libsnark(aC.ell_0, bC.ell_0));
+        checkPass(equal_libsnark(aC.ell_VW, bC.ell_VW));
+        checkPass(equal_libsnark(aC.ell_VV, bC.ell_VV));
 #endif
     }
 
@@ -155,9 +156,9 @@ public:
 
         if (checkPass(a.size() == b.coeffs.size())) {
             for (std::size_t i = 0; i < a.size(); ++i) {
-                checkPass(sameData(a[i].c_ZZ, b.coeffs[i].c_ZZ));
-                checkPass(sameData(a[i].c_XY, b.coeffs[i].c_XY));
-                checkPass(sameData(a[i].c_XZ, b.coeffs[i].c_XZ));
+                checkPass(equal_libsnark(a[i].c_ZZ, b.coeffs[i].c_ZZ));
+                checkPass(equal_libsnark(a[i].c_XY, b.coeffs[i].c_XY));
+                checkPass(equal_libsnark(a[i].c_XZ, b.coeffs[i].c_XZ));
             }
         }
 #endif
@@ -165,14 +166,14 @@ public:
 #ifdef CURVE_ALT_BN128
         const auto a = alt_bn128_ate_precompute_G2(m_A);
 
-        checkPass(sameData(a.QX, b.QX));
-        checkPass(sameData(a.QY, b.QY));
+        checkPass(equal_libsnark(a.QX, b.QX));
+        checkPass(equal_libsnark(a.QY, b.QY));
 
         if (checkPass(a.coeffs.size() == b.coeffs.size())) {
             for (std::size_t i = 0; i < a.coeffs.size(); ++i) {
-                checkPass(sameData(a.coeffs[i].ell_0, b.coeffs[i].ell_0));
-                checkPass(sameData(a.coeffs[i].ell_VW, b.coeffs[i].ell_VW));
-                checkPass(sameData(a.coeffs[i].ell_VV, b.coeffs[i].ell_VV));
+                checkPass(equal_libsnark(a.coeffs[i].ell_0, b.coeffs[i].ell_0));
+                checkPass(equal_libsnark(a.coeffs[i].ell_VW, b.coeffs[i].ell_VW));
+                checkPass(equal_libsnark(a.coeffs[i].ell_VV, b.coeffs[i].ell_VV));
             }
         }
 #endif
@@ -222,7 +223,7 @@ public:
         const G2_precomp b2(m_g2B);
         const auto b = PAIRING::ate_miller_loop(b1, b2);
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
@@ -290,7 +291,7 @@ public:
 
         const auto b = PAIRING::ate_double_miller_loop(b0, b1, b2, b3);
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
@@ -314,7 +315,7 @@ public:
         : AutoTest(value),
           m_B(value)
     {
-        copyData(m_B, m_A);
+        copy_libsnark(m_B, m_A);
     }
 
     AutoTest_EC_PairingFinalExponentiation()
@@ -332,7 +333,7 @@ public:
 
         const auto b = PAIRING::final_exponentiation(m_B);
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
