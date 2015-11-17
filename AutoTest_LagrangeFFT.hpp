@@ -11,6 +11,7 @@
 #endif
 
 #include "snarklib/AutoTest.hpp"
+#include "snarklib/ForeignLib.hpp"
 #include "snarklib/LagrangeFFTX.hpp"
 
 namespace snarklib {
@@ -33,7 +34,7 @@ public:
         m_B.reserve(m_FFT_min_size);
         for (std::size_t i = 0; i < m_FFT_min_size; ++i) {
             m_B.emplace_back(T::random());
-            copyData(m_B[i], m_A[i]);
+            copy_libsnark(m_B[i], m_A[i]);
         }
     }
 
@@ -45,7 +46,7 @@ public:
 
         if (checkPass(m_A.size() == m_B.size())) {
             for (std::size_t i = 0; i < m_A.size(); ++i) {
-                checkPass(sameData(m_A[i], m_B[i]));
+                checkPass(equal_libsnark(m_A[i], m_B[i]));
             }
         }
     }
@@ -76,7 +77,7 @@ public:
         m_B.reserve(m_FFT_min_size);
         for (std::size_t i = 0; i < m_FFT_min_size; ++i) {
             m_B.emplace_back(T::random());
-            copyData(m_B[i], m_A[i]);
+            copy_libsnark(m_B[i], m_A[i]);
         }
     }
 
@@ -88,7 +89,7 @@ public:
 
         if (checkPass(m_A.size() == m_B.size())) {
             for (std::size_t i = 0; i < m_A.size(); ++i) {
-                checkPass(sameData(m_A[i], m_B[i]));
+                checkPass(equal_libsnark(m_A[i], m_B[i]));
             }
         }
     }
@@ -117,12 +118,12 @@ public:
           m_A(m_FFT_min_size, U::zero()),
           m_gB(T::random())
     {
-        copyData(m_gB, m_gA);
+        copy_libsnark(m_gB, m_gA);
 
         m_B.reserve(m_FFT_min_size);
         for (std::size_t i = 0; i < m_FFT_min_size; ++i) {
             m_B.emplace_back(T::random());
-            copyData(m_B[i], m_A[i]);
+            copy_libsnark(m_B[i], m_A[i]);
         }
     }
 
@@ -134,7 +135,7 @@ public:
 
         if (checkPass(m_A.size() == m_B.size())) {
             for (std::size_t i = 0; i < m_A.size(); ++i) {
-                checkPass(sameData(m_A[i], m_B[i]));
+                checkPass(equal_libsnark(m_A[i], m_B[i]));
             }
         }
     }
@@ -165,12 +166,12 @@ public:
           m_A(m_FFT_min_size, U::zero()),
           m_gB(T::random())
     {
-        copyData(m_gB, m_gA);
+        copy_libsnark(m_gB, m_gA);
 
         m_B.reserve(m_FFT_min_size);
         for (std::size_t i = 0; i < m_FFT_min_size; ++i) {
             m_B.emplace_back(T::random());
-            copyData(m_B[i], m_A[i]);
+            copy_libsnark(m_B[i], m_A[i]);
         }
     }
 
@@ -182,7 +183,7 @@ public:
 
         if (checkPass(m_A.size() == m_B.size())) {
             for (std::size_t i = 0; i < m_A.size(); ++i) {
-                checkPass(sameData(m_A[i], m_B[i]));
+                checkPass(equal_libsnark(m_A[i], m_B[i]));
             }
         }
     }
@@ -212,7 +213,7 @@ public:
           m_FFT(min_size),
           m_B(value)
     {
-        copyData(m_B, m_A);
+        copy_libsnark(m_B, m_A);
     }
 
     AutoTest_LagrangeFFT_lagrange_coeffs(const std::size_t min_size)
@@ -227,7 +228,7 @@ public:
 
         if (checkPass(coeffsA.size() == coeffsB.size())) {
             for (std::size_t i = 0; i < coeffsA.size(); ++i) {
-                checkPass(sameData(coeffsA[i], coeffsB[i]));
+                checkPass(equal_libsnark(coeffsA[i], coeffsB[i]));
             }
         }
     }
@@ -260,7 +261,7 @@ public:
             const auto elementA = a->get_element(i);
             const auto elementB = m_FFT->get_element(i);
 
-            checkPass(sameData(elementA, elementB));
+            checkPass(equal_libsnark(elementA, elementB));
         }
     }
 
@@ -284,7 +285,7 @@ public:
           m_FFT(min_size),
           m_B(value)
     {
-        copyData(m_B, m_A);
+        copy_libsnark(m_B, m_A);
     }
 
     AutoTest_LagrangeFFT_compute_Z(const std::size_t min_size)
@@ -297,7 +298,7 @@ public:
 
         const auto bZ = m_FFT->compute_Z(m_B);
 
-        checkPass(sameData(aZ, bZ));
+        checkPass(equal_libsnark(aZ, bZ));
     }
 
 private:
@@ -324,12 +325,12 @@ public:
           m_B(value),
           m_HA(m_FFT_min_size + 1, U::zero())
     {
-        copyData(m_B, m_A);
+        copy_libsnark(m_B, m_A);
 
         m_HB.reserve(m_FFT_min_size + 1);
         for (std::size_t i = 0; i < m_FFT_min_size + 1; ++i) {
             m_HB.emplace_back(T::random());
-            copyData(m_HB[i], m_HA[i]);
+            copy_libsnark(m_HB[i], m_HA[i]);
         }
     }
 
@@ -345,7 +346,7 @@ public:
 
         if (checkPass(m_HA.size() == m_HB.size())) {
             for (std::size_t i = 0; i < m_HA.size(); ++i) {
-                checkPass(sameData(m_HA[i], m_HB[i]));
+                checkPass(equal_libsnark(m_HA[i], m_HB[i]));
             }
         }
     }
@@ -378,7 +379,7 @@ public:
         m_PB.reserve(m_FFT_min_size);
         for (std::size_t i = 0; i < m_FFT_min_size; ++i) {
             m_PB.emplace_back(T::random());
-            copyData(m_PB[i], m_PA[i]);
+            copy_libsnark(m_PB[i], m_PA[i]);
         }
     }
 
@@ -390,7 +391,7 @@ public:
 
         if (checkPass(m_PA.size() == m_PB.size())) {
             for (std::size_t i = 0; i < m_PA.size(); ++i) {
-                checkPass(sameData(m_PA[i], m_PB[i]));
+                checkPass(equal_libsnark(m_PA[i], m_PB[i]));
             }
         }
     }
