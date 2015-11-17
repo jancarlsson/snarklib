@@ -17,6 +17,7 @@
 
 #include "snarklib/AutoTest.hpp"
 #include "snarklib/BigInt.hpp"
+#include "snarklib/ForeignLib.hpp"
 #include "snarklib/MultiExp.hpp"
 
 namespace snarklib {
@@ -49,7 +50,7 @@ public:
 
         const auto b = wnafExp(m_scalarB, m_baseB);
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
@@ -103,7 +104,7 @@ public:
 
         const auto b = multiExp(m_baseB, m_scalarB);
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
@@ -158,7 +159,7 @@ public:
 
         const auto b = multiExp(m_baseB, m_scalarB);
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
