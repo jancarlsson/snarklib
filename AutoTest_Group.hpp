@@ -8,6 +8,7 @@
 
 #include "snarklib/AutoTest.hpp"
 #include "snarklib/BigInt.hpp"
+#include "snarklib/ForeignLib.hpp"
 
 namespace snarklib {
 
@@ -148,7 +149,7 @@ public:
     void runTest() {
         const auto a = m_lhsA + m_rhsA;
         const auto b = m_lhsB + m_rhsB;
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
 
         auto
             a1 = m_lhsA,
@@ -163,7 +164,7 @@ public:
         b2.toSpecial();
 
         checkPass(
-            sameData(
+            equal_libsnark(
 #ifdef USE_OLD_LIBSNARK
                 a1.fast_add_special(a2),
 #else
@@ -196,7 +197,7 @@ public:
     void runTest() {
         const auto a = m_lhsA - m_rhsA;
         const auto b = m_lhsB - m_rhsB;
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
 
         auto
             a1 = m_lhsA,
@@ -211,7 +212,7 @@ public:
         b2.toSpecial();
 
         checkPass(
-            sameData(
+            equal_libsnark(
 #ifdef USE_OLD_LIBSNARK
                 a1.fast_add_special(a2),
 #else
@@ -245,7 +246,7 @@ public:
         const auto a = m_powerA * m_baseA;
         const auto b = m_powerB * m_baseB;
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
@@ -273,7 +274,7 @@ public:
         const auto a = m_A.dbl();
         const auto b = m_B.dbl();
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
