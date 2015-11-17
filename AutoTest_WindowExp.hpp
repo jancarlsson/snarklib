@@ -12,6 +12,7 @@
 
 #include "snarklib/AutoTest.hpp"
 #include "snarklib/AuxSTL.hpp"
+#include "snarklib/ForeignLib.hpp"
 #include "snarklib/WindowExp.hpp"
 
 namespace snarklib {
@@ -54,7 +55,7 @@ public:
           m_exp_count(exp_count),
           m_B(value)
     {
-        copyData(m_B, m_A);
+        copy_libsnark(m_B, m_A);
     }
 
     AutoTest_WindowExp_exp(const std::size_t exp_count)
@@ -78,7 +79,7 @@ public:
         const auto valueA = libsnark::windowed_exp(G::num_bits, a, A, m_A);
         const auto valueB = B.exp(m_B);
 
-        checkPass(sameData(valueA, valueB));
+        checkPass(equal_libsnark(valueA, valueB));
     }
 
 private:
@@ -105,7 +106,7 @@ public:
         m_B.reserve(vecSize);
         for (std::size_t i = 0; i < vecSize; ++i) {
             m_B.emplace_back(F::random());
-            copyData(m_B[i], m_A[i]);
+            copy_libsnark(m_B[i], m_A[i]);
         }
     }
 
@@ -129,7 +130,7 @@ public:
             checkPass(valueA.size() == m_vecSize))
         {
             for (std::size_t i = 0; i < m_vecSize; ++i){
-                checkPass(sameData(m_A[i], m_B[i]));
+                checkPass(equal_libsnark(m_A[i], m_B[i]));
             }
         }
     }
