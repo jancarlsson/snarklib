@@ -13,6 +13,7 @@
 
 #include "snarklib/AutoTest.hpp"
 #include "snarklib/AutoTest_R1CS.hpp"
+#include "snarklib/ForeignLib.hpp"
 #include "snarklib/QAP_query.hpp"
 #include "snarklib/QAP_witness.hpp"
 #include "snarklib/Rank1DSL.hpp"
@@ -33,7 +34,7 @@ public:
           m_constraintSystem(cs),
           m_B(point)
     {
-        copyData(m_B, m_A);
+        copy_libsnark(m_B, m_A);
     }
 
     AutoTest_QAP_ABCH_instance_map(const AutoTestR1CS<SYS, T, U>& cs)
@@ -82,10 +83,10 @@ private:
 
 #ifdef USE_OLD_LIBSNARK
         return
-            sameData(qapA.At, ABCt.vecA()) &&
-            sameData(qapA.Bt, ABCt.vecB()) &&
-            sameData(qapA.Ct, ABCt.vecC()) &&
-            sameData(qapA.Ht, Ht.vec()) &&
+            equal_libsnark(qapA.At, ABCt.vecA()) &&
+            equal_libsnark(qapA.Bt, ABCt.vecB()) &&
+            equal_libsnark(qapA.Ct, ABCt.vecC()) &&
+            equal_libsnark(qapA.Ht, Ht.vec()) &&
             (qapA.non_zero_At == ABCt.nonzeroA()) &&
             (qapA.non_zero_Bt == ABCt.nonzeroB()) &&
             (qapA.non_zero_Ct == ABCt.nonzeroC()) &&
@@ -108,13 +109,13 @@ private:
 
         // compare the ABC homogeneous terms only
         for (std::size_t i = 0; i < lenA; ++i) {
-            if (!sameData(qapA.At[i], ABCt.vecA()[i + 3]) ||
-                !sameData(qapA.Bt[i], ABCt.vecB()[i + 3]) ||
-                !sameData(qapA.Ct[i], ABCt.vecC()[i + 3])) return false;
+            if (!equal_libsnark(qapA.At[i], ABCt.vecA()[i + 3]) ||
+                !equal_libsnark(qapA.Bt[i], ABCt.vecB()[i + 3]) ||
+                !equal_libsnark(qapA.Ct[i], ABCt.vecC()[i + 3])) return false;
         }
 
         // compare H
-        return sameData(qapA.Ht, Ht.vec());
+        return equal_libsnark(qapA.Ht, Ht.vec());
 #endif
     }
 
@@ -141,9 +142,9 @@ public:
           m_d2B(d2),
           m_d3B(d3)
     {
-        copyData(m_d1B, m_d1A);
-        copyData(m_d2B, m_d2A);
-        copyData(m_d3B, m_d3A);
+        copy_libsnark(m_d1B, m_d1A);
+        copy_libsnark(m_d2B, m_d2A);
+        copy_libsnark(m_d3B, m_d3A);
     }
 
     AutoTest_QAP_Witness_map(const AutoTestR1CS<SYS, T, U>& cs)
@@ -174,9 +175,9 @@ public:
         const auto& HB = witnessH(qap);
 
 #ifdef USE_OLD_LIBSNARK
-        if (sameData(HA, HB)) {
+        if (equal_libsnark(HA, HB)) {
 #else
-        if (sameData(HA.coefficients_for_H, HB)) {
+        if (equal_libsnark(HA.coefficients_for_H, HB)) {
 #endif
             checkPass(true);
 
@@ -193,9 +194,9 @@ public:
             const auto& HB = witnessH(qap);
 
 #ifdef USE_OLD_LIBSNARK
-            checkPass(sameData(HA, HB));
+            checkPass(equal_libsnark(HA, HB));
 #else
-            checkPass(sameData(HA.coefficients_for_H, HB));
+            checkPass(equal_libsnark(HA.coefficients_for_H, HB));
 #endif
         }
     }
