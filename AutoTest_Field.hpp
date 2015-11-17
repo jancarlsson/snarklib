@@ -8,6 +8,7 @@
 
 #include "snarklib/AutoTest.hpp"
 #include "snarklib/BigInt.hpp"
+#include "snarklib/ForeignLib.hpp"
 #include "snarklib/FpX.hpp"
 
 namespace snarklib {
@@ -119,8 +120,8 @@ public:
           m_lhsB(lhs),
           m_rhsB(rhs)
     {
-        copyData(m_lhsB, m_lhsA);
-        copyData(m_rhsB, m_rhsA);
+        copy_libsnark(m_lhsB, m_lhsA);
+        copy_libsnark(m_rhsB, m_rhsA);
     }
 
     AutoTest_FieldAdd()
@@ -131,7 +132,7 @@ public:
         const auto a = m_lhsA + m_rhsA;
         const auto b = m_lhsB + m_rhsB;
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
@@ -152,8 +153,8 @@ public:
           m_lhsB(lhs),
           m_rhsB(rhs)
     {
-        copyData(m_lhsB, m_lhsA);
-        copyData(m_rhsB, m_rhsA);
+        copy_libsnark(m_lhsB, m_lhsA);
+        copy_libsnark(m_rhsB, m_rhsA);
     }
 
     AutoTest_FieldSub()
@@ -164,7 +165,7 @@ public:
         const auto a = m_lhsA - m_rhsA;
         const auto b = m_lhsB - m_rhsB;
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
@@ -185,8 +186,8 @@ public:
           m_lhsB(lhs),
           m_rhsB(rhs)
     {
-        copyData(m_lhsB, m_lhsA);
-        copyData(m_rhsB, m_rhsA);
+        copy_libsnark(m_lhsB, m_lhsA);
+        copy_libsnark(m_rhsB, m_rhsA);
     }
 
     AutoTest_FieldMul()
@@ -197,7 +198,7 @@ public:
         const auto a = m_lhsA * m_rhsA;
         const auto b = m_lhsB * m_rhsB;
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
@@ -218,8 +219,8 @@ public:
           m_B(base),
           m_powerB(pow)
     {
-        copyData(m_B, m_A);
-        copyData(m_powerB, m_powerA);
+        copy_libsnark(m_B, m_A);
+        copy_libsnark(m_powerB, m_powerA);
     }
 
     AutoTest_FieldExp()
@@ -230,7 +231,7 @@ public:
         const auto a = m_A ^ m_powerA;
         const auto b = m_B ^ m_powerB;
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
@@ -252,7 +253,7 @@ public:
         : AutoTest(value),
           m_B(value)
     {
-        copyData(m_B, m_A);
+        copy_libsnark(m_B, m_A);
     }
 
     AutoTest_FieldSquared()
@@ -263,7 +264,7 @@ public:
         const auto a = m_A.squared();
         const auto b = squared(m_B);
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
@@ -283,7 +284,7 @@ public:
         : AutoTest(value),
           m_B(value * value)
     {
-        copyData(m_B, m_A);
+        copy_libsnark(m_B, m_A);
     }
 
     AutoTest_FieldSqrt()
@@ -294,7 +295,7 @@ public:
         const auto a = m_A.sqrt();
         const auto b = sqrt(m_B);
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
@@ -314,7 +315,7 @@ public:
         : AutoTest(value),
           m_B(value)
     {
-        copyData(m_B, m_A);
+        copy_libsnark(m_B, m_A);
     }
 
     AutoTest_FieldInverse()
@@ -325,7 +326,7 @@ public:
         const auto a = m_A.inverse();
         const auto b = inverse(m_B);
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
@@ -347,7 +348,7 @@ public:
           m_B(value),
           m_power(pow)
     {
-        copyData(m_B, m_A);
+        copy_libsnark(m_B, m_A);
     }
 
     AutoTest_FieldFrobeniusMap(const unsigned long pow)
@@ -358,7 +359,7 @@ public:
         const auto a = m_A.Frobenius_map(m_power);
         const auto b = Frobenius_map(m_B, m_power);
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
@@ -381,8 +382,8 @@ public:
           m_B(value),
           m_powerB(pow)
     {
-        copyData(m_B, m_A);
-        copyData(m_powerB, m_powerA);
+        copy_libsnark(m_B, m_A);
+        copy_libsnark(m_powerB, m_powerA);
     }
 
     AutoTest_FieldCyclotomicExp()
@@ -393,7 +394,7 @@ public:
         const auto a = m_A.cyclotomic_exp(m_powerA);
         const auto b = cyclotomic_exp(m_B, m_powerB);
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
@@ -424,10 +425,10 @@ public:
           m_ell_VWB(ell_VW),
           m_ell_VVB(ell_VV)
     {
-        copyData(m_xB, m_xA);
-        copyData(m_ell_0B, m_ell_0A);
-        copyData(m_ell_VWB, m_ell_VWA);
-        copyData(m_ell_VVB, m_ell_VVA);
+        copy_libsnark(m_xB, m_xA);
+        copy_libsnark(m_ell_0B, m_ell_0A);
+        copy_libsnark(m_ell_VWB, m_ell_VWA);
+        copy_libsnark(m_ell_VVB, m_ell_VVA);
     }
 
     AutoTest_FieldMulBy024()
@@ -441,7 +442,7 @@ public:
         const auto a = m_xA.mul_by_024(m_ell_0A, m_ell_VWA, m_ell_VVA);
         const auto b = mul_by_024(m_xB, m_ell_0B, m_ell_VWB, m_ell_VVB);
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
