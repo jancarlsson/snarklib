@@ -23,6 +23,7 @@ LIBRARY_FILES = \
 	EC.hpp \
 	EC_Pairing.hpp \
 	Field.hpp \
+	ForeignLib.hpp \
 	FpModel.hpp \
 	FpModel.tcc \
 	FpX.hpp \
