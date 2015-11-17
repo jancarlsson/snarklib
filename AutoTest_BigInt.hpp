@@ -16,6 +16,7 @@
 
 #include "snarklib/AutoTest.hpp"
 #include "snarklib/BigInt.hpp"
+#include "snarklib/ForeignLib.hpp"
 
 namespace snarklib {
 
@@ -34,7 +35,7 @@ public:
     void runTest() {
         checkPass(m_A.is_zero() && 0 == m_A.as_ulong());
         checkPass(m_B.isZero() && 0 == m_B.asUnsignedLong());
-        checkPass(sameData(m_A, m_B));
+        checkPass(equal_libsnark(m_A, m_B));
     }
 
 private:
@@ -66,7 +67,7 @@ public:
             const libsnark::bigint<N> A(v);
             const BigInt<N> B(v);
 
-            checkPass(sameData(A, B));
+            checkPass(equal_libsnark(A, B));
             checkPass(v == A.as_ulong());
             checkPass(v == B.asUnsignedLong());
 
@@ -94,7 +95,7 @@ public:
     {}
 
     void runTest() {
-        checkPass(sameData(m_A, m_B));
+        checkPass(equal_libsnark(m_A, m_B));
     }
 
 private:
