@@ -15,6 +15,7 @@
 #include "snarklib/AutoTest.hpp"
 #include "snarklib/AutoTest_R1CS.hpp"
 #include "snarklib/AuxSTL.hpp"
+#include "snarklib/ForeignLib.hpp"
 #include "snarklib/Pairing.hpp"
 #include "snarklib/PPZK_keypair.hpp"
 #include "snarklib/PPZK_keystruct.hpp"
@@ -133,15 +134,15 @@ public:
 #endif
         std::vector<G1> encoded_terms(encSize);
 #ifdef USE_OLD_LIBSNARK
-        copyData(keypair.vk.encoded_IC_query->base, base);
+        copy_libsnark(keypair.vk.encoded_IC_query->base, base);
 #else
-        copyData(keypair.vk.encoded_IC_query.first, base);
+        copy_libsnark(keypair.vk.encoded_IC_query.first, base);
 #endif
         for (std::size_t i = 0; i < encSize; ++i) {
 #ifdef USE_OLD_LIBSNARK
-            copyData(keypair.vk.encoded_IC_query->encoded_terms[i], encoded_terms[i]);
+            copy_libsnark(keypair.vk.encoded_IC_query->encoded_terms[i], encoded_terms[i]);
 #else
-            copyData(keypair.vk.encoded_IC_query.rest[i], encoded_terms[i]);
+            copy_libsnark(keypair.vk.encoded_IC_query.rest[i], encoded_terms[i]);
 #endif
         }
         const PPZK_QueryIC<PAIRING> icqB(base, encoded_terms);
@@ -149,13 +150,13 @@ public:
         // verification key
         G1 alphaB_g1, gamma_beta_g1;
         G2 alphaA_g2, alphaC_g2, gamma_g2, gamma_beta_g2, rC_Z_g2;
-        copyData(keypair.vk.alphaA_g2, alphaA_g2);
-        copyData(keypair.vk.alphaB_g1, alphaB_g1);
-        copyData(keypair.vk.alphaC_g2, alphaC_g2);
-        copyData(keypair.vk.gamma_g2, gamma_g2);
-        copyData(keypair.vk.gamma_beta_g1, gamma_beta_g1);
-        copyData(keypair.vk.gamma_beta_g2, gamma_beta_g2);
-        copyData(keypair.vk.rC_Z_g2, rC_Z_g2);
+        copy_libsnark(keypair.vk.alphaA_g2, alphaA_g2);
+        copy_libsnark(keypair.vk.alphaB_g1, alphaB_g1);
+        copy_libsnark(keypair.vk.alphaC_g2, alphaC_g2);
+        copy_libsnark(keypair.vk.gamma_g2, gamma_g2);
+        copy_libsnark(keypair.vk.gamma_beta_g1, gamma_beta_g1);
+        copy_libsnark(keypair.vk.gamma_beta_g2, gamma_beta_g2);
+        copy_libsnark(keypair.vk.rC_Z_g2, rC_Z_g2);
         const PPZK_VerificationKey<PAIRING> vkB(alphaA_g2,
                                                 alphaB_g1,
                                                 alphaC_g2,
@@ -168,14 +169,14 @@ public:
         // proof
         G1 AG, AH, BH, CG, CH, H, K;
         G2 BG;
-        copyData(proof.g_A.g, AG);
-        copyData(proof.g_A.h, AH);
-        copyData(proof.g_B.g, BG);
-        copyData(proof.g_B.h, BH);
-        copyData(proof.g_C.g, CG);
-        copyData(proof.g_C.h, CH);
-        copyData(proof.g_H, H);
-        copyData(proof.g_K, K);
+        copy_libsnark(proof.g_A.g, AG);
+        copy_libsnark(proof.g_A.h, AH);
+        copy_libsnark(proof.g_B.g, BG);
+        copy_libsnark(proof.g_B.h, BH);
+        copy_libsnark(proof.g_C.g, CG);
+        copy_libsnark(proof.g_C.h, CH);
+        copy_libsnark(proof.g_H, H);
+        copy_libsnark(proof.g_K, K);
         const PPZK_Proof<PAIRING> proofB(Pairing<G1, G1>(AG, AH),
                                          Pairing<G2, G1>(BG, BH),
                                          Pairing<G1, G1>(CG, CH),
@@ -239,14 +240,14 @@ public:
         // proof from original code
         G1 AG, AH, BH, CG, CH, H, K;
         G2 BG;
-        copyData(proof.g_A.g, AG);
-        copyData(proof.g_A.h, AH);
-        copyData(proof.g_B.g, BG);
-        copyData(proof.g_B.h, BH);
-        copyData(proof.g_C.g, CG);
-        copyData(proof.g_C.h, CH);
-        copyData(proof.g_H, H);
-        copyData(proof.g_K, K);
+        copy_libsnark(proof.g_A.g, AG);
+        copy_libsnark(proof.g_A.h, AH);
+        copy_libsnark(proof.g_B.g, BG);
+        copy_libsnark(proof.g_B.h, BH);
+        copy_libsnark(proof.g_C.g, CG);
+        copy_libsnark(proof.g_C.h, CH);
+        copy_libsnark(proof.g_H, H);
+        copy_libsnark(proof.g_K, K);
         const PPZK_Proof<PAIRING> proofFromOriginal(
             Pairing<G1, G1>(AG, AH),
             Pairing<G2, G1>(BG, BH),
@@ -258,11 +259,11 @@ public:
         SparseVector<Pairing<G1, G1>> A_query, C_query;
         SparseVector<Pairing<G2, G1>> B_query;
         std::vector<G1> H_query, K_query;
-        copyData(keypair.pk.A_query, A_query);
-        copyData(keypair.pk.B_query, B_query);
-        copyData(keypair.pk.C_query, C_query);
-        copyData(keypair.pk.H_query, H_query);
-        copyData(keypair.pk.K_query, K_query);
+        copy_libsnark(keypair.pk.A_query, A_query);
+        copy_libsnark(keypair.pk.B_query, B_query);
+        copy_libsnark(keypair.pk.C_query, C_query);
+        copy_libsnark(keypair.pk.H_query, H_query);
+        copy_libsnark(keypair.pk.K_query, K_query);
         const PPZK_ProvingKey<PAIRING> pkB(A_query,
                                            B_query,
                                            C_query,
@@ -347,11 +348,11 @@ public:
         SparseVector<Pairing<G2, G1>> B_query;
         std::vector<G1> H_query, K_query;
 #ifdef USE_OLD_LIBSNARK
-        copyData(keypair.pk.A_query, A_query);
-        copyData(keypair.pk.B_query, B_query);
-        copyData(keypair.pk.C_query, C_query);
-        copyData(keypair.pk.H_query, H_query);
-        copyData(keypair.pk.K_query, K_query);
+        copy_libsnark(keypair.pk.A_query, A_query);
+        copy_libsnark(keypair.pk.B_query, B_query);
+        copy_libsnark(keypair.pk.C_query, C_query);
+        copy_libsnark(keypair.pk.H_query, H_query);
+        copy_libsnark(keypair.pk.K_query, K_query);
 #else
         // new and old libsnark have different query vector formats
         // new libsnark appends inhomogeneous Z values to the back
@@ -364,14 +365,14 @@ public:
             const auto len = keypair.pk.A_query.size();
             A_query.reserve(len + 2);
             G1 tmpG, tmpH;
-            copyData(Z.g, tmpG);
-            copyData(Z.h, tmpH);
+            copy_libsnark(Z.g, tmpG);
+            copy_libsnark(Z.h, tmpH);
             A_query.pushBack(0, Pairing<G1, G1>(tmpG, tmpH));
             A_query.pushBack(1, Pairing<G1, G1>::zero());
             A_query.pushBack(2, Pairing<G1, G1>::zero());
             for (std::size_t i = 0; i < len - 1; ++i) {
-                copyData(keypair.pk.A_query.values[i].g, tmpG);
-                copyData(keypair.pk.A_query.values[i].h, tmpH);
+                copy_libsnark(keypair.pk.A_query.values[i].g, tmpG);
+                copy_libsnark(keypair.pk.A_query.values[i].h, tmpH);
 
                 A_query.pushBack(
                     keypair.pk.A_query.indices[i] + 3,
@@ -386,14 +387,14 @@ public:
             B_query.reserve(len + 2);
             G2 tmpG;
             G1 tmpH;
-            copyData(Z.g, tmpG);
-            copyData(Z.h, tmpH);
+            copy_libsnark(Z.g, tmpG);
+            copy_libsnark(Z.h, tmpH);
             B_query.pushBack(0, Pairing<G2, G1>::zero());
             B_query.pushBack(1, Pairing<G2, G1>(tmpG, tmpH));
             B_query.pushBack(2, Pairing<G2, G1>::zero());
             for (std::size_t i = 0; i < len - 1; ++i) {
-                copyData(keypair.pk.B_query.values[i].g, tmpG);
-                copyData(keypair.pk.B_query.values[i].h, tmpH);
+                copy_libsnark(keypair.pk.B_query.values[i].g, tmpG);
+                copy_libsnark(keypair.pk.B_query.values[i].h, tmpH);
 
                 B_query.pushBack(
                     keypair.pk.B_query.indices[i] + 3,
@@ -407,14 +408,14 @@ public:
             const auto len = keypair.pk.C_query.size();
             C_query.reserve(len + 2);
             G1 tmpG, tmpH;
-            copyData(Z.g, tmpG);
-            copyData(Z.h, tmpH);
+            copy_libsnark(Z.g, tmpG);
+            copy_libsnark(Z.h, tmpH);
             C_query.pushBack(0, Pairing<G1, G1>::zero());
             C_query.pushBack(1, Pairing<G1, G1>::zero());
             C_query.pushBack(2, Pairing<G1, G1>(tmpG, tmpH));
             for (std::size_t i = 0; i < len - 1; ++i) {
-                copyData(keypair.pk.C_query.values[i].g, tmpG);
-                copyData(keypair.pk.C_query.values[i].h, tmpH);
+                copy_libsnark(keypair.pk.C_query.values[i].g, tmpG);
+                copy_libsnark(keypair.pk.C_query.values[i].h, tmpH);
 
                 C_query.pushBack(
                     keypair.pk.C_query.indices[i] + 3,
@@ -423,21 +424,21 @@ public:
         }
 
         // H
-        copyData(keypair.pk.H_query, H_query);
+        copy_libsnark(keypair.pk.H_query, H_query);
 
         // K
         {
             const auto lenK = keypair.pk.K_query.size();
             K_query.reserve(lenK);
             G1 tmpG;
-            copyData(keypair.pk.K_query[lenK - 3], tmpG);
+            copy_libsnark(keypair.pk.K_query[lenK - 3], tmpG);
             K_query.emplace_back(tmpG);
-            copyData(keypair.pk.K_query[lenK - 2], tmpG);
+            copy_libsnark(keypair.pk.K_query[lenK - 2], tmpG);
             K_query.emplace_back(tmpG);
-            copyData(keypair.pk.K_query[lenK - 1], tmpG);
+            copy_libsnark(keypair.pk.K_query[lenK - 1], tmpG);
             K_query.emplace_back(tmpG);
             for (std::size_t i = 0; i < lenK - 3; ++i) {
-                copyData(keypair.pk.K_query[i], tmpG);
+                copy_libsnark(keypair.pk.K_query[i], tmpG);
                 K_query.emplace_back(tmpG);
             }
         }
@@ -457,15 +458,15 @@ public:
 #endif
         std::vector<G1> encoded_terms(encSize);
 #ifdef USE_OLD_LIBSNARK
-        copyData(keypair.vk.encoded_IC_query->base, base);
+        copy_libsnark(keypair.vk.encoded_IC_query->base, base);
 #else
-        copyData(keypair.vk.encoded_IC_query.first, base);
+        copy_libsnark(keypair.vk.encoded_IC_query.first, base);
 #endif
         for (std::size_t i = 0; i < encSize; ++i) {
 #ifdef USE_OLD_LIBSNARK
-            copyData(keypair.vk.encoded_IC_query->encoded_terms[i], encoded_terms[i]);
+            copy_libsnark(keypair.vk.encoded_IC_query->encoded_terms[i], encoded_terms[i]);
 #else
-            copyData(keypair.vk.encoded_IC_query.rest[i], encoded_terms[i]);
+            copy_libsnark(keypair.vk.encoded_IC_query.rest[i], encoded_terms[i]);
 #endif
         }
         const PPZK_QueryIC<PAIRING> icqB(base, encoded_terms);
@@ -473,13 +474,13 @@ public:
         // verification key
         G1 alphaB_g1, gamma_beta_g1;
         G2 alphaA_g2, alphaC_g2, gamma_g2, gamma_beta_g2, rC_Z_g2;
-        copyData(keypair.vk.alphaA_g2, alphaA_g2);
-        copyData(keypair.vk.alphaB_g1, alphaB_g1);
-        copyData(keypair.vk.alphaC_g2, alphaC_g2);
-        copyData(keypair.vk.gamma_g2, gamma_g2);
-        copyData(keypair.vk.gamma_beta_g1, gamma_beta_g1);
-        copyData(keypair.vk.gamma_beta_g2, gamma_beta_g2);
-        copyData(keypair.vk.rC_Z_g2, rC_Z_g2);
+        copy_libsnark(keypair.vk.alphaA_g2, alphaA_g2);
+        copy_libsnark(keypair.vk.alphaB_g1, alphaB_g1);
+        copy_libsnark(keypair.vk.alphaC_g2, alphaC_g2);
+        copy_libsnark(keypair.vk.gamma_g2, gamma_g2);
+        copy_libsnark(keypair.vk.gamma_beta_g1, gamma_beta_g1);
+        copy_libsnark(keypair.vk.gamma_beta_g2, gamma_beta_g2);
+        copy_libsnark(keypair.vk.rC_Z_g2, rC_Z_g2);
         const PPZK_VerificationKey<PAIRING> vkB(alphaA_g2,
                                                 alphaB_g1,
                                                 alphaC_g2,
