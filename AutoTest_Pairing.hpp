@@ -20,6 +20,7 @@
 #include "snarklib/AutoTest.hpp"
 #include "snarklib/AuxSTL.hpp"
 #include "snarklib/BigInt.hpp"
+#include "snarklib/ForeignLib.hpp"
 #include "snarklib/Pairing.hpp"
 #include "snarklib/WindowExp.hpp"
 
@@ -48,7 +49,7 @@ public:
         const auto a = m_A1 + m_A2;
         const auto b = m_B1 + m_B2;
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
@@ -74,7 +75,7 @@ public:
           m_gA({to_bigint<N>(b) * UG::one(), to_bigint<N>(c) * UH::one()}),
           m_gB(BigInt<N>(b) * TG::one(), BigInt<N>(c) * TH::one())
     {
-        copyData(m_fB, m_fA);
+        copy_libsnark(m_fB, m_fA);
     }
 
     AutoTest_PairingMul(const std::string& b,
@@ -86,7 +87,7 @@ public:
         const auto a = m_fA * m_gA;
         const auto b = m_fB * m_gB;
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
@@ -126,7 +127,7 @@ public:
 
         const auto b = fastAddSpecial(m_B1, m_B2);
 
-        checkPass(sameData(m_A1, b));
+        checkPass(equal_libsnark(m_A1, b));
     }
 
 private:
@@ -187,7 +188,7 @@ public:
         {
             for (std::size_t i = 0; i < m_vecSize; ++i) {
                 checkPass(m_A.indices[i] == m_B.getIndex(i));
-                checkPass(sameData(m_A.values[i], m_B.getElement(i)));
+                checkPass(equal_libsnark(m_A.values[i], m_B.getElement(i)));
             }
         }
     }
@@ -227,7 +228,7 @@ public:
 
         const auto b = wnafExp(m_scalarB, m_baseB);
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
@@ -257,14 +258,14 @@ public:
           m_coeffB_B(coeffB),
           m_vecA(vecSize, UF::zero())
     {
-        copyData(m_coeffA_B, m_coeffA_A);
-        copyData(m_coeffB_B, m_coeffB_A);
+        copy_libsnark(m_coeffA_B, m_coeffA_A);
+        copy_libsnark(m_coeffB_B, m_coeffB_A);
 
         m_vecB.reserve(vecSize);
         for (std::size_t i = 0; i < vecSize; ++i) {
             // note: zero element makes kc_batch_exp() crash
             m_vecB.emplace_back(TF(uniformBase10(1, 1000000)));
-            copyData(m_vecB[i], m_vecA[i]);
+            copy_libsnark(m_vecB[i], m_vecA[i]);
         }
     }
 
@@ -335,7 +336,7 @@ public:
         {
             for (std::size_t i = 0; i < sparseVec_B.size(); ++i) {
                 checkPass(sparseVec_A.indices[i] == sparseVec_B.getIndex(i));
-                checkPass(sameData(sparseVec_A.values[i], sparseVec_B.getElement(i)));
+                checkPass(equal_libsnark(sparseVec_A.values[i], sparseVec_B.getElement(i)));
             }
         }
     }
@@ -401,7 +402,7 @@ public:
             const std::string a = sparseUniformBase10(0, 1000000);
             m_scalarB.emplace_back(TF(a));
             m_scalarA.emplace_back(UF(a.c_str()));
-            copyData(m_scalarB[i], m_scalarA[i]);
+            copy_libsnark(m_scalarB[i], m_scalarA[i]);
         }
     }
 
@@ -429,7 +430,7 @@ public:
 
         const auto b = multiExp01(m_baseB, m_scalarB, m_minIndex, m_maxIndex);
 
-        checkPass(sameData(a, b));
+        checkPass(equal_libsnark(a, b));
     }
 
 private:
