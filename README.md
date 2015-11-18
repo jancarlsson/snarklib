@@ -71,6 +71,11 @@ To build and run the autotests for CURVE_EDWARDS:
     PASS - All 2054 tests passed
     $
 
+Note: Libsnark builds most code for both CURVE_ALT_BN128 and CURVE_EDWARDS
+      into libsnark.a regardless of the elliptic curve chosen. Snarklib can
+      use the same libsnark library file for both curves. While this works,
+      it is an undocumented feature so probably should not be relied upon.
+
 These alternative build targets work for older versions of libsnark.
 
 (2015 until Bryan Parno soundness bug fix in May)
