@@ -12,6 +12,7 @@
 #include /*libsnark*/ "relations/constraint_satisfaction_problems/r1cs/r1cs.hpp"
 #endif
 
+#include "snarklib/ForeignLib.hpp"
 #include "snarklib/HugeSystem.hpp"
 #include "snarklib/Rank1DSL.hpp"
 
@@ -44,22 +45,23 @@ public:
     const R1Witness<T>& witnessB() const { return m_witnessB; }
     const R1Witness<T>& inputB() const { return m_inputB; }
 
-    std::size_t numCircuitInputs() const { return m_numCircuitInputs; }
+    const std::size_t numCircuitInputs() const {
+        return m_inputB.size();
+    }
 
 protected:
-    AutoTestR1CS(const std::size_t numCircuitInputs,
-                 const std::string& filePrefix)
-        : m_numCircuitInputs(numCircuitInputs),
-          m_filePrefix(filePrefix)
+    AutoTestR1CS(const std::string& filePrefix)
+        : m_filePrefix(filePrefix)
     {}
 
-    void addBooleanity_A(const std::size_t varIndex) {
-        libsnark::linear_combination<U> A, B, C;
-        A.add_term(varIndex, 1);
-        B.add_term(0, 1);
-        B.add_term(varIndex, -1);
-        C.add_term(0, 0);
-        m_csA.add_constraint(libsnark::r1cs_constraint<U>(A, B, C));
+    void init_A_from_B() {
+        copy_libsnark(
+            this->m_csB,
+            this->m_witnessB,
+            this->m_inputB,
+            this->m_csA,
+            this->m_witnessA,
+            this->m_inputA);
     }
 
     void addBooleanity_B(const R1Variable<T>& x) {
@@ -83,7 +85,6 @@ protected:
     R1Witness<T> m_witnessB, m_inputB;
 
 private:
-    const std::size_t m_numCircuitInputs;
     const std::string m_filePrefix;
 };
 
@@ -101,44 +102,15 @@ class AutoTestR1CS_AND : public AutoTestR1CS<SYS, T, U>
 {
 public:
     AutoTestR1CS_AND(const bool x_IC, const bool y_IC, const std::string& filePrefix)
-        : AutoTestR1CS<SYS, T, U>(2, filePrefix),
+        : AutoTestR1CS<SYS, T, U>(filePrefix),
           m_booleanityX(x_IC),
           m_booleanityY(y_IC)
     {
-        initA();
         initB();
+        this->init_A_from_B();
     }
 
 private:
-    void initA() {
-#ifdef USE_OLD_LIBSNARK
-        this->m_csA.num_inputs = this->numCircuitInputs();
-        this->m_csA.num_vars = 3;
-#else
-        this->m_csA.primary_input_size = this->numCircuitInputs();
-        this->m_csA.auxiliary_input_size = 3 - this->numCircuitInputs();
-#endif
-
-        libsnark::linear_combination<U> A, B, C;
-        A.add_term(1, 1);
-        B.add_term(2, 1);
-        C.add_term(3, 1);
-
-        this->m_csA.add_constraint(libsnark::r1cs_constraint<U>(A, B, C));
-
-        if (m_booleanityX) this->addBooleanity_A(1);
-        if (m_booleanityY) this->addBooleanity_A(2);
-
-#ifdef USE_OLD_LIBSNARK
-        this->m_witnessA.push_back(U::one()); // 1
-        this->m_witnessA.push_back(U::one()); // 2
-#endif
-        this->m_witnessA.push_back(U::one()); // 3
-
-        this->m_inputA.push_back(U::one()); // 1
-        this->m_inputA.push_back(U::one()); // 2
-    }
-
     void initB() {
         this->clearAppend(this->m_csB);
 
@@ -174,46 +146,15 @@ class AutoTestR1CS_OR : public AutoTestR1CS<SYS, T, U>
 {
 public:
     AutoTestR1CS_OR(const bool x_IC, const bool y_IC, const std::string& filePrefix)
-        : AutoTestR1CS<SYS, T, U>(2, filePrefix),
+        : AutoTestR1CS<SYS, T, U>(filePrefix),
           m_booleanityX(x_IC),
           m_booleanityY(y_IC)
     {
-        initA();
         initB();
+        this->init_A_from_B();
     }
 
 private:
-    void initA() {
-#ifdef USE_OLD_LIBSNARK
-        this->m_csA.num_inputs = this->numCircuitInputs();
-        this->m_csA.num_vars = 3;
-#else
-        this->m_csA.primary_input_size = this->numCircuitInputs();
-        this->m_csA.auxiliary_input_size = 3 - this->numCircuitInputs();
-#endif
-
-        libsnark::linear_combination<U> A, B, C;
-        A.add_term(1, 1);
-        B.add_term(2, 1);
-        C.add_term(1, 1);
-        C.add_term(2, 1);
-        C.add_term(3, -1);
-
-        this->m_csA.add_constraint(libsnark::r1cs_constraint<U>(A, B, C));
-
-        if (m_booleanityX) this->addBooleanity_A(1);
-        if (m_booleanityY) this->addBooleanity_A(2);
-
-#ifdef USE_OLD_LIBSNARK
-        this->m_witnessA.push_back(U::one()); // 1
-        this->m_witnessA.push_back(U::one()); // 2
-#endif
-        this->m_witnessA.push_back(U::one()); // 3
-
-        this->m_inputA.push_back(U::one()); // 1
-        this->m_inputA.push_back(U::one()); // 2
-    }
-
     void initB() {
         this->clearAppend(this->m_csB);
 
@@ -249,46 +190,15 @@ class AutoTestR1CS_XOR : public AutoTestR1CS<SYS, T, U>
 {
 public:
     AutoTestR1CS_XOR(const bool x_IC, const bool y_IC, const std::string& filePrefix)
-        : AutoTestR1CS<SYS, T, U>(2, filePrefix),
+        : AutoTestR1CS<SYS, T, U>(filePrefix),
           m_booleanityX(x_IC),
           m_booleanityY(y_IC)
     {
-        initA();
         initB();
+        this->init_A_from_B();
     }
 
 private:
-    void initA() {
-#ifdef USE_OLD_LIBSNARK
-        this->m_csA.num_inputs = this->numCircuitInputs();
-        this->m_csA.num_vars = 3;
-#else
-        this->m_csA.primary_input_size = this->numCircuitInputs();
-        this->m_csA.auxiliary_input_size = 3 - this->numCircuitInputs();
-#endif
-
-        libsnark::linear_combination<U> A, B, C;
-        A.add_term(1, 2); // A = 2 * x
-        B.add_term(2, 1); // B = y
-        C.add_term(1, 1); // C = x + y - z
-        C.add_term(2, 1);
-        C.add_term(3, -1);
-
-        this->m_csA.add_constraint(libsnark::r1cs_constraint<U>(A, B, C));
-
-        if (m_booleanityX) this->addBooleanity_A(1);
-        if (m_booleanityY) this->addBooleanity_A(2);
-
-#ifdef USE_OLD_LIBSNARK
-        this->m_witnessA.push_back(U::one()); // 1
-        this->m_witnessA.push_back(U::one()); // 2
-#endif
-        this->m_witnessA.push_back(U::zero()); // 3
-
-        this->m_inputA.push_back(U::one()); // 1
-        this->m_inputA.push_back(U::one()); // 2
-    }
-
     void initB() {
         this->clearAppend(this->m_csB);
 
@@ -325,41 +235,14 @@ class AutoTestR1CS_CMPLMNT : public AutoTestR1CS<SYS, T, U>
 {
 public:
     AutoTestR1CS_CMPLMNT(const bool x_IC, const std::string& filePrefix)
-        : AutoTestR1CS<SYS, T, U>(1, filePrefix),
+        : AutoTestR1CS<SYS, T, U>(filePrefix),
           m_booleanityX(x_IC)
     {
-        initA();
         initB();
+        this->init_A_from_B();
     }
 
 private:
-    void initA() {
-#ifdef USE_OLD_LIBSNARK
-        this->m_csA.num_inputs = this->numCircuitInputs();
-        this->m_csA.num_vars = 2;
-#else
-        this->m_csA.primary_input_size = this->numCircuitInputs();
-        this->m_csA.auxiliary_input_size = 2 - this->numCircuitInputs();
-#endif
-
-        libsnark::linear_combination<U> A, B, C;
-        A.add_term(1, 1);
-        A.add_term(2, 1);
-        B.add_term(0, 1);
-        C.add_term(0, 1);
-
-        this->m_csA.add_constraint(libsnark::r1cs_constraint<U>(A, B, C));
-
-        if (m_booleanityX) this->addBooleanity_A(1);
-
-#ifdef USE_OLD_LIBSNARK
-        this->m_witnessA.push_back(U::zero()); // 1
-#endif
-        this->m_witnessA.push_back(U::one()); // 2
-
-        this->m_inputA.push_back(U::zero()); // 1
-    }
-
     void initB() {
         this->clearAppend(this->m_csB);
 
@@ -416,7 +299,7 @@ public:
                            const unsigned long c5,
                            const unsigned long c6,
                            const std::string& filePrefix)
-        : AutoTestR1CS<SYS, T, U>(4, filePrefix),
+        : AutoTestR1CS<SYS, T, U>(filePrefix),
           m_d1(c1), // d1 is c1
           m_d2(c2), // d2 is c2
           m_d3(c3), // d3 is c3
@@ -424,8 +307,8 @@ public:
           m_d5(c4), // d5 is c4
           m_d6(c5)  // d6 is c5
     {
-        initA();
         initB();
+        this->init_A_from_B();
     }
 
     // will be sound as input is consistent with witness
@@ -437,59 +320,6 @@ public:
     {}
 
 private:
-    void initA() {
-#ifdef USE_OLD_LIBSNARK
-        this->m_csA.num_inputs = this->numCircuitInputs();
-        this->m_csA.num_vars = 6;
-#else
-        this->m_csA.primary_input_size = this->numCircuitInputs();
-        this->m_csA.auxiliary_input_size = 6 - this->numCircuitInputs();
-#endif
-
-        // d1 * d2 = d5
-        {
-            libsnark::linear_combination<U> A, B, C;
-            A.add_term(1, 1);
-            B.add_term(2, 1);
-            C.add_term(5, 1);
-            this->m_csA.add_constraint(libsnark::r1cs_constraint<U>(A, B, C));
-        }
-
-        // d1 * d3 = d6
-        {
-            libsnark::linear_combination<U> A, B, C;
-            A.add_term(1, 1);
-            B.add_term(3, 1);
-            C.add_term(6, 1);
-            this->m_csA.add_constraint(libsnark::r1cs_constraint<U>(A, B, C));
-        }
-
-        // d5 * d6 = d4
-        {
-            libsnark::linear_combination<U> A, B, C;
-            A.add_term(5, 1);
-            B.add_term(6, 1);
-            C.add_term(4, 1);
-            this->m_csA.add_constraint(libsnark::r1cs_constraint<U>(A, B, C));
-        }
-
-        // witness always consistent
-#ifdef USE_OLD_LIBSNARK
-        this->m_witnessA.push_back(U(m_d1)); // 1
-        this->m_witnessA.push_back(U(m_d2)); // 2
-        this->m_witnessA.push_back(U(m_d2)); // 3
-        this->m_witnessA.push_back(U(m_d1 * m_d1 * m_d2 * m_d3)); // 4
-#endif
-        this->m_witnessA.push_back(U(m_d1 * m_d2)); // 5
-        this->m_witnessA.push_back(U(m_d1 * m_d3)); // 6
-
-        // public inputs may be inconsistent
-        this->m_inputA.push_back(U(m_d1)); // 1
-        this->m_inputA.push_back(U(m_d2)); // 2
-        this->m_inputA.push_back(U(m_d2)); // 3
-        this->m_inputA.push_back(U(m_d4)); // 4
-    }
-
     void initB() {
         this->clearAppend(this->m_csB);
 
