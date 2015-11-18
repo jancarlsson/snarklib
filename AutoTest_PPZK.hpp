@@ -127,24 +127,14 @@ public:
 
         // encoded IC query
         G1 base;
-#ifdef USE_OLD_LIBSNARK
-        const size_t encSize = keypair.vk.encoded_IC_query->encoded_terms.size();
-#else
-        const size_t encSize = keypair.vk.encoded_IC_query.rest.size();
-#endif
-        std::vector<G1> encoded_terms(encSize);
+        std::vector<G1> encoded_terms;
 #ifdef USE_OLD_LIBSNARK
         copy_libsnark(keypair.vk.encoded_IC_query->base, base);
+        copy_libsnark(keypair.vk.encoded_IC_query->encoded_terms, encoded_terms);
 #else
         copy_libsnark(keypair.vk.encoded_IC_query.first, base);
+        copy_libsnark(keypair.vk.encoded_IC_query.rest.values, encoded_terms);
 #endif
-        for (std::size_t i = 0; i < encSize; ++i) {
-#ifdef USE_OLD_LIBSNARK
-            copy_libsnark(keypair.vk.encoded_IC_query->encoded_terms[i], encoded_terms[i]);
-#else
-            copy_libsnark(keypair.vk.encoded_IC_query.rest[i], encoded_terms[i]);
-#endif
-        }
         const PPZK_QueryIC<PAIRING> icqB(base, encoded_terms);
 
         // verification key
@@ -276,7 +266,7 @@ public:
             m_constraintSystem.numCircuitInputs(),
             pkB,
             m_constraintSystem.witnessB(),
-            PPZK_ProofRandomness<typename PAIRING::Fr>(0));
+            PPZK_ProofRandomness<Fr>(0));
 
         // compare proofs (expect different results because of random numbers)
         if (! checkPass(proofFromOriginal.A() != proofFromRedesign.A())) {
@@ -361,66 +351,48 @@ public:
 
         // A
         {
-            const auto Z = keypair.pk.A_query.values.back();
             const auto len = keypair.pk.A_query.size();
-            A_query.reserve(len + 2);
+            A_query.reserve(len + 2 + 1); // extra element for popBack
             G1 tmpG, tmpH;
+            const auto Z = keypair.pk.A_query.values.back();
             copy_libsnark(Z.g, tmpG);
             copy_libsnark(Z.h, tmpH);
             A_query.pushBack(0, Pairing<G1, G1>(tmpG, tmpH));
             A_query.pushBack(1, Pairing<G1, G1>::zero());
             A_query.pushBack(2, Pairing<G1, G1>::zero());
-            for (std::size_t i = 0; i < len - 1; ++i) {
-                copy_libsnark(keypair.pk.A_query.values[i].g, tmpG);
-                copy_libsnark(keypair.pk.A_query.values[i].h, tmpH);
-
-                A_query.pushBack(
-                    keypair.pk.A_query.indices[i] + 3,
-                    Pairing<G1, G1>(tmpG, tmpH));
-            }
+            copy_libsnark(keypair.pk.A_query, A_query);
+            A_query.popBack(); // Z
         }
 
         // B
         {
-            const auto Z = keypair.pk.B_query.values.back();
             const auto len = keypair.pk.B_query.size();
-            B_query.reserve(len + 2);
+            B_query.reserve(len + 2 + 1); // extra element for popBack
             G2 tmpG;
             G1 tmpH;
+            const auto Z = keypair.pk.B_query.values.back();
             copy_libsnark(Z.g, tmpG);
             copy_libsnark(Z.h, tmpH);
             B_query.pushBack(0, Pairing<G2, G1>::zero());
             B_query.pushBack(1, Pairing<G2, G1>(tmpG, tmpH));
             B_query.pushBack(2, Pairing<G2, G1>::zero());
-            for (std::size_t i = 0; i < len - 1; ++i) {
-                copy_libsnark(keypair.pk.B_query.values[i].g, tmpG);
-                copy_libsnark(keypair.pk.B_query.values[i].h, tmpH);
-
-                B_query.pushBack(
-                    keypair.pk.B_query.indices[i] + 3,
-                    Pairing<G2, G1>(tmpG, tmpH));
-            }
+            copy_libsnark(keypair.pk.B_query, B_query);
+            B_query.popBack(); // Z
         }
 
         // C
         {
-            const auto Z = keypair.pk.C_query.values.back();
             const auto len = keypair.pk.C_query.size();
-            C_query.reserve(len + 2);
+            C_query.reserve(len + 2 + 1); // extra element for popBack
             G1 tmpG, tmpH;
+            const auto Z = keypair.pk.C_query.values.back();
             copy_libsnark(Z.g, tmpG);
             copy_libsnark(Z.h, tmpH);
             C_query.pushBack(0, Pairing<G1, G1>::zero());
             C_query.pushBack(1, Pairing<G1, G1>::zero());
             C_query.pushBack(2, Pairing<G1, G1>(tmpG, tmpH));
-            for (std::size_t i = 0; i < len - 1; ++i) {
-                copy_libsnark(keypair.pk.C_query.values[i].g, tmpG);
-                copy_libsnark(keypair.pk.C_query.values[i].h, tmpH);
-
-                C_query.pushBack(
-                    keypair.pk.C_query.indices[i] + 3,
-                    Pairing<G1, G1>(tmpG, tmpH));
-            }
+            copy_libsnark(keypair.pk.C_query, C_query);
+            C_query.popBack(); // Z
         }
 
         // H
@@ -428,19 +400,19 @@ public:
 
         // K
         {
-            const auto lenK = keypair.pk.K_query.size();
-            K_query.reserve(lenK);
+            const auto len = keypair.pk.K_query.size();
+            K_query.reserve(len + 3); // extra 3 elements for pop_back
             G1 tmpG;
-            copy_libsnark(keypair.pk.K_query[lenK - 3], tmpG);
+            copy_libsnark(keypair.pk.K_query[len - 3], tmpG);
             K_query.emplace_back(tmpG);
-            copy_libsnark(keypair.pk.K_query[lenK - 2], tmpG);
+            copy_libsnark(keypair.pk.K_query[len - 2], tmpG);
             K_query.emplace_back(tmpG);
-            copy_libsnark(keypair.pk.K_query[lenK - 1], tmpG);
+            copy_libsnark(keypair.pk.K_query[len - 1], tmpG);
             K_query.emplace_back(tmpG);
-            for (std::size_t i = 0; i < lenK - 3; ++i) {
-                copy_libsnark(keypair.pk.K_query[i], tmpG);
-                K_query.emplace_back(tmpG);
-            }
+            copy_libsnark(keypair.pk.K_query, K_query);
+            K_query.pop_back();
+            K_query.pop_back();
+            K_query.pop_back();
         }
 #endif
         const PPZK_ProvingKey<PAIRING> pkB(A_query,
@@ -451,24 +423,14 @@ public:
 
         // encoded IC query
         G1 base;
-#ifdef USE_OLD_LIBSNARK
-        const size_t encSize = keypair.vk.encoded_IC_query->encoded_terms.size();
-#else
-        const size_t encSize = keypair.vk.encoded_IC_query.rest.size();
-#endif
-        std::vector<G1> encoded_terms(encSize);
+        std::vector<G1> encoded_terms;
 #ifdef USE_OLD_LIBSNARK
         copy_libsnark(keypair.vk.encoded_IC_query->base, base);
+        copy_libsnark(keypair.vk.encoded_IC_query->encoded_terms, encoded_terms);
 #else
         copy_libsnark(keypair.vk.encoded_IC_query.first, base);
+        copy_libsnark(keypair.vk.encoded_IC_query.rest.values, encoded_terms);
 #endif
-        for (std::size_t i = 0; i < encSize; ++i) {
-#ifdef USE_OLD_LIBSNARK
-            copy_libsnark(keypair.vk.encoded_IC_query->encoded_terms[i], encoded_terms[i]);
-#else
-            copy_libsnark(keypair.vk.encoded_IC_query.rest[i], encoded_terms[i]);
-#endif
-        }
         const PPZK_QueryIC<PAIRING> icqB(base, encoded_terms);
 
         // verification key
@@ -495,7 +457,7 @@ public:
                                          m_constraintSystem.numCircuitInputs(),
                                          pkB,
                                          m_constraintSystem.witnessB(),
-                                         PPZK_ProofRandomness<typename PAIRING::Fr>(0));
+                                         PPZK_ProofRandomness<Fr>(0));
 
         const auto ans
             = strongVerify(
@@ -518,14 +480,6 @@ template <template <typename> class SYS, typename PAIRING, typename U>
 class AutoTest_PPZK_full_redesign : public AutoTest
 {
     typedef typename PAIRING::Fr Fr;
-    typedef typename PAIRING::G1 G1;
-    typedef typename PAIRING::G2 G2;
-
-#ifdef USE_OLD_LIBSNARK
-    typedef libsnark::default_pp PPT;
-#else
-    typedef libsnark::default_ec_pp PPT;
-#endif
 
 public:
     AutoTest_PPZK_full_redesign(const AutoTestR1CS<SYS, Fr, U>& cs,
@@ -545,7 +499,7 @@ public:
                                          m_constraintSystem.numCircuitInputs(),
                                          keypair.pk(),
                                          m_constraintSystem.witnessB(),
-                                         PPZK_ProofRandomness<typename PAIRING::Fr>(0));
+                                         PPZK_ProofRandomness<Fr>(0));
 
         const auto ans = strongVerify(keypair.vk(),
                                       m_constraintSystem.inputB(),
