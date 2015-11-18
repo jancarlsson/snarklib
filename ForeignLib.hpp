@@ -590,8 +590,7 @@ void copy_libsnark(
 {
     const std::size_t vecSize = a.size();
 
-    b.clear();
-    b.reserve(vecSize);
+    if (b.empty()) b.reserve(vecSize);
 
     G1 tmp;
 
@@ -644,10 +643,11 @@ void copy_libsnark(
 #endif
     SparseVector<Pairing<G1, G1>>& b)
 {
-    const std::size_t vecSize = a.values.size();
+    const std::size_t
+        vecSize = a.values.size(),
+        offset = b.size();
 
-    b.clear();
-    b.reserve(vecSize);
+    if (b.empty()) b.reserve(vecSize);
 
     G1 tmpG, tmpH;
 
@@ -656,7 +656,7 @@ void copy_libsnark(
         copy_libsnark(a.values[i].h, tmpH);
 
         b.pushBack(
-            a.indices[i],
+            a.indices[i] + offset,
             Pairing<G1, G1>(tmpG, tmpH));
     }
 }
@@ -671,10 +671,11 @@ void copy_libsnark(
 #endif
     SparseVector<Pairing<G2, G1>>& b)
 {
-    const std::size_t vecSize = a.values.size();
+    const std::size_t
+        vecSize = a.values.size(),
+        offset = b.size();
 
-    b.clear();
-    b.reserve(vecSize);
+    if (b.empty()) b.reserve(vecSize);
 
     G2 tmpG;
     G1 tmpH;
@@ -684,7 +685,7 @@ void copy_libsnark(
         copy_libsnark(a.values[i].h, tmpH);
 
         b.pushBack(
-            a.indices[i],
+            a.indices[i] + offset,
             Pairing<G2, G1>(tmpG, tmpH));
     }
 }
