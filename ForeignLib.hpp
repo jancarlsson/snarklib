@@ -21,9 +21,11 @@
 #ifdef USE_OLD_LIBSNARK
 #include /*libsnark*/ "common/types.hpp"
 #include /*libsnark*/ "encoding/knowledge_commitment.hpp"
+#include /*libsnark*/ "r1cs/r1cs.hpp"
 #else
 #include /*libsnark*/ "common/default_types/ec_pp.hpp"
 #include /*libsnark*/ "algebra/knowledge_commitment/knowledge_commitment.hpp"
+#include /*libsnark*/ "relations/constraint_satisfaction_problems/r1cs/r1cs.hpp"
 #endif
 
 #include "snarklib/AuxSTL.hpp"
@@ -33,6 +35,7 @@
 #include "snarklib/FpModel.hpp"
 #include "snarklib/Group.hpp"
 #include "snarklib/Pairing.hpp"
+#include "snarklib/Rank1DSL.hpp"
 
 namespace snarklib {
 
@@ -805,6 +808,102 @@ void copy_libsnark(
     }
 }
 #endif
+
+// 
+// from snarklib to libsnark rank-1 linear combination
+//
+
+template <typename FR,
+          typename LIBSNARK_FR>
+void copy_libsnark(
+    const R1Combination<FR>& a,
+    libsnark::linear_combination<LIBSNARK_FR>& b)
+{
+    for (const auto& t : a.terms()) {
+        LIBSNARK_FR tmp;
+        copy_libsnark(t.coeff(), tmp);
+        b.add_term(t.index(), tmp);
+    }
+}
+
+//
+// from snarklib to libsnark rank-1 constraint
+//
+
+template <typename FR,
+          typename LIBSNARK_FR>
+void copy_libsnark(
+    const R1Constraint<FR>& a,
+    libsnark::r1cs_constraint<LIBSNARK_FR>& b)
+{
+    libsnark::linear_combination<LIBSNARK_FR> tmpA, tmpB, tmpC;
+
+    copy_libsnark(a.a(), tmpA);
+    copy_libsnark(a.b(), tmpB);
+    copy_libsnark(a.c(), tmpC);
+
+    b = libsnark::r1cs_constraint<LIBSNARK_FR>(tmpA, tmpB, tmpC);
+}
+
+//
+// from snarklib to libsnark rank-1 constraint system
+//
+
+template <template <typename> class SYS,
+          typename FR,
+          typename LIBSNARK_FR>
+void copy_libsnark(
+    const SYS<FR>& csA,
+    const R1Witness<FR>& witnessA,
+    const R1Witness<FR>& inputA,
+    libsnark::r1cs_constraint_system<LIBSNARK_FR>& csB,
+#ifdef USE_OLD_LIBSNARK
+    libsnark::r1cs_variable_assignment<LIBSNARK_FR>& witnessB,
+    libsnark::r1cs_variable_assignment<LIBSNARK_FR>& inputB)
+#else
+    libsnark::r1cs_auxiliary_input<LIBSNARK_FR>& witnessB,
+    libsnark::r1cs_primary_input<LIBSNARK_FR>& inputB)
+#endif
+{
+    const std::size_t numInputs = inputA.size();
+
+#ifdef USE_OLD_LIBSNARK
+    csB.num_inputs = numInputs;
+    csB.num_vars = witnessA.size();
+#else
+    csB.primary_input_size = numInputs;
+    csB.auxiliary_input_size = witnessA.size() - numInputs;
+#endif
+
+    csA.mapLambda(
+        [&csB] (const R1System<FR>& a) -> bool {
+            for (const auto& c : a.constraints()) {
+                libsnark::r1cs_constraint<LIBSNARK_FR> tmp;
+                copy_libsnark(c, tmp);
+                csB.add_constraint(tmp);
+            }
+        });
+
+#ifdef USE_OLD_LIBSNARK
+    for (const auto& w : *witnessA) {
+        LIBSNARK_FR tmp;
+        copy_libsnark(w, tmp);
+        witnessB.push_back(tmp);
+    }
+#else
+    for (std::size_t i = numInputs; i < witnessA.size(); ++i) {
+        LIBSNARK_FR tmp;
+        copy_libsnark(witnessA[i], tmp);
+        witnessB.push_back(tmp);
+    }
+#endif
+
+    for (const auto& w : *inputA) {
+        LIBSNARK_FR tmp;
+        copy_libsnark(w, tmp);
+        inputB.push_back(tmp);
+    }
+}
 
 } // namespace snarklib
 
