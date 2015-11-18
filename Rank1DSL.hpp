@@ -5,6 +5,7 @@
 #include <array>
 #include <cassert>
 #include <cstdint>
+#include <functional>
 #include <iostream>
 #include <istream>
 #include <ostream>
@@ -985,6 +986,16 @@ public:
         }
 
         return false;
+    }
+
+    bool mapLambda(std::function<bool (const R1System<T>&)> func) const {
+        func(*this);
+        return true; // ok
+    }
+
+    bool mapLambda(std::function<bool (R1System<T>&)> func) {
+        func(*this);
+        return true; // ok
     }
 
     void marshal_out(std::ostream& os) const {
