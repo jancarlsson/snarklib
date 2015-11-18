@@ -136,6 +136,11 @@ public:
         m_value.emplace_back(elementValue);
     }
 
+    void popBack() {
+        m_index.pop_back();
+        m_value.pop_back();
+    }
+
     void setIndexElement(const std::size_t index,
                          const std::size_t elementIndex,
                          const T& elementValue) {
