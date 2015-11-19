@@ -352,7 +352,7 @@ public:
         // A
         {
             const auto len = keypair.pk.A_query.size();
-            A_query.reserve(len + 2 + 1); // extra element for popBack
+            A_query.reserve(len + 2);
             G1 tmpG, tmpH;
             const auto Z = keypair.pk.A_query.values.back();
             copy_libsnark(Z.g, tmpG);
@@ -360,14 +360,13 @@ public:
             A_query.pushBack(0, Pairing<G1, G1>(tmpG, tmpH));
             A_query.pushBack(1, Pairing<G1, G1>::zero());
             A_query.pushBack(2, Pairing<G1, G1>::zero());
-            copy_libsnark(keypair.pk.A_query, A_query);
-            A_query.popBack(); // Z
+            copy_libsnark(keypair.pk.A_query, A_query, 0, len - 1);
         }
 
         // B
         {
             const auto len = keypair.pk.B_query.size();
-            B_query.reserve(len + 2 + 1); // extra element for popBack
+            B_query.reserve(len + 2);
             G2 tmpG;
             G1 tmpH;
             const auto Z = keypair.pk.B_query.values.back();
@@ -376,14 +375,13 @@ public:
             B_query.pushBack(0, Pairing<G2, G1>::zero());
             B_query.pushBack(1, Pairing<G2, G1>(tmpG, tmpH));
             B_query.pushBack(2, Pairing<G2, G1>::zero());
-            copy_libsnark(keypair.pk.B_query, B_query);
-            B_query.popBack(); // Z
+            copy_libsnark(keypair.pk.B_query, B_query, 0, len - 1);
         }
 
         // C
         {
             const auto len = keypair.pk.C_query.size();
-            C_query.reserve(len + 2 + 1); // extra element for popBack
+            C_query.reserve(len + 2);
             G1 tmpG, tmpH;
             const auto Z = keypair.pk.C_query.values.back();
             copy_libsnark(Z.g, tmpG);
@@ -391,8 +389,7 @@ public:
             C_query.pushBack(0, Pairing<G1, G1>::zero());
             C_query.pushBack(1, Pairing<G1, G1>::zero());
             C_query.pushBack(2, Pairing<G1, G1>(tmpG, tmpH));
-            copy_libsnark(keypair.pk.C_query, C_query);
-            C_query.popBack(); // Z
+            copy_libsnark(keypair.pk.C_query, C_query, 0, len - 1);
         }
 
         // H
@@ -401,7 +398,7 @@ public:
         // K
         {
             const auto len = keypair.pk.K_query.size();
-            K_query.reserve(len + 3); // extra 3 elements for pop_back
+            K_query.reserve(len);
             G1 tmpG;
             copy_libsnark(keypair.pk.K_query[len - 3], tmpG);
             K_query.emplace_back(tmpG);
@@ -409,10 +406,7 @@ public:
             K_query.emplace_back(tmpG);
             copy_libsnark(keypair.pk.K_query[len - 1], tmpG);
             K_query.emplace_back(tmpG);
-            copy_libsnark(keypair.pk.K_query, K_query);
-            K_query.pop_back();
-            K_query.pop_back();
-            K_query.pop_back();
+            copy_libsnark(keypair.pk.K_query, K_query, 0, len - 3);
         }
 #endif
         const PPZK_ProvingKey<PAIRING> pkB(A_query,
