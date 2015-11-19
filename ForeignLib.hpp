@@ -589,15 +589,17 @@ void copy_libsnark(
 #else
     const libsnark::G1_vector<libsnark::default_ec_pp>& a,
 #endif
-    std::vector<G1>& b)
+    std::vector<G1>& b,
+    const std::size_t startIndex = 0,
+    const std::size_t stopIndex = -1)
 {
-    const std::size_t vecSize = a.size();
+    const std::size_t L = a.size() < stopIndex ? a.size() : stopIndex;
 
-    if (b.empty()) b.reserve(vecSize);
+    if (b.empty()) b.reserve(L - startIndex);
 
     G1 tmp;
 
-    for (std::size_t i = 0; i < vecSize; ++i) {
+    for (std::size_t i = startIndex; i < L; ++i) {
         copy_libsnark(a[i], tmp);
         b.emplace_back(tmp);
     }
@@ -611,15 +613,16 @@ template <typename G1>
 void copy_libsnark(
     const std::vector<G1>& a,
 #ifdef USE_OLD_LIBSNARK
-    libsnark::G1_vector<libsnark::default_pp>& b)
+    libsnark::G1_vector<libsnark::default_pp>& b,
 #else
-    libsnark::G1_vector<libsnark::default_ec_pp>& b)
+    libsnark::G1_vector<libsnark::default_ec_pp>& b,
 #endif
+    const std::size_t startIndex = 0,
+    const std::size_t stopIndex = -1)
 {
-    const std::size_t vecSize = a.size();
+    const std::size_t L = a.size() < stopIndex ? a.size() : stopIndex;
 
-    b.clear();
-    b.reserve(vecSize);
+    if (b.empty()) b.reserve(L - startIndex);
 
 #ifdef USE_OLD_LIBSNARK
     libsnark::G1<libsnark::default_pp> tmp;
@@ -627,7 +630,7 @@ void copy_libsnark(
     libsnark::G1<libsnark::default_ec_pp> tmp;
 #endif
 
-    for (std::size_t i = 0; i < vecSize; ++i) {
+    for (std::size_t i = startIndex; i < L; ++i) {
         copy_libsnark(a[i], tmp);
         b.emplace_back(tmp);
     }
@@ -644,17 +647,19 @@ void copy_libsnark(
 #else
     const libsnark::knowledge_commitment_vector<libsnark::G1<libsnark::default_ec_pp>, libsnark::G1<libsnark::default_ec_pp>>& a,
 #endif
-    SparseVector<Pairing<G1, G1>>& b)
+    SparseVector<Pairing<G1, G1>>& b,
+    const std::size_t startIndex = 0,
+    const std::size_t stopIndex = -1)
 {
     const std::size_t
-        vecSize = a.values.size(),
+        L = a.values.size() < stopIndex ? a.values.size() : stopIndex,
         offset = b.size();
 
-    if (b.empty()) b.reserve(vecSize);
+    if (b.empty()) b.reserve(L);
 
     G1 tmpG, tmpH;
 
-    for (std::size_t i = 0; i < vecSize; ++i) {
+    for (std::size_t i = startIndex; i < L; ++i) {
         copy_libsnark(a.values[i].g, tmpG);
         copy_libsnark(a.values[i].h, tmpH);
 
@@ -672,18 +677,20 @@ void copy_libsnark(
 #else
     const libsnark::knowledge_commitment_vector<libsnark::G2<libsnark::default_ec_pp>, libsnark::G1<libsnark::default_ec_pp>>& a,
 #endif
-    SparseVector<Pairing<G2, G1>>& b)
+    SparseVector<Pairing<G2, G1>>& b,
+    const std::size_t startIndex = 0,
+    const std::size_t stopIndex = -1)
 {
     const std::size_t
-        vecSize = a.values.size(),
+        L = a.values.size() < stopIndex ? a.values.size() : stopIndex,
         offset = b.size();
 
-    if (b.empty()) b.reserve(vecSize);
+    if (b.empty()) b.reserve(L);
 
     G2 tmpG;
     G1 tmpH;
 
-    for (std::size_t i = 0; i < vecSize; ++i) {
+    for (std::size_t i = startIndex; i < L; ++i) {
         copy_libsnark(a.values[i].g, tmpG);
         copy_libsnark(a.values[i].h, tmpH);
 
@@ -692,122 +699,6 @@ void copy_libsnark(
             Pairing<G2, G1>(tmpG, tmpH));
     }
 }
-
-//
-// from snarklib sparse vector to libsnark paired groups vector
-//
-
-#ifdef USE_OLD_LIBSNARK
-template <typename G1>
-void copy_libsnark(
-    const SparseVector<Pairing<G1, G1>>& a,
-    libsnark::G1G1_knowledge_commitment_vector<libsnark::default_pp>& b)
-{
-    const std::size_t vecSize = a.values.size();
-
-    b.values.clear();
-    b.values.reserve(vecSize);
-    b.indices.clear();
-    b.indices.reserve(vecSize);
-    b.is_sparse = true;
-    b.original_size = vecSize;
-
-    libsnark::G1<libsnark::default_pp> tmpG, tmpH;
-
-    for (std::size_t i = 0; i < vecSize; ++i) {
-        copy_libsnark(a.values[i].G(), tmpG);
-        copy_libsnark(a.values[i].H(), tmpH);
-
-        b.values.emplace_back(
-            libsnark::knowledge_commitment<libsnark::G1<libsnark::default_pp>, libsnark::G1<libsnark::default_pp>>(tmpG, tmpH));
-
-        b.indices.push_back(a.indices[i]);
-    }
-}
-
-template <typename G2,
-          typename G1>
-void copy_libsnark(
-    const SparseVector<Pairing<G2, G1>>& a,
-    libsnark::G2G1_knowledge_commitment_vector<libsnark::default_pp>& b)
-{
-    const std::size_t vecSize = a.values.size();
-
-    b.values.clear();
-    b.values.reserve(vecSize);
-    b.indices.clear();
-    b.indices.reserve(vecSize);
-    b.is_sparse = true;
-    b.original_size = vecSize;
-
-    libsnark::G2<libsnark::default_pp> tmpG;
-    libsnark::G1<libsnark::default_pp> tmpH;
-
-    for (std::size_t i = 0; i < vecSize; ++i) {
-        copy_libsnark(a.values[i].G(), tmpG);
-        copy_libsnark(a.values[i].H(), tmpH);
-
-        b.values.emplace_back(
-            libsnark::knowledge_commitment<libsnark::G2<libsnark::default_pp>, libsnark::G1<libsnark::default_pp>>(tmpG, tmpH));
-
-        b.indices.push_back(a.indices[i]);
-    }
-}
-#else
-template <typename G1>
-void copy_libsnark(
-    const SparseVector<Pairing<G1, G1>>& a,
-    libsnark::knowledge_commitment_vector<libsnark::G1<libsnark::default_ec_pp>, libsnark::G1<libsnark::default_ec_pp>>& b)
-{
-    const std::size_t vecSize = a.values.size();
-
-    b.indices.clear();
-    b.indices.reserve(vecSize);
-    b.values.clear();
-    b.values.reserve(vecSize);
-    b.domain_size_ = vecSize;
-
-    libsnark::G1<libsnark::default_ec_pp> tmpG, tmpH;
-
-    for (std::size_t i = 0; i < vecSize; ++i) {
-        copy_libsnark(a.values[i].G(), tmpG);
-        copy_libsnark(a.values[i].H(), tmpH);
-
-        b.indices.push_back(a.indices[i]);
-
-        b.values.emplace_back(
-            libsnark::knowledge_commitment<libsnark::G1<libsnark::default_ec_pp>, libsnark::G1<libsnark::default_ec_pp>>(tmpG, tmpH));
-    }
-}
-
-template <typename G2,
-          typename G1>
-void copy_libsnark(
-    const SparseVector<Pairing<G2, G1>>& a,
-    libsnark::knowledge_commitment_vector<libsnark::G2<libsnark::default_ec_pp>, libsnark::G1<libsnark::default_ec_pp>>& b)
-{
-    const std::size_t vecSize = a.values.size();
-
-    b.indices.clear();
-    b.indices.reserve(vecSize);
-    b.values.clear();
-    b.values.reserve(vecSize);
-    b.domain_size_ = vecSize;
-
-    libsnark::G2<libsnark::default_ec_pp> tmpG;
-    libsnark::G1<libsnark::default_ec_pp> tmpH;
-
-    for (std::size_t i = 0; i < vecSize; ++i) {
-        copy_libsnark(a.values[i].G(), tmpG);
-        copy_libsnark(a.values[i].H(), tmpH);
-
-        b.indices.push_back(a.indices[i]);
-
-        b.values.emplace_back(
-            libsnark::knowledge_commitment<libsnark::G2<libsnark::default_ec_pp>, libsnark::G1<libsnark::default_ec_pp>>(tmpG, tmpH));
-    }
-}
-#endif
 
 // 
 // from snarklib to libsnark rank-1 linear combination
@@ -843,6 +734,27 @@ void copy_libsnark(
     copy_libsnark(a.c(), tmpC);
 
     b = libsnark::r1cs_constraint<LIBSNARK_FR>(tmpA, tmpB, tmpC);
+}
+
+//
+// from snarklib to libsnark witness vector
+//
+
+template <typename FR,
+          typename LIBSNARK_FR>
+void copy_libsnark(
+    const R1Witness<FR>& a,
+    std::vector<LIBSNARK_FR>& b,
+    const std::size_t startIndex = 0,
+    const std::size_t stopIndex = -1)
+{
+    const std::size_t L = a.size() < stopIndex ? a.size() : stopIndex;
+
+    for (std::size_t i = startIndex; i < L; ++i) {
+        LIBSNARK_FR tmp;
+        copy_libsnark(a[i], tmp);
+        b.emplace_back(tmp);
+    }
 }
 
 //
@@ -885,24 +797,12 @@ void copy_libsnark(
         });
 
 #ifdef USE_OLD_LIBSNARK
-    for (const auto& w : *witnessA) {
-        LIBSNARK_FR tmp;
-        copy_libsnark(w, tmp);
-        witnessB.push_back(tmp);
-    }
+    copy_libsnark(witnessA, witnessB);
 #else
-    for (std::size_t i = numInputs; i < witnessA.size(); ++i) {
-        LIBSNARK_FR tmp;
-        copy_libsnark(witnessA[i], tmp);
-        witnessB.push_back(tmp);
-    }
+    copy_libsnark(witnessA, witnessB, numInputs);
 #endif
 
-    for (const auto& w : *inputA) {
-        LIBSNARK_FR tmp;
-        copy_libsnark(w, tmp);
-        inputB.push_back(tmp);
-    }
+    copy_libsnark(inputA, inputB);
 }
 
 } // namespace snarklib
