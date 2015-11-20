@@ -20,10 +20,12 @@
 
 #ifdef USE_OLD_LIBSNARK
 #include /*libsnark*/ "common/types.hpp"
+#include /*libsnark*/ "r1cs_ppzksnark/r1cs_ppzksnark/hpp"
 #include /*libsnark*/ "encoding/knowledge_commitment.hpp"
 #include /*libsnark*/ "r1cs/r1cs.hpp"
 #else
 #include /*libsnark*/ "common/default_types/ec_pp.hpp"
+#include /*libsnark*/ "zk_proof_systems/ppzksnark/r1cs_ppzksnark/r1cs_ppzksnark.hpp"
 #include /*libsnark*/ "algebra/knowledge_commitment/knowledge_commitment.hpp"
 #include /*libsnark*/ "relations/constraint_satisfaction_problems/r1cs/r1cs.hpp"
 #endif
@@ -36,8 +38,24 @@
 #include "snarklib/Group.hpp"
 #include "snarklib/Pairing.hpp"
 #include "snarklib/Rank1DSL.hpp"
+#include "snarklib/PPZK_keypair.hpp"
+#include "snarklib/PPZK_query.hpp"
+#include "snarklib/PPZK_proof.hpp"
 
 namespace snarklib {
+
+////////////////////////////////////////////////////////////////////////////////
+// elliptic curve typedefs
+//
+
+#ifdef USE_OLD_LIBSNARK
+    typedef libsnark::default_pp LIBSNARK_PPT;
+#else
+    typedef libsnark::default_ec_pp LIBSNARK_PPT;
+#endif
+
+typedef libsnark::G1<LIBSNARK_PPT> LIBSNARK_G1;
+typedef libsnark::G2<LIBSNARK_PPT> LIBSNARK_G2;
 
 ////////////////////////////////////////////////////////////////////////////////
 // equality of libsnark and snarklib data structures
@@ -584,11 +602,7 @@ DEFN_COPY_DATA_G2M(edwards_G2)
 
 template <typename G1>
 void copy_libsnark(
-#ifdef USE_OLD_LIBSNARK
-    const libsnark::G1_vector<libsnark::default_pp>& a,
-#else
-    const libsnark::G1_vector<libsnark::default_ec_pp>& a,
-#endif
+    const libsnark::G1_vector<LIBSNARK_PPT>& a,
     std::vector<G1>& b,
     const std::size_t startIndex = 0,
     const std::size_t stopIndex = -1)
@@ -612,11 +626,7 @@ void copy_libsnark(
 template <typename G1>
 void copy_libsnark(
     const std::vector<G1>& a,
-#ifdef USE_OLD_LIBSNARK
-    libsnark::G1_vector<libsnark::default_pp>& b,
-#else
-    libsnark::G1_vector<libsnark::default_ec_pp>& b,
-#endif
+    libsnark::G1_vector<LIBSNARK_PPT>& b,
     const std::size_t startIndex = 0,
     const std::size_t stopIndex = -1)
 {
@@ -624,11 +634,7 @@ void copy_libsnark(
 
     if (b.empty()) b.reserve(L - startIndex);
 
-#ifdef USE_OLD_LIBSNARK
-    libsnark::G1<libsnark::default_pp> tmp;
-#else
-    libsnark::G1<libsnark::default_ec_pp> tmp;
-#endif
+    LIBSNARK_G1 tmp;
 
     for (std::size_t i = startIndex; i < L; ++i) {
         copy_libsnark(a[i], tmp);
@@ -643,9 +649,9 @@ void copy_libsnark(
 template <typename G1>
 void copy_libsnark(
 #ifdef USE_OLD_LIBSNARK
-    const libsnark::G1G1_knowledge_commitment_vector<libsnark::default_pp>& a,
+    const libsnark::G1G1_knowledge_commitment_vector<LIBSNARK_PPT>& a,
 #else
-    const libsnark::knowledge_commitment_vector<libsnark::G1<libsnark::default_ec_pp>, libsnark::G1<libsnark::default_ec_pp>>& a,
+    const libsnark::knowledge_commitment_vector<LIBSNARK_G1, LIBSNARK_G1>& a,
 #endif
     SparseVector<Pairing<G1, G1>>& b,
     const std::size_t startIndex = 0,
@@ -673,9 +679,9 @@ template <typename G2,
           typename G1>
 void copy_libsnark(
 #ifdef USE_OLD_LIBSNARK
-    const libsnark::G2G1_knowledge_commitment_vector<libsnark::default_pp>& a,
+    const libsnark::G2G1_knowledge_commitment_vector<LIBSNARK_PPT>& a,
 #else
-    const libsnark::knowledge_commitment_vector<libsnark::G2<libsnark::default_ec_pp>, libsnark::G1<libsnark::default_ec_pp>>& a,
+    const libsnark::knowledge_commitment_vector<LIBSNARK_G2, LIBSNARK_G1>& a,
 #endif
     SparseVector<Pairing<G2, G1>>& b,
     const std::size_t startIndex = 0,
@@ -758,6 +764,27 @@ void copy_libsnark(
 }
 
 //
+// from libsnark to snarklib witness vector
+//
+
+template <typename LIBSNARK_FR,
+          typename FR>
+void copy_libsnark(
+    const std::vector<LIBSNARK_FR>& a,
+    R1Witness<FR>& b,
+    const std::size_t startIndex = 0,
+    const std::size_t stopIndex = -1)
+{
+    const std::size_t L = a.size() < stopIndex ? a.size() : stopIndex;
+
+    for (std::size_t i = startIndex; i < L; ++i) {
+        FR tmp;
+        copy_libsnark(a[i], tmp);
+        b.assignVar(R1Variable<FR>(i + 1), tmp);
+    }
+}
+
+//
 // from snarklib to libsnark rank-1 constraint system
 //
 
@@ -803,6 +830,202 @@ void copy_libsnark(
 #endif
 
     copy_libsnark(inputA, inputB);
+}
+
+//
+// from libsnark to snarklib encoded IC (input constraint) query
+//
+
+template <typename PAIRING>
+void copy_libsnark(
+#ifdef USE_OLD_LIBSNARK
+    const libsnark::r1cs_ppzksnark_IC_query<LIBSNARK_PPT>& a,
+#else
+    const libsnark::accumulation_vector<LIBSNARK_G1>& a,
+#endif
+    PPZK_QueryIC<PAIRING>& b)
+{
+    typedef typename PAIRING::G1 G1;
+
+    G1 base;
+    std::vector<G1> encoded_terms;
+
+#ifdef USE_OLD_LIBSNARK
+    copy_libsnark(a.base, base);
+    copy_libsnark(a.encoded_terms, encoded_terms);
+#else
+    copy_libsnark(a.first, base);
+    copy_libsnark(a.rest.values, encoded_terms);
+#endif
+
+    b = PPZK_QueryIC<PAIRING>(base, encoded_terms);
+}
+
+//
+// from libsnark to snarklib proving key
+//
+
+template <typename PAIRING>
+void copy_libsnark(
+    const libsnark::r1cs_ppzksnark_proving_key<LIBSNARK_PPT>& a,
+    PPZK_ProvingKey<PAIRING>& b)
+{
+    typedef typename PAIRING::G1 G1;
+    typedef typename PAIRING::G2 G2;
+
+    SparseVector<Pairing<G1, G1>> A_query, C_query;
+    SparseVector<Pairing<G2, G1>> B_query;
+    std::vector<G1> H_query, K_query;
+
+#ifdef USE_OLD_LIBSNARK
+    copy_libsnark(a.A_query, A_query);
+    copy_libsnark(a.B_query, B_query);
+    copy_libsnark(a.C_query, C_query);
+    copy_libsnark(a.H_query, H_query);
+    copy_libsnark(a.K_query, K_query);
+#else
+    // new and old libsnark have different query vector formats
+    // new libsnark appends inhomogeneous Z values to the back
+    // old libsnark prepends inhomogeneous Z values to the front
+    // convert new format to old format which snarklib expects
+
+    // A
+    {
+        const auto len = a.A_query.size();
+        A_query.reserve(len + 2);
+        G1 tmpG, tmpH;
+        const auto Z = a.A_query.values.back();
+        copy_libsnark(Z.g, tmpG);
+        copy_libsnark(Z.h, tmpH);
+        A_query.pushBack(0, Pairing<G1, G1>(tmpG, tmpH));
+        A_query.pushBack(1, Pairing<G1, G1>::zero());
+        A_query.pushBack(2, Pairing<G1, G1>::zero());
+        copy_libsnark(a.A_query, A_query, 0, len - 1);
+    }
+
+    // B
+    {
+        const auto len = a.B_query.size();
+        B_query.reserve(len + 2);
+        G2 tmpG;
+        G1 tmpH;
+        const auto Z = a.B_query.values.back();
+        copy_libsnark(Z.g, tmpG);
+        copy_libsnark(Z.h, tmpH);
+        B_query.pushBack(0, Pairing<G2, G1>::zero());
+        B_query.pushBack(1, Pairing<G2, G1>(tmpG, tmpH));
+        B_query.pushBack(2, Pairing<G2, G1>::zero());
+        copy_libsnark(a.B_query, B_query, 0, len - 1);
+    }
+
+    // C
+    {
+        const auto len = a.C_query.size();
+        C_query.reserve(len + 2);
+        G1 tmpG, tmpH;
+        const auto Z = a.C_query.values.back();
+        copy_libsnark(Z.g, tmpG);
+        copy_libsnark(Z.h, tmpH);
+        C_query.pushBack(0, Pairing<G1, G1>::zero());
+        C_query.pushBack(1, Pairing<G1, G1>::zero());
+        C_query.pushBack(2, Pairing<G1, G1>(tmpG, tmpH));
+        copy_libsnark(a.C_query, C_query, 0, len - 1);
+    }
+
+    // H
+    copy_libsnark(a.H_query, H_query);
+
+    // K
+    {
+        const auto len = a.K_query.size();
+        K_query.reserve(len);
+        G1 tmpG;
+        copy_libsnark(a.K_query[len - 3], tmpG);
+        K_query.emplace_back(tmpG);
+        copy_libsnark(a.K_query[len - 2], tmpG);
+        K_query.emplace_back(tmpG);
+        copy_libsnark(a.K_query[len - 1], tmpG);
+        K_query.emplace_back(tmpG);
+        copy_libsnark(a.K_query, K_query, 0, len - 3);
+    }
+#endif
+
+    b = PPZK_ProvingKey<PAIRING>(A_query,
+                                 B_query,
+                                 C_query,
+                                 H_query,
+                                 K_query);
+}
+
+//
+// from libsnark to snarklib verification key
+//
+
+template <typename PAIRING>
+void copy_libsnark(
+    const libsnark::r1cs_ppzksnark_verification_key<LIBSNARK_PPT>& a,
+    PPZK_VerificationKey<PAIRING>& b)
+{
+    typedef typename PAIRING::G1 G1;
+    typedef typename PAIRING::G2 G2;
+
+    G1 alphaB_g1, gamma_beta_g1;
+    G2 alphaA_g2, alphaC_g2, gamma_g2, gamma_beta_g2, rC_Z_g2;
+
+    copy_libsnark(a.alphaA_g2, alphaA_g2);
+    copy_libsnark(a.alphaB_g1, alphaB_g1);
+    copy_libsnark(a.alphaC_g2, alphaC_g2);
+    copy_libsnark(a.gamma_g2, gamma_g2);
+    copy_libsnark(a.gamma_beta_g1, gamma_beta_g1);
+    copy_libsnark(a.gamma_beta_g2, gamma_beta_g2);
+    copy_libsnark(a.rC_Z_g2, rC_Z_g2);
+
+    PPZK_QueryIC<PAIRING> icqB;
+#ifdef USE_OLD_LIBSNARK
+    copy_libsnark(*a.encoded_IC_query, icqB);
+#else
+    copy_libsnark(a.encoded_IC_query, icqB);
+#endif
+
+    b = PPZK_VerificationKey<PAIRING>(alphaA_g2,
+                                      alphaB_g1,
+                                      alphaC_g2,
+                                      gamma_g2,
+                                      gamma_beta_g1,
+                                      gamma_beta_g2,
+                                      rC_Z_g2,
+                                      icqB);
+}
+
+//
+// from libsnark to snarklib proof
+//
+
+template <typename PAIRING>
+void copy_libsnark(
+    const libsnark::r1cs_ppzksnark_proof<LIBSNARK_PPT>& a,
+    PPZK_Proof<PAIRING>& b)
+{
+    typedef typename PAIRING::G1 G1;
+    typedef typename PAIRING::G2 G2;
+
+    G1 AG, AH, BH, CG, CH, H, K;
+    G2 BG;
+
+    copy_libsnark(a.g_A.g, AG);
+    copy_libsnark(a.g_A.h, AH);
+    copy_libsnark(a.g_B.g, BG);
+    copy_libsnark(a.g_B.h, BH);
+    copy_libsnark(a.g_C.g, CG);
+    copy_libsnark(a.g_C.h, CH);
+    copy_libsnark(a.g_H, H);
+    copy_libsnark(a.g_K, K);
+
+    b = PPZK_Proof<PAIRING>(Pairing<G1, G1>(AG, AH),
+                            Pairing<G2, G1>(BG, BH),
+                            Pairing<G1, G1>(CG, CH),
+                            H,
+                            K);
 }
 
 } // namespace snarklib
