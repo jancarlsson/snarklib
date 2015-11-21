@@ -351,6 +351,7 @@ void add_PPZK(AutoTestBattery& ATB)
                     ATB.addTest(new AutoTest_PPZK_ProofCompare<SYS, PAIRING, U>(cs));
                     ATB.addTest(new AutoTest_PPZK_Proof<SYS, PAIRING, U>(cs));
                     ATB.addTest(new AutoTest_PPZK_full_redesign<SYS, PAIRING, U>(cs));
+                    ATB.addTest(new AutoTest_PPZK_strongVerify_libsnark<SYS, PAIRING, U>(cs));
                 }
             }
         }
