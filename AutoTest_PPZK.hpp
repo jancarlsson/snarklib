@@ -313,6 +313,59 @@ private:
     const bool m_failureIsSuccess;
 };
 
+////////////////////////////////////////////////////////////////////////////////
+// verification uses libsnark code
+//
+
+template <template <typename> class SYS, typename PAIRING, typename U>
+class AutoTest_PPZK_strongVerify_libsnark : public AutoTest
+{
+    typedef typename PAIRING::Fr Fr;
+    typedef LIBSNARK_PPT PPT;
+    typedef LIBSNARK_FR FR;
+
+public:
+    AutoTest_PPZK_strongVerify_libsnark(const AutoTestR1CS<SYS, Fr, U>& cs)
+        : AutoTest(cs),
+          m_constraintSystem(cs)
+    {}
+
+    void runTest() {
+        const PPZK_Keypair<PAIRING> keypair(m_constraintSystem.systemB(),
+                                            m_constraintSystem.numCircuitInputs(),
+                                            PPZK_LagrangePoint<Fr>(0),
+                                            PPZK_BlindGreeks<Fr, Fr>(0));
+
+        const PPZK_Proof<PAIRING> proofB(m_constraintSystem.systemB(),
+                                         m_constraintSystem.numCircuitInputs(),
+                                         keypair.pk(),
+                                         m_constraintSystem.witnessB(),
+                                         PPZK_ProofRandomness<Fr>(0));
+
+        libsnark::r1cs_ppzksnark_verification_key<PPT> libsnark_vk;
+        copy_libsnark(keypair.vk(), libsnark_vk);
+
+        std::vector<FR> libsnark_input;
+        copy_libsnark(m_constraintSystem.inputB(), libsnark_input);
+
+        libsnark::r1cs_ppzksnark_proof<PPT> libsnark_proof;
+        copy_libsnark(proofB, libsnark_proof);
+
+        const auto ans_online
+            = libsnark::r1cs_ppzksnark_verifier_strong_IC<PPT>(
+                libsnark_vk,
+                libsnark_input,
+                libsnark_proof);
+
+        checkPass(ans_online);
+    }
+
+private:
+    const AutoTestR1CS<SYS, Fr, U> m_constraintSystem;
+};
+    
+
+
 } // namespace snarklib
 
 #endif
