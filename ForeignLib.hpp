@@ -1,6 +1,7 @@
 #ifndef _SNARKLIB_FOREIGN_LIB_HPP_
 #define _SNARKLIB_FOREIGN_LIB_HPP_
 
+#include <algorithm>
 #include <cstdint>
 #include <gmp.h>
 #include <sstream>
@@ -54,6 +55,7 @@ namespace snarklib {
     typedef libsnark::default_ec_pp LIBSNARK_PPT;
 #endif
 
+typedef libsnark::Fr<LIBSNARK_PPT> LIBSNARK_FR;
 typedef libsnark::G1<LIBSNARK_PPT> LIBSNARK_G1;
 typedef libsnark::G2<LIBSNARK_PPT> LIBSNARK_G2;
 
@@ -375,10 +377,10 @@ bool equal_libsnark(
         equal_libsnark(a.h, b.H());
 }
 
-template <typename UG,
-          typename UH,
-          typename TG,
-          typename TH>
+template <typename TG,
+          typename TH,
+          typename UG,
+          typename UH>
 bool equal_libsnark(
     const Pairing<TG, TH>& b,
     const libsnark::knowledge_commitment<UG, UH>& a)
@@ -607,7 +609,7 @@ void copy_libsnark(
     const std::size_t startIndex = 0,
     const std::size_t stopIndex = -1)
 {
-    const std::size_t L = a.size() < stopIndex ? a.size() : stopIndex;
+    const std::size_t L = std::min(a.size(), stopIndex);
 
     if (b.empty()) b.reserve(L - startIndex);
 
@@ -630,7 +632,7 @@ void copy_libsnark(
     const std::size_t startIndex = 0,
     const std::size_t stopIndex = -1)
 {
-    const std::size_t L = a.size() < stopIndex ? a.size() : stopIndex;
+    const std::size_t L = std::min(a.size(), stopIndex);
 
     if (b.empty()) b.reserve(L - startIndex);
 
@@ -640,6 +642,48 @@ void copy_libsnark(
         copy_libsnark(a[i], tmp);
         b.emplace_back(tmp);
     }
+}
+
+//
+// from libsnark knowledge commitment to snarklib Pairing
+//
+
+template <typename UG,
+          typename UH,
+          typename TG,
+          typename TH>
+void copy_libsnark(
+    const libsnark::knowledge_commitment<UG, UH>& a,
+    Pairing<TG, TH>& b)
+{
+    TG tmpG;
+    TH tmpH;
+
+    copy_libsnark(a.g, tmpG);
+    copy_libsnark(a.h, tmpH);
+
+    b = Pairing<TG, TH>(tmpG, tmpH);
+}
+
+//
+// from snarklib Pairing to libsnark knowledge commitment
+//
+
+template <typename TG,
+          typename TH,
+          typename UG,
+          typename UH>
+void copy_libsnark(
+    const Pairing<TG, TH>& a,
+    libsnark::knowledge_commitment<UG, UH>& b)
+{
+    UG tmpG;
+    UH tmpH;
+
+    copy_libsnark(a.G(), tmpG);
+    copy_libsnark(a.H(), tmpH);
+
+    b = libsnark::knowledge_commitment<UG, UH>(tmpG, tmpH);
 }
 
 //
@@ -658,20 +702,16 @@ void copy_libsnark(
     const std::size_t stopIndex = -1)
 {
     const std::size_t
-        L = a.values.size() < stopIndex ? a.values.size() : stopIndex,
+        L = std::min(a.values.size(), stopIndex),
         offset = b.size();
 
-    if (b.empty()) b.reserve(L);
+    if (b.empty()) b.reserve(L - startIndex);
 
-    G1 tmpG, tmpH;
+    Pairing<G1, G1> tmp;
 
     for (std::size_t i = startIndex; i < L; ++i) {
-        copy_libsnark(a.values[i].g, tmpG);
-        copy_libsnark(a.values[i].h, tmpH);
-
-        b.pushBack(
-            a.indices[i] + offset,
-            Pairing<G1, G1>(tmpG, tmpH));
+        copy_libsnark(a.values[i], tmp);
+        b.pushBack(a.indices[i] + offset, tmp);
     }
 }
 
@@ -688,21 +728,16 @@ void copy_libsnark(
     const std::size_t stopIndex = -1)
 {
     const std::size_t
-        L = a.values.size() < stopIndex ? a.values.size() : stopIndex,
+        L = std::min(a.values.size(), stopIndex),
         offset = b.size();
 
-    if (b.empty()) b.reserve(L);
+    if (b.empty()) b.reserve(L - startIndex);
 
-    G2 tmpG;
-    G1 tmpH;
+    Pairing<G2, G1> tmp;
 
     for (std::size_t i = startIndex; i < L; ++i) {
-        copy_libsnark(a.values[i].g, tmpG);
-        copy_libsnark(a.values[i].h, tmpH);
-
-        b.pushBack(
-            a.indices[i] + offset,
-            Pairing<G2, G1>(tmpG, tmpH));
+        copy_libsnark(a.values[i], tmp);
+        b.pushBack(a.indices[i] + offset, tmp);
     }
 }
 
@@ -754,33 +789,14 @@ void copy_libsnark(
     const std::size_t startIndex = 0,
     const std::size_t stopIndex = -1)
 {
-    const std::size_t L = a.size() < stopIndex ? a.size() : stopIndex;
+    const std::size_t L = std::min(a.size(), stopIndex);
+
+    if (b.empty()) b.reserve(L - startIndex);
 
     for (std::size_t i = startIndex; i < L; ++i) {
         LIBSNARK_FR tmp;
         copy_libsnark(a[i], tmp);
         b.emplace_back(tmp);
-    }
-}
-
-//
-// from libsnark to snarklib witness vector
-//
-
-template <typename LIBSNARK_FR,
-          typename FR>
-void copy_libsnark(
-    const std::vector<LIBSNARK_FR>& a,
-    R1Witness<FR>& b,
-    const std::size_t startIndex = 0,
-    const std::size_t stopIndex = -1)
-{
-    const std::size_t L = a.size() < stopIndex ? a.size() : stopIndex;
-
-    for (std::size_t i = startIndex; i < L; ++i) {
-        FR tmp;
-        copy_libsnark(a[i], tmp);
-        b.assignVar(R1Variable<FR>(i + 1), tmp);
     }
 }
 
@@ -859,6 +875,34 @@ void copy_libsnark(
 #endif
 
     b = PPZK_QueryIC<PAIRING>(base, encoded_terms);
+}
+
+//
+// from snarklib encoded IC (input constraint) query to libsnark
+//
+
+template <typename PAIRING>
+void copy_libsnark(
+    const PPZK_QueryIC<PAIRING>& a,
+#ifdef USE_OLD_LIBSNARK
+    libsnark::r1cs_ppzksnark_IC_query<LIBSNARK_PPT>& b)
+#else
+    libsnark::accumulation_vector<LIBSNARK_G1>& b)
+#endif
+{
+    LIBSNARK_G1 base;
+    copy_libsnark(a.base(), base);
+
+    std::vector<LIBSNARK_G1> encoded_terms;
+    copy_libsnark(a.encoded_terms(), encoded_terms);
+
+#ifdef USE_OLD_LIBSNARK
+    b = libsnark::r1cs_ppzksnark_IC_query<LIBSNARK_PPT>(base, encoded_terms);
+#else
+    b = libsnark::accumulation_vector<LIBSNARK_G1>(
+            LIBSNARK_G1(base),                        // must be r-value
+            std::vector<LIBSNARK_G1>(encoded_terms)); // must be r-value
+#endif
 }
 
 //
@@ -998,6 +1042,31 @@ void copy_libsnark(
 }
 
 //
+// from snarklib to libsnark verification key
+//
+
+template <typename PAIRING>
+void copy_libsnark(
+    const PPZK_VerificationKey<PAIRING>& a,
+    libsnark::r1cs_ppzksnark_verification_key<LIBSNARK_PPT>& b)
+{
+    copy_libsnark(a.alphaA_g2(), b.alphaA_g2);
+    copy_libsnark(a.alphaB_g1(), b.alphaB_g1);
+    copy_libsnark(a.alphaC_g2(), b.alphaC_g2);
+    copy_libsnark(a.gamma_g2(), b.gamma_g2);
+    copy_libsnark(a.gamma_beta_g1(), b.gamma_beta_g1);
+    copy_libsnark(a.gamma_beta_g2(), b.gamma_beta_g2);
+    copy_libsnark(a.rC_Z_g2(), b.rC_Z_g2);
+
+#ifdef USE_OLD_LIBSNARK
+    b.encoded_IC_query.reset(new libsnark::r1cs_ppzksnark_IC_query<LIBSNARK_PPT>);
+    copy_libsnark(a.encoded_IC_query(), *b.encoded_IC_query);
+#else
+    copy_libsnark(a.encoded_IC_query(), b.encoded_IC_query);
+#endif
+}
+
+//
 // from libsnark to snarklib proof
 //
 
@@ -1009,23 +1078,33 @@ void copy_libsnark(
     typedef typename PAIRING::G1 G1;
     typedef typename PAIRING::G2 G2;
 
-    G1 AG, AH, BH, CG, CH, H, K;
-    G2 BG;
+    Pairing<G1, G1> tmpA, tmpC;
+    Pairing<G2, G1> tmpB;
+    G1 tmpH, tmpK;
 
-    copy_libsnark(a.g_A.g, AG);
-    copy_libsnark(a.g_A.h, AH);
-    copy_libsnark(a.g_B.g, BG);
-    copy_libsnark(a.g_B.h, BH);
-    copy_libsnark(a.g_C.g, CG);
-    copy_libsnark(a.g_C.h, CH);
-    copy_libsnark(a.g_H, H);
-    copy_libsnark(a.g_K, K);
+    copy_libsnark(a.g_A, tmpA);
+    copy_libsnark(a.g_B, tmpB);
+    copy_libsnark(a.g_C, tmpC);
+    copy_libsnark(a.g_H, tmpH);
+    copy_libsnark(a.g_K, tmpK);
 
-    b = PPZK_Proof<PAIRING>(Pairing<G1, G1>(AG, AH),
-                            Pairing<G2, G1>(BG, BH),
-                            Pairing<G1, G1>(CG, CH),
-                            H,
-                            K);
+    b = PPZK_Proof<PAIRING>(tmpA, tmpB, tmpC, tmpH, tmpK);
+}
+
+//
+// from snarklib to libsnark proof
+//
+
+template <typename PAIRING>
+void copy_libsnark(
+    const PPZK_Proof<PAIRING>& a,
+    libsnark::r1cs_ppzksnark_proof<LIBSNARK_PPT>& b)
+{
+    copy_libsnark(a.A(), b.g_A);
+    copy_libsnark(a.B(), b.g_B);
+    copy_libsnark(a.C(), b.g_C);
+    copy_libsnark(a.H(), b.g_H);
+    copy_libsnark(a.K(), b.g_K);
 }
 
 } // namespace snarklib
