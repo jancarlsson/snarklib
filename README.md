@@ -59,7 +59,7 @@ To build and run the autotests for CURVE_ALT_BN128:
     $ make autotest_bn128 LIBSNARK_PREFIX=/usr/local
     $ ./autotest_bn128 -a
     ...lots of output...
-    PASS - All 2064 tests passed
+    PASS - All 2128 tests passed
     $
 
 To build and run the autotests for CURVE_EDWARDS:
@@ -68,7 +68,7 @@ To build and run the autotests for CURVE_EDWARDS:
     $ make autotest_edwards LIBSNARK_PREFIX=/usr/local
     $ ./autotest_edwards -a
     ...lots of output...
-    PASS - All 2054 tests passed
+    PASS - All 2118 tests passed
     $
 
 Note: Libsnark builds most code for both CURVE_ALT_BN128 and CURVE_EDWARDS
