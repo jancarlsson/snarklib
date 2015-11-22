@@ -363,8 +363,72 @@ public:
 private:
     const AutoTestR1CS<SYS, Fr, U> m_constraintSystem;
 };
-    
 
+////////////////////////////////////////////////////////////////////////////////
+// verification and proof use libsnark code
+//
+
+template <template <typename> class SYS, typename PAIRING, typename U>
+class AutoTest_PPZK_Proof_libsnark : public AutoTest
+{
+    typedef typename PAIRING::Fr Fr;
+    typedef LIBSNARK_PPT PPT;
+    typedef LIBSNARK_FR FR;
+
+public:
+    AutoTest_PPZK_Proof_libsnark(const AutoTestR1CS<SYS, Fr, U>& cs)
+        : AutoTest(cs),
+          m_constraintSystem(cs)
+    {}
+
+    void runTest() {
+        const PPZK_Keypair<PAIRING> keypair(m_constraintSystem.systemB(),
+                                            m_constraintSystem.numCircuitInputs(),
+                                            PPZK_LagrangePoint<Fr>(0),
+                                            PPZK_BlindGreeks<Fr, Fr>(0));
+
+        libsnark::r1cs_ppzksnark_proving_key<PPT> libsnark_pk;
+        copy_libsnark(keypair.pk(), m_constraintSystem.systemA(), libsnark_pk);
+
+        libsnark::r1cs_ppzksnark_verification_key<PPT> libsnark_vk;
+        copy_libsnark(keypair.vk(), libsnark_vk);
+
+        std::vector<FR> libsnark_input;
+        copy_libsnark(m_constraintSystem.inputB(), libsnark_input);
+
+        std::vector<FR> libsnark_witness;
+#ifdef USE_OLD_LIBSNARK
+        copy_libsnark(m_constraintSystem.witnessB(), libsnark_witness);
+#else
+        const std::size_t numInputs = libsnark_input.size();
+        copy_libsnark(m_constraintSystem.witnessB(), libsnark_witness, numInputs);
+#endif
+
+#ifdef USE_OLD_LIBSNARK
+        const auto libsnark_proof
+            = libsnark::r1cs_ppzksnark_prover<PPT>(
+                libsnark_pk,
+                libsnark_witness);
+#else
+        const auto libsnark_proof
+            = libsnark::r1cs_ppzksnark_prover<PPT>(
+                libsnark_pk,
+                libsnark_input,
+                libsnark_witness);
+#endif
+
+        const auto ans_online
+            = libsnark::r1cs_ppzksnark_verifier_strong_IC<PPT>(
+                libsnark_vk,
+                libsnark_input,
+                libsnark_proof);
+
+        checkPass(ans_online);
+    }
+
+private:
+    const AutoTestR1CS<SYS, Fr, U> m_constraintSystem;
+};
 
 } // namespace snarklib
 
