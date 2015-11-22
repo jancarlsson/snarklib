@@ -741,6 +741,182 @@ void copy_libsnark(
     }
 }
 
+//
+// from snarklib sparse vector to libsnark paired groups vector
+//
+
+template <typename G1>
+void copy_libsnark(
+    const SparseVector<Pairing<G1, G1>>& a,
+#ifdef USE_OLD_LIBSNARK
+    libsnark::G1G1_knowledge_commitment_vector<LIBSNARK_PPT>& b,
+#else
+    libsnark::knowledge_commitment_vector<LIBSNARK_G1, LIBSNARK_G1>& b,
+#endif
+    const std::size_t startElementIndex = 0,
+    const std::size_t stopElementIndex = -1)
+{
+    if (b.indices.empty()) b.indices.reserve(a.size());
+    if (b.values.empty()) b.values.reserve(a.size());
+
+    std::size_t maxIndex = 0;
+    libsnark::knowledge_commitment<LIBSNARK_G1, LIBSNARK_G1> tmp;
+
+    for (std::size_t i = 0; i < a.size(); ++i) {
+        const std::size_t idx = a.getIndex(i);
+
+        if (idx >= startElementIndex && idx < stopElementIndex) {
+            maxIndex = std::max(maxIndex, idx);
+
+            const auto& p = a.getElement(i);
+            copy_libsnark(p, tmp);
+
+            b.indices.push_back(idx - startElementIndex);
+            b.values.emplace_back(tmp);
+        }
+    }
+
+#ifdef USE_OLD_LIBSNARK
+    b.is_sparse = true;
+    b.original_size = maxIndex + 1;
+#else
+    b.domain_size_ = maxIndex + 1;
+#endif
+}
+
+template <typename G1>
+void copy_libsnark(
+    const SparseVector<Pairing<G1, G1>>& a,
+    const std::size_t index_Z,
+    const Pairing<G1, G1>& value_Z,
+#ifdef USE_OLD_LIBSNARK
+    libsnark::G1G1_knowledge_commitment_vector<LIBSNARK_PPT>& b,
+#else
+    libsnark::knowledge_commitment_vector<LIBSNARK_G1, LIBSNARK_G1>& b,
+#endif
+    const std::size_t startElementIndex = 0,
+    const std::size_t stopElementIndex = -1)
+{
+    if (b.indices.empty()) b.indices.reserve(a.size() + 1);
+    if (b.values.empty()) b.values.reserve(a.size() + 1);
+
+    std::size_t maxIndex = 0;
+    libsnark::knowledge_commitment<LIBSNARK_G1, LIBSNARK_G1> tmp;
+
+    for (std::size_t i = 0; i < a.size(); ++i) {
+        const std::size_t idx = a.getIndex(i);
+
+        if (idx >= startElementIndex && idx < stopElementIndex) {
+            maxIndex = std::max(maxIndex, idx);
+
+            const auto& p = a.getElement(i);
+            copy_libsnark(p, tmp);
+
+            b.indices.push_back(idx - startElementIndex);
+            b.values.emplace_back(tmp);
+        }
+    }
+
+    maxIndex = std::max(maxIndex, index_Z);
+    b.indices.push_back(index_Z);
+    copy_libsnark(value_Z, tmp);
+    b.values.emplace_back(tmp);
+
+#ifdef USE_OLD_LIBSNARK
+    b.is_sparse = true;
+    b.original_size = maxIndex + 1;
+#else
+    b.domain_size_ = maxIndex + 1;
+#endif
+}
+
+template <typename G2,
+          typename G1>
+void copy_libsnark(
+    const SparseVector<Pairing<G2, G1>>& a,
+#ifdef USE_OLD_LIBSNARK
+    libsnark::G2G1_knowledge_commitment_vector<LIBSNARK_PPT>& b,
+#else
+    libsnark::knowledge_commitment_vector<LIBSNARK_G2, LIBSNARK_G1>& b,
+#endif
+    const std::size_t startElementIndex = 0,
+    const std::size_t stopElementIndex = -1)
+{
+    if (b.indices.empty()) b.indices.reserve(a.size());
+    if (b.values.empty()) b.values.reserve(a.size());
+
+    std::size_t maxIndex = 0;
+    libsnark::knowledge_commitment<LIBSNARK_G2, LIBSNARK_G1> tmp;
+
+    for (std::size_t i = 0; i < a.size(); ++i) {
+        const std::size_t idx = a.getIndex(i);
+
+        if (idx >= startElementIndex && idx < stopElementIndex) {
+            maxIndex = std::max(maxIndex, idx);
+
+            const auto& p = a.getElement(i);
+            copy_libsnark(p, tmp);
+
+            b.indices.push_back(idx - startElementIndex);
+            b.values.emplace_back(tmp);
+        }
+    }
+
+#ifdef USE_OLD_LIBSNARK
+    b.is_sparse = true;
+    b.original_size = maxIndex + 1;
+#else
+    b.domain_size_ = maxIndex + 1;
+#endif
+}
+
+template <typename G2,
+          typename G1>
+void copy_libsnark(
+    const SparseVector<Pairing<G2, G1>>& a,
+    const std::size_t index_Z,
+    const Pairing<G2, G1>& value_Z,
+#ifdef USE_OLD_LIBSNARK
+    libsnark::G2G1_knowledge_commitment_vector<LIBSNARK_PPT>& b,
+#else
+    libsnark::knowledge_commitment_vector<LIBSNARK_G2, LIBSNARK_G1>& b,
+#endif
+    const std::size_t startElementIndex = 0,
+    const std::size_t stopElementIndex = -1)
+{
+    if (b.indices.empty()) b.indices.reserve(a.size() + 1);
+    if (b.values.empty()) b.values.reserve(a.size() + 1);
+
+    std::size_t maxIndex = 0;
+    libsnark::knowledge_commitment<LIBSNARK_G2, LIBSNARK_G1> tmp;
+
+    for (std::size_t i = 0; i < a.size(); ++i) {
+        const std::size_t idx = a.getIndex(i);
+
+        if (idx >= startElementIndex && idx < stopElementIndex) {
+            maxIndex = std::max(maxIndex, idx);
+
+            const auto& p = a.getElement(i);
+            copy_libsnark(p, tmp);
+
+            b.indices.push_back(idx - startElementIndex);
+            b.values.emplace_back(tmp);
+        }
+    }
+
+    maxIndex = std::max(maxIndex, index_Z);
+    b.indices.push_back(index_Z);
+    copy_libsnark(value_Z, tmp);
+    b.values.emplace_back(tmp);
+
+#ifdef USE_OLD_LIBSNARK
+    b.is_sparse = true;
+    b.original_size = maxIndex + 1;
+#else
+    b.domain_size_ = maxIndex + 1;
+#endif
+}
+
 // 
 // from snarklib to libsnark rank-1 linear combination
 //
@@ -999,6 +1175,67 @@ void copy_libsnark(
                                  C_query,
                                  H_query,
                                  K_query);
+}
+
+//
+// from snarklib to libsnark proving key
+//
+
+template <typename PAIRING>
+void copy_libsnark(
+    const PPZK_ProvingKey<PAIRING>& a,
+    const libsnark::r1cs_constraint_system<LIBSNARK_FR>& cs,
+    libsnark::r1cs_ppzksnark_proving_key<LIBSNARK_PPT>& b)
+{
+#ifdef USE_OLD_LIBSNARK
+    copy_libsnark(a.A_query(), b.A_query);
+    copy_libsnark(a.B_query(), b.B_query);
+    copy_libsnark(a.C_query(), b.C_query);
+    copy_libsnark(a.H_query(), b.H_query);
+    copy_libsnark(a.K_query(), b.K_query);
+#else
+    // QAP query vectors A, B, C, K are the same size
+    const std::size_t qap_num_vars = a.K_query().size() - 4;
+
+    // A
+    copy_libsnark(
+        a.A_query(),
+        qap_num_vars + 1,
+        a.A_query().getElementForIndex(0),
+        b.A_query,
+        3);
+
+    // B
+    copy_libsnark(
+        a.B_query(),
+        qap_num_vars + 1,
+        a.B_query().getElementForIndex(1),
+        b.B_query,
+        3);
+
+    // C
+    copy_libsnark(
+        a.C_query(),
+        qap_num_vars + 1,
+        a.C_query().getElementForIndex(2),
+        b.C_query,
+        3);
+
+    // H
+    copy_libsnark(
+        a.H_query(),
+        b.H_query);
+
+    // K
+    copy_libsnark(a.K_query(), b.K_query, 3);
+    for (std::size_t i = 0; i < 3; ++i) {
+        LIBSNARK_G1 tmp;
+        copy_libsnark(a.K_query()[i], tmp);
+        b.K_query.emplace_back(tmp);
+    }
+#endif
+
+    b.constraint_system = cs;
 }
 
 //
