@@ -1013,6 +1013,7 @@ void copy_libsnark(
                 copy_libsnark(c, tmp);
                 csB.add_constraint(tmp);
             }
+            return false; // do not write back to disk if HugeSystem
         });
 
 #ifdef USE_OLD_LIBSNARK
