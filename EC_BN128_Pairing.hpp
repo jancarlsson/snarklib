@@ -213,6 +213,7 @@ public:
     // called by millerLoop() and doubleMillerLoop()
     static Fq12 millerMul(const Fq12& f,
                           const G1_precomp& prec_P,
+                          const G2_precomp& prec_Q,
                           const ell_coeffs& c)
     {
         return mul_by_024(f,
@@ -224,9 +225,10 @@ public:
     // called by millerLoop() and doubleMillerLoop()
     static Fq12 millerMulBit(const Fq12& f,
                              const G1_precomp& prec_P,
+                             const G2_precomp& prec_Q,
                              const ell_coeffs& c)
     {
-        return millerMul(f, prec_P, c);
+        return millerMul(f, prec_P, prec_Q, c);
     }
 
     // called by millerLoop()
@@ -239,8 +241,8 @@ public:
             f = inverse(f);
         }
 
-        f = millerMul(f, prec_P, prec_Q.coeffs[idx++]);
-        f = millerMul(f, prec_P, prec_Q.coeffs[idx]);
+        f = millerMul(f, prec_P, prec_Q, prec_Q.coeffs[idx++]);
+        f = millerMul(f, prec_P, prec_Q, prec_Q.coeffs[idx]);
 
         return f;
     }
@@ -257,12 +259,12 @@ public:
             f = inverse(f);
         }
 
-        f = millerMul(f, prec_P1, prec_Q1.coeffs[idx]);
-        f = millerMul(f, prec_P2, prec_Q2.coeffs[idx]);
+        f = millerMul(f, prec_P1, prec_Q1, prec_Q1.coeffs[idx]);
+        f = millerMul(f, prec_P2, prec_Q2, prec_Q2.coeffs[idx]);
         ++idx;
 
-        f = millerMul(f, prec_P1, prec_Q1.coeffs[idx]);
-        f = millerMul(f, prec_P2, prec_Q2.coeffs[idx]);
+        f = millerMul(f, prec_P1, prec_Q1, prec_Q1.coeffs[idx]);
+        f = millerMul(f, prec_P2, prec_Q2, prec_Q2.coeffs[idx]);
 
         return f;
     }
