@@ -217,6 +217,7 @@ public:
     // called by millerLoop() and doubleMillerLoop()
     static Fq6 millerMul(const Fq6& f,
                          const G1_precomp& prec_P,
+                         const G2_precomp& prec_Q,
                          const conic_coeffs& c)
     {
         return f * Fq6(prec_P.P_XY * c.c_XY + prec_P.P_XZ * c.c_XZ,
@@ -226,6 +227,7 @@ public:
     // called by millerLoop() and doubleMillerLoop()
     static Fq6 millerMulBit(const Fq6& f,
                             const G1_precomp& prec_P,
+                            const G2_precomp& prec_Q,
                             const conic_coeffs& c)
     {
         return f * Fq6(prec_P.P_ZZplusYZ * c.c_ZZ,
