@@ -46,6 +46,12 @@ typedef BN128 CURVE;
 #ifdef CURVE_EDWARDS
 typedef Edwards CURVE;
 #endif
+#ifdef CURVE_MNT4
+typedef MNT4 CURVE;
+#endif
+#ifdef CURVE_MNT6
+typedef MNT6 CURVE;
+#endif
 
 // elliptic curve types
 const mp_size_t NRQ = CURVE::q_limbs;
@@ -85,6 +91,12 @@ void initEC() {
     #endif
     #ifdef CURVE_EDWARDS
     libsnark::edwards_pp::init_public_params();
+    #endif
+    #ifdef CURVE_MNT4
+    libsnark::mnt4_pp::init_public_params();
+    #endif
+    #ifdef CURVE_MNT6
+    libsnark::mnt6_pp::init_public_params();
     #endif
 #endif
 
