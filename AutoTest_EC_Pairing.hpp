@@ -3,8 +3,18 @@
 
 #include <string>
 
+#ifdef CURVE_ALT_BN128
 #include /*libsnark*/ "algebra/curves/alt_bn128/alt_bn128_pairing.hpp"
+#endif
+#ifdef CURVE_EDWARDS
 #include /*libsnark*/ "algebra/curves/edwards/edwards_pairing.hpp"
+#endif
+#ifdef CURVE_MNT4
+#include /*libsnark*/ "algebra/curves/mnt/mnt4/mnt4_pairing.hpp"
+#endif
+#ifdef CURVE_MNT6
+#include /*libsnark*/ "algebra/curves/mnt/mnt6/mnt6_pairing.hpp"
+#endif
 
 #include "snarklib/AutoTest.hpp"
 #include "snarklib/BigInt.hpp"
@@ -31,6 +41,24 @@ public:
 
     void runTest() {
         const G1_precomp b(m_B);
+
+#ifdef CURVE_MNT6
+        const auto a = mnt6_ate_precompute_G1(m_A);
+
+        checkPass(equal_libsnark(a.PX, b.PX));
+        checkPass(equal_libsnark(a.PY, b.PY));
+        checkPass(equal_libsnark(a.PX_twist, b.PX_twist));
+        checkPass(equal_libsnark(a.PY_twist, b.PY_twist));
+#endif
+
+#ifdef CURVE_MNT4
+        const auto a = mnt4_ate_precompute_G1(m_A);
+
+        checkPass(equal_libsnark(a.PX, b.PX));
+        checkPass(equal_libsnark(a.PY, b.PY));
+        checkPass(equal_libsnark(a.PX_twist, b.PX_twist));
+        checkPass(equal_libsnark(a.PY_twist, b.PY_twist));
+#endif
 
 #ifdef CURVE_EDWARDS
         const auto a = edwards_ate_precompute_G1(m_A);
@@ -60,6 +88,16 @@ private:
 //
 
 namespace libsnark {
+#ifdef CURVE_MNT6
+struct extended_mnt6_G2_projective { mnt6_Fq3 X; mnt6_Fq3 Y; mnt6_Fq3 Z; mnt6_Fq3 T; };
+void doubling_step_for_flipped_miller_loop(extended_mnt6_G2_projective &current, mnt6_ate_dbl_coeffs &dc);
+#endif
+
+#ifdef CURVE_MNT4
+struct extended_mnt4_G2_projective { mnt4_Fq2 X; mnt4_Fq2 Y; mnt4_Fq2 Z; mnt4_Fq2 T; };
+void doubling_step_for_flipped_miller_loop(extended_mnt4_G2_projective &current, mnt4_ate_dbl_coeffs &dc);
+#endif
+
 #ifdef CURVE_EDWARDS
 struct extended_edwards_G2_projective { edwards_Fq3 X; edwards_Fq3 Y; edwards_Fq3 Z; edwards_Fq3 T; };
 void doubling_step_for_flipped_miller_loop(extended_edwards_G2_projective &current, edwards_Fq3_conic_coefficients &cc);
@@ -90,6 +128,42 @@ public:
 
         auto b = m_B;
         b.affineCoordinates();
+
+#ifdef CURVE_MNT6
+        libsnark::mnt6_ate_dbl_coeffs aC;
+        libsnark::extended_mnt6_G2_projective aR;
+        aR.X = a.X();
+        aR.Y = a.Y();
+        aR.Z = libsnark::mnt6_Fq3::one();
+        aR.T = libsnark::mnt6_Fq3::one();
+        libsnark::doubling_step_for_flipped_miller_loop(aR, aC);
+
+        typename PAIRING::G2_projective bR(b.x(), b.y(), PAIRING::Fq3::one(), PAIRING::Fq3::one());
+        const auto bC = PAIRING::doubling_step_for_flipped_miller_loop(bR);
+
+        checkPass(equal_libsnark(aC.c_H, bC.c_H));
+        checkPass(equal_libsnark(aC.c_4C, bC.c_4C));
+        checkPass(equal_libsnark(aC.c_J, bC.c_J));
+        checkPass(equal_libsnark(aC.c_L, bC.c_L));
+#endif
+
+#ifdef CURVE_MNT4
+        libsnark::mnt4_ate_dbl_coeffs aC;
+        libsnark::extended_mnt4_G2_projective aR;
+        aR.X = a.X();
+        aR.Y = a.Y();
+        aR.Z = libsnark::mnt4_Fq2::one();
+        aR.T = libsnark::mnt4_Fq2::one();
+        libsnark::doubling_step_for_flipped_miller_loop(aR, aC);
+
+        typename PAIRING::G2_projective bR(b.x(), b.y(), PAIRING::Fq2::one(), PAIRING::Fq2::one());
+        const auto bC = PAIRING::doubling_step_for_flipped_miller_loop(bR);
+
+        checkPass(equal_libsnark(aC.c_H, bC.c_H));
+        checkPass(equal_libsnark(aC.c_4C, bC.c_4C));
+        checkPass(equal_libsnark(aC.c_J, bC.c_J));
+        checkPass(equal_libsnark(aC.c_L, bC.c_L));
+#endif
 
 #ifdef CURVE_EDWARDS
         libsnark::edwards_Fq3_conic_coefficients aC;
@@ -151,6 +225,84 @@ public:
     void runTest() {
         const G2_precomp b(m_B);
 
+#ifdef CURVE_MNT6
+        // FIXME - AutoTest_EC_PairingPrecompG2 fails for MNT6 elliptic curve
+
+        const auto a = mnt6_ate_precompute_G2(m_A);
+
+        // The libsnark structs dbl_coeffs and add_coeffs are combined
+        // as a union inside the snarklib struct both_coeffs.
+
+        const auto
+            dblSize = a.dbl_coeffs.size(),
+            addSize = a.add_coeffs.size(),
+            totalSize = b.coeffs.size();
+
+        if (checkPass(dblSize + addSize == totalSize)) {
+            std::size_t
+                dblIdx = 0,
+                addIdx = 0;
+
+            for (std::size_t i = 0; i < totalSize; ++i) {
+                if (b.coeffs[i].is_dbl_coeffs) {
+                    const auto& a_coeff = a.dbl_coeffs[dblIdx++];
+                    const auto& b_coeff = b.coeffs[i].as_dbl_coeffs;
+
+                    checkPass(equal_libsnark(a_coeff.c_H, b_coeff.c_H));
+                    checkPass(equal_libsnark(a_coeff.c_4C, b_coeff.c_4C));
+                    checkPass(equal_libsnark(a_coeff.c_J, b_coeff.c_J));
+                    checkPass(equal_libsnark(a_coeff.c_L, b_coeff.c_L));
+
+                } else {
+                    const auto& a_coeff = a.add_coeffs[dblIdx++];
+                    const auto& b_coeff = b.coeffs[i].as_add_coeffs;
+
+                    checkPass(equal_libsnark(a_coeff.c_L1, b_coeff.c_L1));
+                    checkPass(equal_libsnark(a_coeff.c_RZ, b_coeff.c_RZ));
+                }
+            }
+        }
+#endif
+
+#ifdef CURVE_MNT4
+        // FIXME - AutoTest_EC_PairingPrecompG2 fails for MNT4 elliptic curve
+
+        const auto a = mnt4_ate_precompute_G2(m_A);
+
+        // The libsnark structs dbl_coeffs and add_coeffs are combined
+        // as a union inside the snarklib struct both_coeffs.
+
+        const auto
+            dblSize = a.dbl_coeffs.size(),
+            addSize = a.add_coeffs.size(),
+            totalSize = b.coeffs.size();
+
+        if (checkPass(dblSize + addSize == totalSize)) {
+            std::size_t
+                dblIdx = 0,
+                addIdx = 0;
+
+            for (std::size_t i = 0; i < totalSize; ++i) {
+                if (b.coeffs[i].is_dbl_coeffs) {
+                    const auto& a_coeff = a.dbl_coeffs[dblIdx++];
+                    const auto& b_coeff = b.coeffs[i].as_dbl_coeffs;
+
+                    checkPass(equal_libsnark(a_coeff.c_H, b_coeff.c_H));
+                    checkPass(equal_libsnark(a_coeff.c_4C, b_coeff.c_4C));
+                    checkPass(equal_libsnark(a_coeff.c_J, b_coeff.c_J));
+                    checkPass(equal_libsnark(a_coeff.c_L, b_coeff.c_L));
+
+                } else {
+                    const auto& a_coeff = a.add_coeffs[dblIdx++];
+                    const auto& b_coeff = b.coeffs[i].as_add_coeffs;
+
+                    checkPass(equal_libsnark(a_coeff.c_L1, b_coeff.c_L1));
+                    checkPass(equal_libsnark(a_coeff.c_RZ, b_coeff.c_RZ));
+                }
+            }
+        }
+#endif
+
 #ifdef CURVE_EDWARDS
         const auto a = edwards_ate_precompute_G2(m_A);
 
@@ -207,6 +359,18 @@ public:
     {}
 
     void runTest() {
+#ifdef CURVE_MNT6
+        const auto a1 = mnt6_ate_precompute_G1(m_g1A);
+        const auto a2 = mnt6_ate_precompute_G2(m_g2A);
+        const auto a = mnt6_ate_miller_loop(a1, a2);
+#endif
+
+#ifdef CURVE_MNT4
+        const auto a1 = mnt4_ate_precompute_G1(m_g1A);
+        const auto a2 = mnt4_ate_precompute_G2(m_g2A);
+        const auto a = mnt4_ate_miller_loop(a1, a2);
+#endif
+
 #ifdef CURVE_EDWARDS
         const auto a1 = edwards_ate_precompute_G1(m_g1A);
         const auto a2 = edwards_ate_precompute_G2(m_g2A);
@@ -262,6 +426,30 @@ public:
     {}
 
     void runTest() {
+#ifdef CURVE_MNT6
+        const auto
+            a0 = mnt6_ate_precompute_G1(m_g1_0A),
+            a2 = mnt6_ate_precompute_G1(m_g1_2A);
+
+        const auto
+            a1 = mnt6_ate_precompute_G2(m_g2_1A),
+            a3 = mnt6_ate_precompute_G2(m_g2_3A);
+
+        const auto a = mnt6_ate_double_miller_loop(a0, a1, a2, a3);
+#endif
+
+#ifdef CURVE_MNT4
+        const auto
+            a0 = mnt4_ate_precompute_G1(m_g1_0A),
+            a2 = mnt4_ate_precompute_G1(m_g1_2A);
+
+        const auto
+            a1 = mnt4_ate_precompute_G2(m_g2_1A),
+            a3 = mnt4_ate_precompute_G2(m_g2_3A);
+
+        const auto a = mnt4_ate_double_miller_loop(a0, a1, a2, a3);
+#endif
+
 #ifdef CURVE_EDWARDS
         const auto
             a0 = edwards_ate_precompute_G1(m_g1_0A),
@@ -323,6 +511,14 @@ public:
     {}
 
     void runTest() {
+#ifdef CURVE_MNT6
+        const auto a = mnt6_final_exponentiation(m_A);
+#endif
+
+#ifdef CURVE_MNT4
+        const auto a = mnt4_final_exponentiation(m_A);
+#endif
+
 #ifdef CURVE_EDWARDS
         const auto a = edwards_final_exponentiation(m_A);
 #endif
