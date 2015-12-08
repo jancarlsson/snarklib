@@ -11,7 +11,7 @@
 namespace snarklib {
 
 ////////////////////////////////////////////////////////////////////////////////
-// Elliptic curves for: Barreto-Naehrig (128 bits); Edwards (80 bits)
+// Elliptic curves for: Barreto-Naehrig (128 bits); Edwards (80 bits); MNT4/6
 //
 
 // base for initializing field parameters
@@ -26,11 +26,13 @@ public:
 
     // Fp2   is F[p^2] using modulus Q
     // Fp3   is F[p^3] using modulus Q
+    // Fp4   is F[p^4] using modulus Q
     // Fp23  is F[(p^2)^3] using modulus Q
     // Fp32  is F[(p^3)^2] using modulus Q
     // Fp232 is F[((p^2)^3)^2] using modulus Q
     typedef Field<FpBase, 2> Fp2;
     typedef Field<FpBase, 3> Fp3;
+    typedef Field<FpBase, 4> Fp4; // used by MNT4
     typedef Field<Field<FpBase, 2>, 3> Fp23;
     typedef Field<Field<FpBase, 3>, 2> Fp32;
     typedef Field<Field<Field<FpBase, 2>, 3>, 2> Fp232;
@@ -68,6 +70,7 @@ public:
     typedef Field<FpBaseQ> Fq;
     typedef Field<FpBaseQ, 2> Fq2;
     typedef Field<FpBaseQ, 3> Fq3;
+    typedef Field<FpBaseQ, 4> Fq4; // used by MNT4
     typedef Field<Field<FpBaseQ, 2>, 3> Fq23;
     typedef Field<Field<FpBaseQ, 3>, 2> Fq32;
     typedef Field<Field<Field<FpBaseQ, 2>, 3>, 2> Fq232;
@@ -75,17 +78,29 @@ public:
 
 } // namespace snarklib
 
-#include "EC_BN128_Modulus.hpp"
-#include "EC_BN128_InitFields.hpp"
-#include "EC_BN128_GroupCurve.hpp"
-#include "EC_BN128_InitGroups.hpp"
-#include "EC_BN128_Pairing.hpp"
+#include <snarklib/EC_BN128_Modulus.hpp>
+#include <snarklib/EC_BN128_InitFields.hpp>
+#include <snarklib/EC_BN128_GroupCurve.hpp>
+#include <snarklib/EC_BN128_InitGroups.hpp>
+#include <snarklib/EC_BN128_Pairing.hpp>
 
-#include "EC_Edwards_Modulus.hpp"
-#include "EC_Edwards_InitFields.hpp"
-#include "EC_Edwards_GroupCurve.hpp"
-#include "EC_Edwards_InitGroups.hpp"
-#include "EC_Edwards_Pairing.hpp"
+#include <snarklib/EC_Edwards_Modulus.hpp>
+#include <snarklib/EC_Edwards_InitFields.hpp>
+#include <snarklib/EC_Edwards_GroupCurve.hpp>
+#include <snarklib/EC_Edwards_InitGroups.hpp>
+#include <snarklib/EC_Edwards_Pairing.hpp>
+
+#include <snarklib/EC_MNT4_Modulus.hpp>
+#include <snarklib/EC_MNT4_InitFields.hpp>
+#include <snarklib/EC_MNT4_GroupCurve.hpp>
+#include <snarklib/EC_MNT4_InitGroups.hpp>
+#include <snarklib/EC_MNT4_Pairing.hpp>
+
+#include <snarklib/EC_MNT6_Modulus.hpp>
+#include <snarklib/EC_MNT6_InitFields.hpp>
+#include <snarklib/EC_MNT6_GroupCurve.hpp>
+#include <snarklib/EC_MNT6_InitGroups.hpp>
+#include <snarklib/EC_MNT6_Pairing.hpp>
 
 namespace snarklib {
 
@@ -113,6 +128,32 @@ struct Edwards : public Edwards_Modulus
 
     template <mp_size_t N, const BigInt<N>& MODULUS_R, const BigInt<N>& MODULUS_Q>
     using Pairing = Edwards_Pairing<N, MODULUS_R, MODULUS_Q>;
+};
+
+// convenience aliases for MNT4
+struct MNT4 : public MNT4_Modulus
+{
+    template <mp_size_t N, const BigInt<N>& MODULUS>
+    using Fields = MNT4_InitFields<N, MODULUS>;
+
+    template <mp_size_t N, const BigInt<N>& MODULUS_R, const BigInt<N>& MODULUS_Q>
+    using Groups = MNT4_InitGroups<N, MODULUS_R, MODULUS_Q>;
+
+    template <mp_size_t N, const BigInt<N>& MODULUS_R, const BigInt<N>& MODULUS_Q>
+    using Pairing = MNT4_Pairing<N, MODULUS_R, MODULUS_Q>;
+};
+
+// convenience aliases for MNT6
+struct MNT6 : public MNT6_Modulus
+{
+    template <mp_size_t N, const BigInt<N>& MODULUS>
+    using Fields = MNT6_InitFields<N, MODULUS>;
+
+    template <mp_size_t N, const BigInt<N>& MODULUS_R, const BigInt<N>& MODULUS_Q>
+    using Groups = MNT6_InitGroups<N, MODULUS_R, MODULUS_Q>;
+
+    template <mp_size_t N, const BigInt<N>& MODULUS_R, const BigInt<N>& MODULUS_Q>
+    using Pairing = MNT6_Pairing<N, MODULUS_R, MODULUS_Q>;
 };
 
 } // namespace snarklib
