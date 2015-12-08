@@ -12,10 +12,10 @@ namespace snarklib {
 // Elliptic curve pairing templated functions
 //
 
-template <typename T, typename G, typename P>
+template <typename T, typename B, typename C, typename P>
 void precompLoop(std::vector<T>& coeffs,
-                 const G& Q,
-                 G& R,
+                 const B& Q,
+                 C& R,
                  P& PAIRING)
 {
     const auto& loop_count = PAIRING.ate_loop_count();
@@ -58,10 +58,10 @@ typename P::GT millerLoop(const typename P::G1_precomp& prec_P,
             continue;
         }
 
-        f = PAIRING.millerMul(squared(f), prec_P, prec_Q.coeffs[idx++]);
+        f = PAIRING.millerMul(squared(f), prec_P, prec_Q, prec_Q.coeffs[idx++]);
 
         if (bit) {
-            f = PAIRING.millerMulBit(f, prec_P, prec_Q.coeffs[idx++]);
+            f = PAIRING.millerMulBit(f, prec_P, prec_Q, prec_Q.coeffs[idx++]);
         }
     }
 
@@ -91,13 +91,13 @@ typename P::GT doubleMillerLoop(const typename P::G1_precomp& prec_P1,
             continue;
         }
 
-        f = PAIRING.millerMul(squared(f), prec_P1, prec_Q1.coeffs[idx]);
-        f = PAIRING.millerMul(f, prec_P2, prec_Q2.coeffs[idx]);
+        f = PAIRING.millerMul(squared(f), prec_P1, prec_Q1, prec_Q1.coeffs[idx]);
+        f = PAIRING.millerMul(f, prec_P2, prec_Q2, prec_Q2.coeffs[idx]);
         ++idx;
 
         if (bit) {
-            f = PAIRING.millerMulBit(f, prec_P1, prec_Q1.coeffs[idx]);
-            f = PAIRING.millerMulBit(f, prec_P2, prec_Q2.coeffs[idx]);
+            f = PAIRING.millerMulBit(f, prec_P1, prec_Q1, prec_Q1.coeffs[idx]);
+            f = PAIRING.millerMulBit(f, prec_P2, prec_Q2, prec_Q2.coeffs[idx]);
             ++idx;
         }
     }
