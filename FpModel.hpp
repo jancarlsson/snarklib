@@ -55,7 +55,7 @@ public:
     class Params
     {
     public:
-        // used by: Fp, Fp2, Fp3
+        // used by: Fp, Fp2, Fp3, Fp4 (MNT4)
 
         // num_bits
         std::size_t num_bits() const {
@@ -81,6 +81,22 @@ public:
             m_t_minus_1_over_2 = a;
         }
 
+        // euler (MNT4/6)
+        const BigInt<T::dimension() * N>& euler() const {
+            return m_euler;
+        }
+        void euler(const char* a) {
+            m_euler = a;
+        }
+
+        // t (MNT4/6)
+        const BigInt<T::dimension() * N>& t() const {
+            return m_t;
+        }
+        void t(const char* a) {
+            m_t = a;
+        }
+
         // nqr_to_t
         const T& nqr_to_t() const {
             return m_nqr_to_t;
@@ -96,6 +112,23 @@ public:
         }
         void nqr_to_t(const char* a, const char* b, const char* c) {
             nqr_to_t(T(a, b, c));
+        }
+
+        // nqr (MNT4/6)
+        const T& nqr() const {
+            return m_nqr;
+        }
+        void nqr(const T& a) {
+            m_nqr = a;
+        }
+        void nqr(const char* a) {
+            nqr(T(a));
+        }
+        void nqr(const char* a, const char* b) {
+            nqr(T(a, b));
+        }
+        void nqr(const char* a, const char* b, const char* c) {
+            nqr(T(a, b, c));
         }
 
         // used by: FpModel
@@ -130,6 +163,7 @@ public:
         // Fp      none                    1      1
         // Fp2     Fp                      1      2
         // Fp3     Fp                      1      3
+        // Fp4     Fp                      1      4
         // Fp23    Fp2                     2      2
         // Fp32    Fp                      2      3
         // Fp232   Fp2                     3      2
@@ -212,16 +246,21 @@ public:
         }
 
     private:
-        // used by: Fp, Fp2, Fp3
+        // used by: Fp, Fp2, Fp3, Fp4 (MNT4)
         std::size_t m_num_bits, m_s;
-        BigInt<T::dimension() * N> m_t_minus_1_over_2; // used for sqrt
-        static T m_nqr_to_t;
+        BigInt<T::dimension() * N>
+            m_t_minus_1_over_2, // used for sqrt
+            m_euler,            // used by MNT4/6
+            m_t;                // used by MNT4/6
+        static T
+            m_nqr_to_t,
+            m_nqr;              // used by MNT4/6
 
         // used by: FpModel
         BigInt<N> m_Rsquared, m_Rcubed;
         mp_limb_t m_inv;
 
-        // used by: Fp2, Fp3, Fp23, Fp32, Fp232
+        // used by: Fp2, Fp3, Fp4 (MNT4), Fp23, Fp32, Fp232
         static
         FNRF
             m_non_residue,
@@ -472,6 +511,10 @@ private:
 template <mp_size_t N, const BigInt<N>& MODULUS>
 template <typename T>
 T FpModel<N, MODULUS>::Params<T>::m_nqr_to_t;
+
+template <mp_size_t N, const BigInt<N>& MODULUS>
+template <typename T>
+T FpModel<N, MODULUS>::Params<T>::m_nqr;
 
 template <mp_size_t N, const BigInt<N>& MODULUS>
 template <typename T>
