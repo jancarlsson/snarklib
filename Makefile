@@ -20,6 +20,16 @@ LIBRARY_FILES = \
 	EC_Edwards_InitGroups.hpp \
 	EC_Edwards_Modulus.hpp \
 	EC_Edwards_Pairing.hpp \
+	EC_MNT4_GroupCurve.hpp \
+	EC_MNT4_InitFields.hpp \
+	EC_MNT4_InitGroups.hpp \
+	EC_MNT4_Modulus.hpp \
+	EC_MNT4_Pairing.hpp \
+	EC_MNT6_GroupCurve.hpp \
+	EC_MNT6_InitFields.hpp \
+	EC_MNT6_InitGroups.hpp \
+	EC_MNT6_Modulus.hpp \
+	EC_MNT6_Pairing.hpp \
 	EC.hpp \
 	EC_Pairing.hpp \
 	Field.hpp \
@@ -57,6 +67,8 @@ default :
 	@echo make autotest_edwards LIBSNARK_PREFIX=\<path\>
 	@echo make autotest_edwards_2015 LIBSNARK_PREFIX=\<path\>
 	@echo make autotest_edwards_2014 LIBSNARK_PREFIX=\<path\>
+	@echo make autotest_mnt4 LIBSNARK_PREFIX=\<path\>
+	@echo make autotest_mnt6 LIBSNARK_PREFIX=\<path\>
 	@echo make install PREFIX=\<path\>
 	@echo make doc
 	@echo make clean
@@ -87,6 +99,8 @@ CLEAN_FILES = \
 	autotest_edwards \
 	autotest_edwards_2015 \
 	autotest_edwards_2014 \
+	autotest_mnt4 \
+	autotest_mnt6 \
 	README.html
 
 clean :
@@ -170,4 +184,52 @@ autotest_edwards_2015 : autotest.cpp $(LIBRARY_FILES) snarklib
 autotest_edwards_2014 : autotest.cpp $(LIBRARY_FILES) snarklib
 	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_EDWARDS) -DUSE_OLD_LIBSNARK -DDISABLE_PARNO_SOUNDNESS_FIX $< -o autotest_edwards.o
 	$(CXX) -o $@ autotest_edwards.o $(LDFLAGS_CURVE_EDWARDS)
+endif
+
+
+################################################################################
+# CURVE_MNT4
+#
+
+ifeq ($(LIBSNARK_PREFIX),)
+autotest_mnt4 :
+	$(error Please provide LIBSNARK_PREFIX, e.g. make autotest_mnt4 LIBSNARK_PREFIX=/usr/local)
+else
+CXXFLAGS_CURVE_MNT4 = \
+	-I. -I$(LIBSNARK_PREFIX)/include/libsnark \
+	-DCURVE_MNT4 -DUSE_ASM -DUSE_ADD_SPECIAL -DUSE_ASSERT
+
+LDFLAGS_CURVE_MNT4 = \
+	-L$(LIBSNARK_PREFIX)/lib \
+	-Wl,-rpath $(LIBSNARK_PREFIX)/lib \
+	-lgmpxx -lgmp -lsnark
+
+# use latest version of libsnark
+autotest_mnt4 : autotest.cpp $(LIBRARY_FILES) snarklib
+	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_MNT4) -DUSE_MIXED_ADDITION -DMONTGOMERY_OUTPUT $< -o autotest_mnt4.o
+	$(CXX) -o $@ autotest_mnt4.o $(LDFLAGS_CURVE_MNT4) -lprocps
+endif
+
+
+################################################################################
+# CURVE_MNT6
+#
+
+ifeq ($(LIBSNARK_PREFIX),)
+autotest_mnt6 :
+	$(error Please provide LIBSNARK_PREFIX, e.g. make autotest_mnt6 LIBSNARK_PREFIX=/usr/local)
+else
+CXXFLAGS_CURVE_MNT6 = \
+	-I. -I$(LIBSNARK_PREFIX)/include/libsnark \
+	-DCURVE_MNT6 -DUSE_ASM -DUSE_ADD_SPECIAL -DUSE_ASSERT
+
+LDFLAGS_CURVE_MNT6 = \
+	-L$(LIBSNARK_PREFIX)/lib \
+	-Wl,-rpath $(LIBSNARK_PREFIX)/lib \
+	-lgmpxx -lgmp -lsnark
+
+# use latest version of libsnark
+autotest_mnt6 : autotest.cpp $(LIBRARY_FILES) snarklib
+	$(CXX) -c $(CXXFLAGS) $(CXXFLAGS_CURVE_MNT6) -DUSE_MIXED_ADDITION -DMONTGOMERY_OUTPUT $< -o autotest_mnt6.o
+	$(CXX) -o $@ autotest_mnt6.o $(LDFLAGS_CURVE_MNT6) -lprocps
 endif
