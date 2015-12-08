@@ -76,6 +76,11 @@ public:
         : Field(std::array<T, 3>{ T(a), T(b), T(c) })
     {}
 
+    template <typename X>
+    Field(const X& a, const X& b, const X& c, const X& d)
+        : Field(std::array<T, 4>{ T(a), T(b), T(c), T(d) })
+    {}
+
     Field(const char* a)
         : Field{{T(a)}}
     {}
@@ -86,6 +91,10 @@ public:
 
     Field(const char* a, const char* b, const char* c)
         : Field{{T(a), T(b), T(c)}}
+    {}
+
+    Field(const char* a, const char* b, const char* c, const char* d)
+        : Field{{T(a), T(b), T(c), T(d)}}
     {}
 
     // breaks encapsulation, avoids need for friend functions
