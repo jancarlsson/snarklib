@@ -230,6 +230,206 @@ Frobenius_map(const Field<FpModel<N, MODULUS>, 3>& x,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// F[p^4]
+//
+
+// multiply by non-residue
+template <mp_size_t N, const BigInt<N>& MODULUS>
+Field<FpModel<N, MODULUS>, 2>
+mul_by_non_residue_Fp4(const Field<FpModel<N, MODULUS>, 2>& elt)
+{
+    return {
+        Field<FpModel<N, MODULUS>, 4>::params.non_residue()[0] * elt[1],
+        elt[0]
+    };
+}
+
+// multiplication in-place: F[p^4] *= F[p^4]
+template <mp_size_t N, const BigInt<N>& MODULUS>
+Field<FpModel<N, MODULUS>, 4>&
+operator*= (Field<FpModel<N, MODULUS>, 4>& x,
+            const Field<FpModel<N, MODULUS>, 4>& y)
+{
+    const Field<FpModel<N, MODULUS>, 2>
+        a(x[0], x[1]),
+        b(x[2], x[3]),
+        A(y[0], y[1]),
+        B(y[2], y[3]);
+
+    const auto
+        aA = a * A,
+        bB = b * B;
+
+    const auto
+        c0 = aA + mul_by_non_residue_Fp4(bB),
+        c1 = (a + b) * (A + B) - aA - bB;
+
+    return x = {
+        c0[0],
+        c0[1],
+        c1[0],
+        c1[1]
+    };
+}
+
+// multiplication: F[p^4] = F[p] * F[p^4]
+template <mp_size_t N, const BigInt<N>& MODULUS>
+Field<FpModel<N, MODULUS>, 4>
+operator* (const Field<FpModel<N, MODULUS>, 1>& x,
+           const Field<FpModel<N, MODULUS>, 4>& y)
+{
+    return {
+        x[0] * y[0],
+        x[0] * y[1],
+        x[0] * y[2],
+        x[0] * y[3]
+    };
+}
+
+// squaring
+template <mp_size_t N, const BigInt<N>& MODULUS>
+Field<FpModel<N, MODULUS>, 4>
+squared(const Field<FpModel<N, MODULUS>, 4>& x)
+{
+    const Field<FpModel<N, MODULUS>, 2>
+        a(x[0], x[1]),
+        b(x[2], x[3]);
+
+    const auto ab = a * b;
+
+    const auto
+        c0 = (a + b) * (a + mul_by_non_residue_Fp4(b)) - ab - mul_by_non_residue_Fp4(ab),
+        c1 = ab + ab;
+
+    return {
+        c0[0],
+        c0[1],
+        c1[0],
+        c1[1]
+    };
+}
+
+// inverse
+template <mp_size_t N, const BigInt<N>& MODULUS>
+Field<FpModel<N, MODULUS>, 4>
+inverse(const Field<FpModel<N, MODULUS>, 4>& x)
+{
+    const Field<FpModel<N, MODULUS>, 2>
+        a(x[0], x[1]),
+        b(x[2], x[3]);
+
+    const auto t1 = squared(b);
+    const auto t0 = squared(a) - mul_by_non_residue_Fp4(t1);
+    const auto new_t1 = inverse(t0);
+
+    const auto
+        c0 = a * new_t1,
+        c1 = - (b * new_t1);
+
+    return {
+        c0[0],
+        c0[1],
+        c1[0],
+        c1[1]
+    };
+}
+
+// Frobenius map
+template <mp_size_t N, const BigInt<N>& MODULUS>
+Field<FpModel<N, MODULUS>, 4>
+Frobenius_map(const Field<FpModel<N, MODULUS>, 4>& x,
+              const unsigned long pow)
+{
+    const Field<FpModel<N, MODULUS>, 2>
+        a(x[0], x[1]),
+        b(x[2], x[3]);
+
+    const auto
+        c0 = Frobenius_map(a, pow),
+        c1 = Field<FpModel<N, MODULUS>, 4>::params.Frobenius_coeffs_c1(pow % 4) * Frobenius_map(b, pow);
+
+    return {
+        c0[0],
+        c0[1],
+        c1[0],
+        c1[1]
+    };
+}
+
+// unitary inverse
+template <mp_size_t N, const BigInt<N>& MODULUS>
+Field<FpModel<N, MODULUS>, 4>
+unitary_inverse(const Field<FpModel<N, MODULUS>, 4>& x)
+{
+    return {
+        x[0],
+        x[1],
+        -x[2],
+        -x[3]
+    };
+}
+
+// cyclotomic squaring
+template <mp_size_t N, const BigInt<N>& MODULUS>
+Field<FpModel<N, MODULUS>, 4>
+cyclotomic_squared(const Field<FpModel<N, MODULUS>, 4>& x)
+{
+    const Field<FpModel<N, MODULUS>, 2>
+        a(x[0], x[1]),
+        b(x[2], x[3]);
+
+    const auto
+        A = squared(b),
+        B = b + a;
+
+    const auto C = squared(B) - A;
+    const auto D = mul_by_non_residue_Fp4(A);
+    const auto E = C - D;
+
+    const auto
+        F = D + D + Field<FpModel<N, MODULUS>, 2>::one(),
+        G = E - Field<FpModel<N, MODULUS>, 2>::one();
+
+    return {
+        F[0],
+        F[1],
+        G[0],
+        G[1]
+    };
+}
+
+// cyclotomic exponentiation
+template <mp_size_t N, const BigInt<N>& MODULUS, mp_size_t M>
+Field<FpModel<N, MODULUS>, 4>
+cyclotomic_exp(const Field<FpModel<N, MODULUS>, 4>& base,
+               const BigInt<M>& exponent)
+{
+    auto res = Field<FpModel<N, MODULUS>, 4>::one();
+    const auto base_inverse = unitary_inverse(base);
+
+    bool found_nonzero = false;
+    const auto NAF = find_wNAF(1, exponent);
+
+    for (long i = NAF.size() - 1; i >= 0; --i) {
+        if (found_nonzero) {
+            res = cyclotomic_squared(res);
+        }
+
+        if (0 != NAF[i]) {
+            found_nonzero = true;
+
+            if (NAF[i] > 0) {
+                res = res * base;
+            } else {
+                res = res * base_inverse;
+            }
+        }
+    }
+
+    return res;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // F[(p^2)^3]
 //
 
