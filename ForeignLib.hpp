@@ -7,41 +7,48 @@
 #include <sstream>
 #include <vector>
 
-#include /*libsnark*/ "algebra/curves/alt_bn128/alt_bn128_g1.hpp"
-#include /*libsnark*/ "algebra/curves/alt_bn128/alt_bn128_g2.hpp"
-#include /*libsnark*/ "algebra/curves/edwards/edwards_g1.hpp"
-#include /*libsnark*/ "algebra/curves/edwards/edwards_g2.hpp"
-#include /*libsnark*/ "algebra/fields/bigint.hpp"
-#include /*libsnark*/ "algebra/fields/fp.hpp"
-#include /*libsnark*/ "algebra/fields/fp2.hpp"
-#include /*libsnark*/ "algebra/fields/fp3.hpp"
-#include /*libsnark*/ "algebra/fields/fp6_2over3.hpp"
-#include /*libsnark*/ "algebra/fields/fp6_3over2.hpp"
-#include /*libsnark*/ "algebra/fields/fp12_2over3over2.hpp"
-
-#ifdef USE_OLD_LIBSNARK
-#include /*libsnark*/ "common/types.hpp"
-#include /*libsnark*/ "r1cs_ppzksnark/r1cs_ppzksnark/hpp"
-#include /*libsnark*/ "encoding/knowledge_commitment.hpp"
-#include /*libsnark*/ "r1cs/r1cs.hpp"
-#else
-#include /*libsnark*/ "common/default_types/ec_pp.hpp"
-#include /*libsnark*/ "zk_proof_systems/ppzksnark/r1cs_ppzksnark/r1cs_ppzksnark.hpp"
-#include /*libsnark*/ "algebra/knowledge_commitment/knowledge_commitment.hpp"
-#include /*libsnark*/ "relations/constraint_satisfaction_problems/r1cs/r1cs.hpp"
+#include /*libsnark*/ <algebra/curves/alt_bn128/alt_bn128_g1.hpp>
+#include /*libsnark*/ <algebra/curves/alt_bn128/alt_bn128_g2.hpp>
+#include /*libsnark*/ <algebra/curves/edwards/edwards_g1.hpp>
+#include /*libsnark*/ <algebra/curves/edwards/edwards_g2.hpp>
+#ifndef USE_OLD_LIBSNARK
+#include /*libsnark*/ <algebra/curves/mnt/mnt4/mnt4_g1.hpp>
+#include /*libsnark*/ <algebra/curves/mnt/mnt4/mnt4_g2.hpp>
+#include /*libsnark*/ <algebra/curves/mnt/mnt6/mnt6_g1.hpp>
+#include /*libsnark*/ <algebra/curves/mnt/mnt6/mnt6_g2.hpp>
 #endif
 
-#include "snarklib/AuxSTL.hpp"
-#include "snarklib/BigInt.hpp"
-#include "snarklib/EC.hpp"
-#include "snarklib/Field.hpp"
-#include "snarklib/FpModel.hpp"
-#include "snarklib/Group.hpp"
-#include "snarklib/Pairing.hpp"
-#include "snarklib/Rank1DSL.hpp"
-#include "snarklib/PPZK_keypair.hpp"
-#include "snarklib/PPZK_query.hpp"
-#include "snarklib/PPZK_proof.hpp"
+#include /*libsnark*/ <algebra/fields/bigint.hpp>
+#include /*libsnark*/ <algebra/fields/fp.hpp>
+#include /*libsnark*/ <algebra/fields/fp2.hpp>
+#include /*libsnark*/ <algebra/fields/fp3.hpp>
+#include /*libsnark*/ <algebra/fields/fp6_2over3.hpp>
+#include /*libsnark*/ <algebra/fields/fp6_3over2.hpp>
+#include /*libsnark*/ <algebra/fields/fp12_2over3over2.hpp>
+
+#ifdef USE_OLD_LIBSNARK
+#include /*libsnark*/ <common/types.hpp>
+#include /*libsnark*/ <r1cs_ppzksnark/r1cs_ppzksnark/hpp>
+#include /*libsnark*/ <encoding/knowledge_commitment.hpp>
+#include /*libsnark*/ <r1cs/r1cs.hpp>
+#else
+#include /*libsnark*/ <common/default_types/ec_pp.hpp>
+#include /*libsnark*/ <zk_proof_systems/ppzksnark/r1cs_ppzksnark/r1cs_ppzksnark.hpp>
+#include /*libsnark*/ <algebra/knowledge_commitment/knowledge_commitment.hpp>
+#include /*libsnark*/ <relations/constraint_satisfaction_problems/r1cs/r1cs.hpp>
+#endif
+
+#include <snarklib/AuxSTL.hpp>
+#include <snarklib/BigInt.hpp>
+#include <snarklib/EC.hpp>
+#include <snarklib/Field.hpp>
+#include <snarklib/FpModel.hpp>
+#include <snarklib/Group.hpp>
+#include <snarklib/Pairing.hpp>
+#include <snarklib/Rank1DSL.hpp>
+#include <snarklib/PPZK_keypair.hpp>
+#include <snarklib/PPZK_query.hpp>
+#include <snarklib/PPZK_proof.hpp>
 
 namespace snarklib {
 
@@ -185,6 +192,32 @@ template <mp_size_t N,
 bool equal_libsnark(
     const Field<FpModel<N, MODULUS_B>, 3>& b,
     const libsnark::Fp3_model<N, MODULUS_A>& a)
+{
+    return equal_libsnark(a, b);
+}
+
+//
+// Fp4_model == Field<FpModel, 4>
+//
+
+template <mp_size_t N,
+          const libsnark::bigint<N>& MODULUS_A,
+          const BigInt<N>& MODULUS_B>
+bool equal_libsnark(
+    const libsnark::Fp4_model<N, MODULUS_A>& a,
+    const Field<FpModel<N, MODULUS_B>, 4>& b)
+{
+    return
+        equal_libsnark(a.c0, Field<FpModel<N, MODULUS_B>, 2>(b[0], b[1])) &&
+        equal_libsnark(a.c1, Field<FpModel<N, MODULUS_B>, 2>(b[2], b[3]));
+}
+
+template <mp_size_t N,
+          const BigInt<N>& MODULUS_B,
+          const libsnark::bigint<N>& MODULUS_A>
+bool equal_libsnark(
+    const Field<FpModel<N, MODULUS_B>, 4>& b,
+    const libsnark::Fp4_model<N, MODULUS_A>& a)
 {
     return equal_libsnark(a, b);
 }
@@ -360,6 +393,100 @@ bool equal_libsnark(
     return equal_libsnark(a, b);
 }
 
+#ifndef USE_OLD_LIBSNARK
+//
+// mnt4_G1 == MNT4::Groups<>::G1
+//
+
+template <typename GROUP>
+bool equal_libsnark(
+    const libsnark::mnt4_G1& a,
+    const GROUP& b)
+{
+    return
+        equal_libsnark(a.X(), b.x()) &&
+        equal_libsnark(a.Y(), b.y()) &&
+        equal_libsnark(a.Z(), b.z());
+}
+
+template <typename GROUP>
+bool equal_libsnark(
+    const GROUP& b,
+    const libsnark::mnt4_G1& a)
+{
+    return equal_libsnark(a, b);
+}
+
+//
+// mnt4_G2 == MNT4::Groups<>::G2
+//
+
+template <typename GROUP>
+bool equal_libsnark(
+    const libsnark::mnt4_G2& a,
+    const GROUP& b)
+{
+    return
+        equal_libsnark(a.X(), b.x()) &&
+        equal_libsnark(a.Y(), b.y()) &&
+        equal_libsnark(a.Z(), b.z());
+}
+
+template <typename GROUP>
+bool equal_libsnark(
+    const GROUP& b,
+    const libsnark::mnt4_G2& a)
+{
+    return equal_libsnark(a, b);
+}
+
+//
+// mnt6_G1 == MNT6::Groups<>::G1
+//
+
+template <typename GROUP>
+bool equal_libsnark(
+    const libsnark::mnt6_G1& a,
+    const GROUP& b)
+{
+    return
+        equal_libsnark(a.X(), b.x()) &&
+        equal_libsnark(a.Y(), b.y()) &&
+        equal_libsnark(a.Z(), b.z());
+}
+
+template <typename GROUP>
+bool equal_libsnark(
+    const GROUP& b,
+    const libsnark::mnt6_G1& a)
+{
+    return equal_libsnark(a, b);
+}
+
+//
+// mnt6_G2 == MNT6::Groups<>::G2
+//
+
+template <typename GROUP>
+bool equal_libsnark(
+    const libsnark::mnt6_G2& a,
+    const GROUP& b)
+{
+    return
+        equal_libsnark(a.X(), b.x()) &&
+        equal_libsnark(a.Y(), b.y()) &&
+        equal_libsnark(a.Z(), b.z());
+}
+
+template <typename GROUP>
+bool equal_libsnark(
+    const GROUP& b,
+    const libsnark::mnt6_G2& a)
+{
+    return equal_libsnark(a, b);
+}
+#endif
+
 //
 // knowledge_commitment<> == Pairing<>
 //
@@ -467,6 +594,7 @@ void copy_libsnark(
 DEFN_COPY_DATA_M2F(Fp_model<N COMMA MA>, Field<FpModel<N COMMA MB>>)
 DEFN_COPY_DATA_M2F(Fp2_model<N COMMA MA>, Field<FpModel<N COMMA MB> COMMA 2>)
 DEFN_COPY_DATA_M2F(Fp3_model<N COMMA MA>, Field<FpModel<N COMMA MB> COMMA 3>)
+DEFN_COPY_DATA_M2F(Fp4_model<N COMMA MA>, Field<FpModel<N COMMA MB> COMMA 4>)
 
 // special case for libsnark Fp32 model to snarklib Field<>
 #ifdef USE_OLD_LIBSNARK
@@ -518,6 +646,7 @@ DEFN_COPY_DATA_M2F(Fp12_2over3over2_model<N COMMA MA>, Field<Field<Field<FpModel
 DEFN_COPY_DATA_F2M(Field<FpModel<N COMMA MA>>, Fp_model<N COMMA MB>)
 DEFN_COPY_DATA_F2M(Field<FpModel<N COMMA MA> COMMA 2>, Fp2_model<N COMMA MB>)
 DEFN_COPY_DATA_F2M(Field<FpModel<N COMMA MA> COMMA 3>, Fp3_model<N COMMA MB>)
+DEFN_COPY_DATA_F2M(Field<FpModel<N COMMA MA> COMMA 4>, Fp4_model<N COMMA MB>)
 
 // special case for snarklib Field<> to libsnark Fp32 model
 #ifdef USE_OLD_LIBSNARK
@@ -548,29 +677,44 @@ DEFN_COPY_DATA_F2M(Field<Field<Field<FpModel<N COMMA MA> COMMA 2> COMMA 3> COMMA
 
 #undef DEFN_COPY_DATA_F2M
 
+#undef COMMA
+
 //
 // from libsnark elliptic curve group to snarklib Group<>
 //
 
-#define DEFN_COPY_DATA_M2G(A)                           \
+#define DEFN_COPY_DATA_M2G(A, PARENS)                   \
     template <typename GROUP>                           \
     void copy_libsnark(                                 \
         const libsnark:: A & a,                         \
         GROUP& b)                                       \
     {                                                   \
         typename GROUP::BaseField tmp;                  \
-        copy_libsnark(a.X, tmp);                        \
+        copy_libsnark(a.X PARENS, tmp);                 \
         b.x(tmp);                                       \
-        copy_libsnark(a.Y, tmp);                        \
+        copy_libsnark(a.Y PARENS, tmp);                 \
         b.y(tmp);                                       \
-        copy_libsnark(a.Z, tmp);                        \
+        copy_libsnark(a.Z PARENS, tmp);                 \
         b.z(tmp);                                       \
     }
 
-DEFN_COPY_DATA_M2G(alt_bn128_G1)
-DEFN_COPY_DATA_M2G(alt_bn128_G2)
-DEFN_COPY_DATA_M2G(edwards_G1)
-DEFN_COPY_DATA_M2G(edwards_G2)
+DEFN_COPY_DATA_M2G(alt_bn128_G1,)
+DEFN_COPY_DATA_M2G(alt_bn128_G2,)
+DEFN_COPY_DATA_M2G(edwards_G1,)
+DEFN_COPY_DATA_M2G(edwards_G2,)
+
+#ifndef USE_OLD_LIBSNARK
+
+#define OPEN_CLOSE_PARENS ()
+
+DEFN_COPY_DATA_M2G(mnt4_G1, OPEN_CLOSE_PARENS)
+DEFN_COPY_DATA_M2G(mnt4_G2, OPEN_CLOSE_PARENS)
+DEFN_COPY_DATA_M2G(mnt6_G1, OPEN_CLOSE_PARENS)
+DEFN_COPY_DATA_M2G(mnt6_G2, OPEN_CLOSE_PARENS)
+
+#undef OPEN_CLOSE_PARENS
+
+#endif
 
 #undef DEFN_COPY_DATA_M2G
 
@@ -578,7 +722,7 @@ DEFN_COPY_DATA_M2G(edwards_G2)
 // from snarklib Group<> to libsnark elliptic curve group
 //
 
-#define DEFN_COPY_DATA_G2M(B)                           \
+#define DEFN_COPY_DATA_G2M_MEMBERWISE(B)                \
     template <typename GROUP>                           \
     void copy_libsnark(                                 \
         const GROUP& a,                                 \
@@ -589,14 +733,36 @@ DEFN_COPY_DATA_M2G(edwards_G2)
         copy_libsnark(a.z(), b.Z);                      \
     }
 
-DEFN_COPY_DATA_G2M(alt_bn128_G1)
-DEFN_COPY_DATA_G2M(alt_bn128_G2)
-DEFN_COPY_DATA_G2M(edwards_G1)
-DEFN_COPY_DATA_G2M(edwards_G2)
+DEFN_COPY_DATA_G2M_MEMBERWISE(alt_bn128_G1)
+DEFN_COPY_DATA_G2M_MEMBERWISE(alt_bn128_G2)
+DEFN_COPY_DATA_G2M_MEMBERWISE(edwards_G1)
+DEFN_COPY_DATA_G2M_MEMBERWISE(edwards_G2)
 
 #undef DEFN_COPY_DATA_G2M
 
-#undef COMMA
+#ifndef USE_OLD_LIBSNARK
+
+#define DEFN_COPY_DATA_G2M_ASSIGNMENT(B)                \
+    template <typename GROUP>                           \
+    void copy_libsnark(                                 \
+        const GROUP& a,                                 \
+        libsnark:: B & b)                               \
+    {                                                   \
+        decltype(b.X()) x;                              \
+        decltype(b.Y()) y;                              \
+        decltype(b.Z()) z;                              \
+        copy_libsnark(a.x(), x);                        \
+        copy_libsnark(a.y(), y);                        \
+        copy_libsnark(a.z(), z);                        \
+        b = libsnark:: B (x, y, z);                     \
+    }
+
+DEFN_COPY_DATA_G2M_ASSIGNMENT(mnt4_G1)
+DEFN_COPY_DATA_G2M_ASSIGNMENT(mnt4_G2)
+DEFN_COPY_DATA_G2M_ASSIGNMENT(mnt6_G1)
+DEFN_COPY_DATA_G2M_ASSIGNMENT(mnt6_G2)
+
+#endif
 
 //
 // from libsnark group vector to snarklib vector
